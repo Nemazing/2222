@@ -553,4 +553,605 @@
       makeWindow( 4.67, 3.0, -18, -Math.PI/2);
 
       // Дверь (приоткрыта)
-      const doorFrame = new
+      const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(2.0, 3.4, 0.18), darkWoodMat);
+      doorFrame.position.set(0, 2.25, -9.8);
+      doorFrame.castShadow = true;
+      g.add(doorFrame);
+      const doorPivot = new THREE.Group();
+      doorPivot.position.set(-0.95, 2.25, -9.7);
+      const doorPanel = new THREE.Mesh(new THREE.BoxGeometry(1.8, 3.2, 0.1), cabinWoodMat);
+      doorPanel.position.set(0.9, 0, 0);
+      doorPanel.castShadow = true;
+      doorPivot.add(doorPanel);
+      doorPivot.rotation.y = 0.55;
+      g.add(doorPivot);
+      const handle = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8),
+        new THREE.MeshStandardMaterial({ color: 0x6a5a40, metalness: 0.9, roughness: 0.25 }));
+      handle.position.set(0.9, 0, 0.08);
+      doorPivot.add(handle);
+
+      // Крыльцо
+      for (let i = 0; i < 3; i++) {
+        const step = new THREE.Mesh(new THREE.BoxGeometry(4, 0.18, 0.55), cabinWoodMat);
+        step.position.set(0, 0.5 - i*0.16, -9.3 + i*0.55);
+        step.castShadow = true; step.receiveShadow = true;
+        g.add(step);
+      }
+      // Перила
+      for (const x of [-1.9, 1.9]) {
+        const post1 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.2, 0.12), darkWoodMat);
+        post1.position.set(x, 0.6, -9.3); post1.castShadow = true; g.add(post1);
+        const post2 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.0, 0.12), darkWoodMat);
+        post2.position.set(x, 0.55, -8.2); post2.castShadow = true; g.add(post2);
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 1.15), darkWoodMat);
+        rail.position.set(x, 1.15, -8.75); g.add(rail);
+      }
+      const broken = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.06, 0.28), darkWoodMat);
+      broken.position.set(1.05, 0.58, -9.3);
+      broken.rotation.z = 0.42; broken.rotation.y = 0.25;
+      broken.castShadow = true;
+      g.add(broken);
+
+      const entryLight = new THREE.PointLight(0xaa8844, 0.8, 6);
+      entryLight.position.set(0, 2.5, -10.5);
+      g.add(entryLight);
+
+      return g;
+    }
+    outsideGroup.add(buildCabin());
+
+    // ============ ЗАБОР ============
+    const fenceWoodMat = new THREE.MeshStandardMaterial({ color: 0x5a4230, roughness: 0.95, map: woodTex });
+    function fenceSegment(x1, x2, z) {
+      const g = new THREE.Group();
+      const step = 1.5; const len = x2 - x1;
+      for (let x = x1; x <= x2 + 0.01; x += step) {
+        const post = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.5, 0.14), fenceWoodMat);
+        post.position.set(x, 0.75, z);
+        post.rotation.z = (Math.random() - 0.5) * 0.06;
+        post.castShadow = true;
+        g.add(post);
+      }
+      for (const y of [0.45, 1.15]) {
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(len, 0.09, 0.07), fenceWoodMat);
+        rail.position.set((x1 + x2) / 2, y, z);
+        rail.castShadow = true;
+        g.add(rail);
+      }
+      outsideGroup.add(g);
+    }
+    fenceSegment(-14, -2, -5);
+    fenceSegment( 2, 14, -5);
+    fenceSegment(-14, 14, -24);
+    for (const x of [-2, 2]) {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.24, 2.3, 0.24), fenceWoodMat);
+      post.position.set(x, 1.15, -5);
+      post.castShadow = true;
+      outsideGroup.add(post);
+    }
+
+    // ============ ДЕРЕВЬЯ ============
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x2a1c12, roughness: 1 });
+    const leavesMat = new THREE.MeshStandardMaterial({ color: 0x1a2a1a, roughness: 1 });
+    function makeTree(x, z, scale = 1) {
+      const g = new THREE.Group();
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.28, 2.6, 6), trunkMat);
+      trunk.position.y = 1.3; trunk.castShadow = true; g.add(trunk);
+      const leaf1 = new THREE.Mesh(new THREE.ConeGeometry(1.4, 2.4, 7), leavesMat);
+      leaf1.position.y = 2.8; leaf1.castShadow = true; g.add(leaf1);
+      const leaf2 = new THREE.Mesh(new THREE.ConeGeometry(1.1, 1.9, 7), leavesMat);
+      leaf2.position.y = 3.9; leaf2.castShadow = true; g.add(leaf2);
+      const leaf3 = new THREE.Mesh(new THREE.ConeGeometry(0.75, 1.4, 7), leavesMat);
+      leaf3.position.y = 4.8; leaf3.castShadow = true; g.add(leaf3);
+      g.position.set(x, 0, z);
+      g.scale.setScalar(scale);
+      g.rotation.y = Math.random() * Math.PI * 2;
+      return g;
+    }
+    const treePositions = [
+      [-12, -2, 1.2], [-10, -8, 1.4], [-13, -14, 1.1], [-9, -20, 1.3],
+      [ 12, -3, 1.3], [ 10, -9, 1.1], [ 13, -15, 1.4], [ 9, -21, 1.2],
+      [-7, -26, 1.1], [-2, -27, 1.3], [ 4, -26, 1.2], [ 8, -27, 1.4],
+      [-15, -6, 1.5], [ 15, -7, 1.4], [-16, -18, 1.2], [ 16, -19, 1.3],
+      [-6, 2, 1.0], [ 7, 3, 1.1], [-11, 5, 1.3], [ 12, 4, 1.2]
+    ];
+    treePositions.forEach(([x, z, s]) => outsideGroup.add(makeTree(x, z, s)));
+
+    // Тропинка
+    const path = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.6, 5),
+      new THREE.MeshStandardMaterial({ color: 0x201a14, roughness: 1 })
+    );
+    path.rotation.x = -Math.PI / 2;
+    path.position.set(0, 0.02, -7.5);
+    path.receiveShadow = true;
+    outsideGroup.add(path);
+
+    // Факелы
+    function makeTorch(x, z) {
+      const g = new THREE.Group();
+      const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.3, 6), fenceWoodMat);
+      stick.position.y = 0.65; stick.castShadow = true; g.add(stick);
+      const fire = new THREE.Mesh(
+        new THREE.SphereGeometry(0.2, 10, 10),
+        new THREE.MeshBasicMaterial({ color: 0xff9944 })
+      );
+      fire.position.y = 1.35; g.add(fire);
+      const light = new THREE.PointLight(0xff8833, 3.0, 8);
+      light.position.y = 1.35; g.add(light);
+      g.position.set(x, 0, z);
+      outsideGroup.add(g);
+      return { fire, light };
+    }
+    const torch1 = makeTorch(-2.4, -9.4);
+    const torch2 = makeTorch( 2.4, -9.4);
+
+    // ============ ИГРОКИ ============
+    function createPlayer(color) {
+      const g = new THREE.Group();
+      const body = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.3, 1.2, 4, 8),
+        new THREE.MeshStandardMaterial({ color, roughness: 0.9 })
+      );
+      body.position.y = 0.9; body.castShadow = true; g.add(body);
+      return g;
+    }
+    const players = [0, 1, 2].map(i => {
+      const p = createPlayer(0x4a6a4a);
+      p.position.set(-2 + i * 2, 0, 0);
+      outsideGroup.add(p); return p;
+    });
+
+    // ============ МОНСТР ============
+    const monster = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.45, 1.9, 4, 8),
+      new THREE.MeshStandardMaterial({ color: 0x1a1418, roughness: 0.7 })
+    );
+    monster.position.set(2.5, 0.95, -9.5);
+    monster.castShadow = true;
+    monster.visible = false;
+    outsideGroup.add(monster);
+
+    // ============ КОМНАТА-ЛОВУШКА ============
+    roomGroup.position.set(0, 0, -14);
+    const wetMat = new THREE.MeshStandardMaterial({
+      color: 0x3a2e26, roughness: 0.5, metalness: 0.15
+    });
+    function wetWall(w, h, d, x, y, z) {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wetMat);
+      m.position.set(x, y, z);
+      m.castShadow = true; m.receiveShadow = true;
+      roomGroup.add(m);
+    }
+    wetWall(0.1, 2.5, 3, -1.2, 1.25, 0.15);
+    wetWall(0.1, 2.5, 3,  1.2, 1.25, 0.15);
+    wetWall(2.5, 2.5, 0.1, 0, 1.25, 1.5);
+    wetWall(2.5, 0.1, 3, 0, 2.5, 0.15);
+    const roomFloor = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 3), wetMat);
+    roomFloor.rotation.x = -Math.PI / 2;
+    roomFloor.position.z = 0.15;
+    roomFloor.receiveShadow = true;
+    roomGroup.add(roomFloor);
+
+    const passage = new THREE.Mesh(
+      new THREE.PlaneGeometry(2, 2),
+      new THREE.MeshBasicMaterial({ color: 0x000000 })
+    );
+    passage.position.set(0, 1.25, -1.2);
+    roomGroup.add(passage);
+
+    // Внутренний коридор
+    const corrInnerFloor = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.7), wetMat);
+    corrInnerFloor.rotation.x = -Math.PI / 2;
+    corrInnerFloor.position.set(0, 0.01, 2.85);
+    corrInnerFloor.receiveShadow = true;
+    roomGroup.add(corrInnerFloor);
+    for (const x of [-1.2, 1.2]) {
+      const w = new THREE.Mesh(new THREE.BoxGeometry(0.1, 3, 2.7), wetMat);
+      w.position.set(x, 1.5, 2.85); w.receiveShadow = true; roomGroup.add(w);
+    }
+    const corrInnerCeil = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.1, 2.7), wetMat);
+    corrInnerCeil.position.set(0, 3, 2.85); roomGroup.add(corrInnerCeil);
+
+    // Сплошная стена (падает)
+    const sealedWall = new THREE.Mesh(
+      new THREE.BoxGeometry(2.4, 2.6, 0.2),
+      new THREE.MeshStandardMaterial({ color: 0x3a2c1e, roughness: 0.95, map: makeWallTexture() })
+    );
+    sealedWall.position.set(0, 6, -1.15);
+    sealedWall.castShadow = true; sealedWall.receiveShadow = true;
+    roomGroup.add(sealedWall);
+
+    const roomLight = new THREE.PointLight(0x6688bb, 2.5, 10);
+    roomLight.position.set(0, 2.2, 0);
+    roomGroup.add(roomLight);
+    roomGroup.visible = false;
+
+    // ============ КОРИДОР (ГЕЙМПЛЕЙ) ============
+    const corridorMat = new THREE.MeshStandardMaterial({ color: 0x3a3228, roughness: 0.9 });
+    function corrWall(w, h, d, x, y, z) {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), corridorMat);
+      m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; gameGroup.add(m); return m;
+    }
+    // Ширина коридора 4, длина 16
+    corrWall(0.2, 3, 16, -2.0, 1.5, 0);
+    corrWall(0.2, 3, 16,  2.0, 1.5, 0);
+    corrWall(4, 3, 0.2, 0, 1.5, -8);
+    corrWall(4, 0.2, 16, 0, 3, 0);
+    const corrFloor = new THREE.Mesh(
+      new THREE.PlaneGeometry(4, 16),
+      new THREE.MeshStandardMaterial({ color: 0x2a221a, roughness: 1 })
+    );
+    corrFloor.rotation.x = -Math.PI / 2;
+    corrFloor.receiveShadow = true;
+    gameGroup.add(corrFloor);
+
+    // === ДЕТАЛИ КОРИДОРА ===
+    const carpetMat = new THREE.MeshStandardMaterial({ map: makeCarpetTexture(), roughness: 1 });
+    const carpet = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 7), carpetMat);
+    carpet.rotation.x = -Math.PI / 2;
+    carpet.position.set(0, 0.02, -1);
+    gameGroup.add(carpet);
+
+    // Коллизии для столов
+    const obstacles = [];
+
+    function makeTable(x, z) {
+      const g = new THREE.Group();
+      const top = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.06, 0.6), darkWoodMat);
+      top.position.y = 0.8; top.castShadow = true; top.receiveShadow = true;
+      g.add(top);
+      for (const dx of [-0.4, 0.4]) for (const dz of [-0.25, 0.25]) {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.8, 0.06), darkWoodMat);
+        leg.position.set(dx, 0.4, dz);
+        g.add(leg);
+      }
+      g.position.set(x, 0, z);
+      gameGroup.add(g);
+      // Добавляем коллизию
+      obstacles.push({ x: x, z: z, r: 0.6 });
+      return g;
+    }
+    function makeVase(x, y, z) {
+      const pts = [];
+      for (let i = 0; i <= 10; i++) {
+        const t = i / 10;
+        const r = 0.05 + 0.1 * Math.sin(t * Math.PI);
+        pts.push(new THREE.Vector2(r, t * 0.3));
+      }
+      const geo = new THREE.LatheGeometry(pts, 8);
+      const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color: 0x6a5a4a, roughness: 0.6}));
+      mesh.position.set(x, y, z);
+      mesh.castShadow = true;
+      gameGroup.add(mesh);
+    }
+    makeTable(-1.6, -2); makeVase(-1.6, 0.83, -2);
+    makeTable(1.6, -5);  makeVase(1.6, 0.83, -5);
+
+    // Картины
+    function addPainting(x, z, rotY) {
+      const g = new THREE.Group();
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.0, 0.05), darkWoodMat);
+      const canvas = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.9), new THREE.MeshStandardMaterial({map: makePaintingTexture()}));
+      canvas.position.z = 0.03;
+      g.add(frame, canvas);
+      g.position.set(x, 1.8, z);
+      g.rotation.y = rotY;
+      gameGroup.add(g);
+    }
+    addPainting(-1.9, -3, Math.PI/2);
+    addPainting( 1.9, -6, -Math.PI/2);
+    addPainting(-1.9, 2, Math.PI/2);
+
+    // === ДВЕРИ В КОНЦЕ КОРИДОРА (Анимированные) ===
+    const doorMat = new THREE.MeshStandardMaterial({ color: 0x2a2018, roughness: 0.85 });
+    const doorPivotL = new THREE.Group();
+    const doorPivotR = new THREE.Group();
+    
+    // Левая створка
+    doorPivotL.position.set(-2.0, 1.5, -8); // Петли слева
+    const panelL = new THREE.Mesh(new THREE.BoxGeometry(2.0, 3, 0.15), doorMat);
+    panelL.position.set(1.0, 0, 0); // Смещение вправо от петли
+    panelL.castShadow = true; panelL.receiveShadow = true;
+    doorPivotL.add(panelL);
+    gameGroup.add(doorPivotL);
+
+    // Правая створка
+    doorPivotR.position.set(2.0, 1.5, -8); // Петли справа
+    const panelR = new THREE.Mesh(new THREE.BoxGeometry(2.0, 3, 0.15), doorMat);
+    panelR.position.set(-1.0, 0, 0); // Смещение влево от петли
+    panelR.castShadow = true; panelR.receiveShadow = true;
+    doorPivotR.add(panelR);
+    gameGroup.add(doorPivotR);
+
+    // Свет в коридоре
+    gameGroup.add(new THREE.HemisphereLight(0x556677, 0x111111, 0.9));
+    gameGroup.add(new THREE.AmbientLight(0x2a2a2a, 1.4));
+    
+    const flickerLights = [];
+    for (const z of [-6, -2, 2, 6]) {
+      const pl = new THREE.PointLight(0x8899aa, 1.2, 8);
+      pl.position.set(0, 2.6, z);
+      gameGroup.add(pl);
+      flickerLights.push({ light: pl, base: 1.2, z: z });
+    }
+    gameGroup.visible = false;
+
+    // ===================== СОСТОЯНИЕ =====================
+    let state = 'menu';
+    let cutsceneTime = 0;
+    let gameplayTime = 0;
+    const clock = new THREE.Clock();
+    const playerState = { pos: new THREE.Vector3(0, 1.6, 5), yaw: 0, pitch: 0 };
+
+    let creakPlayed = false;
+    let screamCutPlayed = false;
+    let wallSlamPlayed = false;
+    let doorCreakPlayed = false;
+    let doorSlamPlayed = false;
+    let gameScreamPlayed = false;
+    let rustlePlayed = false;
+    let flashlightOn = true;
+    let crawlPlayed = false;
+    let thudPlayed = false;
+    let dragPlayed = false;
+    let growlPlayed = false;
+    let lastFootstep = 0;
+    let lastGameplayStep = -1;
+    let eventTimer = 0;
+    const prevGameplayPos = new THREE.Vector3();
+
+    // Анимация двери в конце коридора
+    let doorOpenProgress = 0;
+    let doorState = 'closed'; // closed, opening, open
+    let nearDoor = false;
+    const promptEl = document.getElementById('prompt');
+
+    function clampCutscenePlayer(p) {
+      if (p.position.z > -5.6 && p.position.z < -4.4) {
+        p.position.x = Math.max(-1.9, Math.min(1.9, p.position.x));
+      }
+      if (p.position.z < -9.8) {
+        p.position.x = Math.max(-2.0, Math.min(2.0, p.position.x));
+      }
+      p.position.x = Math.max(-14, Math.min(14, p.position.x));
+      p.position.z = Math.max(-22, Math.min(9, p.position.z));
+    }
+
+    // ===================== СТАРТ =====================
+    const overlay = document.getElementById('overlay');
+    const fade = document.getElementById('fade');
+    const flash = document.getElementById('flash');
+    const vignette = document.getElementById('vignette');
+    const hint = document.getElementById('hint');
+
+    overlay.addEventListener('click', () => {
+      initAudio();
+      overlay.style.display = 'none';
+      state = 'cutscene';
+      cutsceneTime = 0;
+      fade.style.opacity = 1;
+      outsideGroup.visible = true;
+      roomGroup.visible = false;
+      gameGroup.visible = false;
+      vignette.style.opacity = 1;
+      flashlight.visible = false;
+      viewmodel.visible = false;
+      players.forEach((p, i) => {
+        p.position.set(-2 + i * 2, 0, 0);
+        p.rotation.x = 0; p.visible = true;
+      });
+      monster.visible = false;
+      monster.position.set(2.5, 0.95, -9.5);
+      sealedWall.position.set(0, 6, -1.15);
+      crawlPlayed = false; thudPlayed = false; dragPlayed = false; growlPlayed = false;
+      lastFootstep = 0; lastGameplayStep = -1;
+      eventTimer = 0;
+      doorState = 'closed'; doorOpenProgress = 0;
+      doorPivotL.rotation.y = 0; doorPivotR.rotation.y = 0;
+      stopBreathing();
+    });
+
+    // ===================== УПРАВЛЕНИЕ =====================
+    let yaw = 0, pitch = 0, isLocked = false;
+    document.body.addEventListener('click', () => {
+      if (state === 'playing') renderer.domElement.requestPointerLock();
+    });
+    document.addEventListener('pointerlockchange', () => {
+      isLocked = document.pointerLockElement === renderer.domElement;
+    });
+    document.addEventListener('mousemove', (e) => {
+      if (!isLocked) return;
+      yaw -= e.movementX * 0.002;
+      pitch -= e.movementY * 0.002;
+      pitch = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, pitch));
+    });
+    const keys = {};
+    document.addEventListener('keydown', (e) => {
+      keys[e.code] = true;
+      if (e.code === 'KeyF' && state === 'playing') {
+        flashlightOn = !flashlightOn;
+        flashlight.visible = flashlightOn;
+        flashLens.material.color.setHex(flashlightOn ? 0xfff2cc : 0x333333);
+      }
+      // Взаимодействие с дверью
+      if (e.code === 'KeyE' && state === 'playing' && nearDoor && doorState === 'closed') {
+        doorState = 'opening';
+        playCreak();
+      }
+    });
+    document.addEventListener('keyup', (e) => keys[e.code] = false);
+
+    // ===================== РОЛИК =====================
+    function updateCutscene(t, dt) {
+      grainEl.style.backgroundPosition =
+        `${Math.random() * 256 | 0}px ${Math.random() * 256 | 0}px`;
+
+      const flick = 1 + Math.sin(t * 12) * 0.15 + (Math.random() - 0.5) * 0.2;
+      torch1.fire.material.color.setRGB(flick, 0.6*flick, 0.27*flick);
+      torch2.fire.material.color.setRGB(flick, 0.6*flick, 0.27*flick);
+      torch1.light.intensity = 3.0 * flick;
+      torch2.light.intensity = 3.0 * flick;
+
+      if (t < 2) {
+        fade.style.opacity = 1;
+        grainEl.style.opacity = 0;
+        if (!creakPlayed && t > 0.25) { playCreak(); creakPlayed = true; }
+        return;
+      }
+      if (t < 2.25) {
+        fade.style.opacity = 0;
+        flash.style.opacity = (2.25 - t) / 0.25;
+        grainEl.style.opacity = 0.75;
+        return;
+      }
+      flash.style.opacity = 0;
+      grainEl.style.opacity = 0.5;
+
+      // ==== ХОДЬБА ====
+      if (t < 7) {
+        camera.position.set(0, 2.5, 6);
+        camera.lookAt(0, 1.6, -10);
+        const walkT = Math.min((t - 2.25) / 4, 1);
+        players.forEach((p, i) => {
+          p.position.z = -walkT * 9.5;
+          p.position.x = -2 + i * 2 + Math.sin(t * 4 + i) * 0.05;
+          clampCutscenePlayer(p);
+        });
+        if (walkT > 0.05 && walkT < 0.98 && t - lastFootstep > 0.6) {
+          playFootstep(); lastFootstep = t;
+        }
+        monster.visible = false;
+        return;
+      }
+
+      // ==== ЗАХВАТ + ЗАТАСКИВАНИЕ ====
+      if (t < 10) {
+        camera.position.set(0, 2.0, -4);
+        camera.lookAt(0, 0.8, -10.5);
+
+        players[1].visible = true;
+        if (t <= 7.7) {
+          players[1].position.set(0, 0, -9.5);
+          players[1].rotation.x = 0;
+        }
+        if (t <= 7.9) {
+          players[0].position.set(-2, 0, -9.5); players[0].rotation.x = 0;
+          players[2].position.set(2, 0, -9.5);  players[2].rotation.x = 0;
+        }
+        if (t > 7.3) {
+          monster.visible = true;
+          const appearT = Math.min((t - 7.3) / 0.4, 1);
+          monster.position.set(2.5 - appearT * 2.5, 0.95, -9.5);
+          if (!growlPlayed) { playGrowl(); growlPlayed = true; }
+        }
+        if (t > 7.7) {
+          const dragT = Math.min((t - 7.7) / 2.2, 1);
+          const lieT = Math.min((t - 7.7) / 0.3, 1);
+          players[1].rotation.x = lieT * Math.PI / 2;
+          players[1].position.y = lieT * 0.3;
+          const jerk = Math.sin(dragT * 25) * 0.1;
+          const baseZ = -9.5 - dragT * 5;
+          monster.position.set(0, 0.95, baseZ);
+          players[1].position.x = 0;
+          players[1].position.z = baseZ - 1.2 + jerk;
+          if (!dragPlayed && lieT > 0.8) { playDrag(); dragPlayed = true; }
+
+          if (t > 7.9 && t < 8.7) {
+            const crawlT = (t - 7.9) / 0.8;
+            players[0].position.set(-2 - crawlT * 1.2, crawlT * 0.3, -9.5 + crawlT * 1.5);
+            players[0].rotation.x = crawlT * Math.PI / 2;
+            players[2].position.set(2 + crawlT * 1.2, crawlT * 0.3, -9.5 + crawlT * 1.5);
+            players[2].rotation.x = crawlT * Math.PI / 2;
+            if (!crawlPlayed && crawlT > 0.1) { playCrawl(); crawlPlayed = true; }
+            if (!thudPlayed && crawlT > 0.05) { playThud(); thudPlayed = true; }
+          }
+          if (t >= 8.7) {
+            const runT = Math.min((t - 8.7) / 1.0, 1);
+            const standT = Math.min(runT * 3, 1);
+            const yOff = (1 - standT) * 0.3;
+            const rotX = (1 - standT) * Math.PI / 2;
+            players[0].position.set(-3.2 + runT * 3, yOff, -8 + runT * 6);
+            players[0].rotation.x = rotX;
+            players[2].position.set(3.2 - runT * 3, yOff, -8 + runT * 6);
+            players[2].rotation.x = rotX;
+            if (t - lastFootstep > 0.5) { playFootstep(); lastFootstep = t; }
+            if (runT > 0.85) { players[0].visible = false; players[2].visible = false; }
+          }
+          if (!screamCutPlayed && t > 8.0) { playScreamCut(1); screamCutPlayed = true; }
+        }
+        return;
+      }
+
+      // ==== КОМНАТА + ПЕРЕЕЗД КАМЕРЫ НАРУЖУ + СТЕНА ====
+      if (t < 12) {
+        monster.visible = false;
+        players[1].visible = false;
+        outsideGroup.visible = true;
+        roomGroup.visible = true;
+
+        if (t < 10.0) {
+          const panK = (t - 9.0) / 1.0;
+          camera.position.set(
+            0.1 + Math.sin(panK * 1.2) * 0.15,
+            1.6 + (Math.random() - 0.5) * 0.02,
+            -14 + 0.6 - panK * 0.2
+          );
+          camera.lookAt(-0.5 - panK * 0.4, 1.4, -15.2);
+          return;
+        }
+        if (t < 10.6) {
+          const k = (t - 10.0) / 0.6;
+          const ease = k * k * (3 - 2 * k);
+          const fromPos = new THREE.Vector3(0.1, 1.6, -13.4);
+          const toPos   = new THREE.Vector3(0, 3.2, -5);
+          const fromLook = new THREE.Vector3(-0.5, 1.4, -15.2);
+          const toLook   = new THREE.Vector3(0, 1.5, -12);
+          camera.position.lerpVectors(fromPos, toPos, ease);
+          const lookAt = new THREE.Vector3().lerpVectors(fromLook, toLook, ease);
+          camera.lookAt(lookAt);
+          return;
+        }
+        const outK = Math.min((t - 10.6) / 1.4, 1);
+        camera.position.set(0, 3.2 + outK * 0.4, -5 + outK * 3);
+        camera.lookAt(0, 1.5, -12);
+
+        if (t > 10.6) {
+          const dropT = Math.min((t - 10.6) / 0.4, 1);
+          sealedWall.position.y = 6 + (1.3 - 6) * dropT;
+          if (!wallSlamPlayed) { playSlam(); wallSlamPlayed = true; }
+        }
+        return;
+      }
+      fade.style.opacity = Math.min((t - 12) / 0.6, 1);
+      if (t > 12.6) startGameplay();
+    }
+
+    function startGameplay() {
+      state = 'playing';
+      gameplayTime = 0;
+      fade.style.opacity = 1;
+      outsideGroup.visible = false;
+      roomGroup.visible = false;
+      gameGroup.visible = true;
+      grainEl.style.opacity = 0;
+      vignette.style.opacity = 0;
+      playerState.pos.set(0, 1.6, 5);
+      yaw = 0; pitch = 0;
+      flashlight.visible = flashlightOn;
+      flashLens.material.color.setHex(flashlightOn ? 0xfff2cc : 0x333333);
+      viewmodel.visible = true;
+      lastGameplayStep = -1;
+      prevGameplayPos.copy(playerState.pos);
+      eventTimer = 0;
+      startBreathing();
+      setTimeout(() => { fade.style.opacity = 0; }, 100);
+      hint.style.opacity = 1;
+    }
+
+    // ===================== ГЕЙМПЛЕЙ =====================
+    function updateGameplay(dt) {
+      gameplayTime += dt;
+
+      if (gameplayTime > 0.3 && !doorCreakPlayed) { playCreak(); doorCreakPlayed = true; }
+      if (gameplayTime
