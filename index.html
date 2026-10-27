@@ -1,1772 +1,264 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Wildfall — Вечный мир</title>
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,700;0,900;1,700;1,900&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Хоррор:Лагерь</title>
+  <style>
+    :root {
+      --bg-dark: #000;
+      --text-main: #e0e0e0;
+      --accent: #c14916;
+      --r: 260px;          /* радиус «пятна» фонарика */
+      --mx: 50%;           /* позиция фонарика по X */
+      --my: 50%;           /* позиция фонарика по Y */
+    }
 
-<!-- 🛡️ ЗАЩИТА ОТ ПРОСМОТРА КОДА -->
-<script>
-(function(){
-    // Пропускаем защиту на localhost для разработки
-    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return;
+    * { box-sizing: border-box; }
 
-    // Блок ПКМ
-    document.addEventListener('contextmenu', e => e.preventDefault());
-    // Блок хоткеев
-    document.addEventListener('keydown', e => {
-        if (e.key === 'F12' ||
-            (e.ctrlKey && e.shiftKey && ['I','i','J','j','C','c'].includes(e.key)) ||
-            (e.ctrlKey && ['u','U','s','S'].includes(e.key))) {
-            e.preventDefault();
-            return false;
-        }
-    });
-    // Анти-Debugger
-    setInterval(function(){
-        const t0 = performance.now();
-        debugger;
-        if (performance.now() - t0 > 100) {
-            document.body.innerHTML = '<div style="color:#fff;background:#000;height:100vh;display:flex;align-items:center;justify-content:center;font-family:sans-serif;font-size:24px;">⛔ Закрой DevTools</div>';
-            setTimeout(() => location.reload(), 3000);
-        }
-    }, 1500);
-    // Анти-iframe
-    try { if (window.top !== window.self) { window.top.location = window.self.location; } } catch(e) {}
-})();
-</script>
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Courier New', Courier, monospace;
+      overflow-x: hidden;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-<style>
-* { margin:0; padding:0; box-sizing:border-box; user-select:none; font-family:'Montserrat','Segoe UI',Arial,sans-serif; }
-html, body { width:100vw; height:100vh; overflow:hidden; background:#07110a; color:#e8f5e9; }
-.screen { position:fixed; top:0; left:0; width:100vw; height:100vh; display:none; align-items:center; justify-content:center; flex-direction:column; z-index:10; overflow:hidden; }
-.screen.active { display:flex; }
-.forest-bg { background: radial-gradient(ellipse at 50% -10%, rgba(255,220,120,0.35) 0%, transparent 55%), radial-gradient(ellipse at 20% 100%, rgba(60,120,50,0.4) 0%, transparent 60%), linear-gradient(180deg,#1a3a1a 0%,#0a150a 100%); position:relative; }
-.login-box { background: linear-gradient(160deg,rgba(25,45,25,0.97),rgba(10,20,10,0.98)); border: 1.5px solid rgba(139,195,74,0.3); border-radius: 22px; padding: 34px 44px; width: 480px; max-height: 94vh; overflow-y:auto; box-shadow: 0 30px 100px rgba(0,0,0,0.9); position:relative; z-index:2; }
-.game-title { font-size: 46px; text-align:center; font-weight: 900; font-style: italic; letter-spacing: 3px; background: linear-gradient(135deg,#8bc34a 0%,#ffd54f 50%,#ff8a65 100%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; text-transform: uppercase; }
-.subtitle { text-align:center; color:#7a9a7a; font-size:12px; margin-bottom:26px; letter-spacing:5px; text-transform:uppercase; font-weight:700; font-style:italic; }
-.field { margin-bottom:18px; }
-.field label { display:block; font-size:11px; color:#9aba9a; margin-bottom:7px; text-transform:uppercase; letter-spacing:1.5px; font-weight:800; font-style:italic; }
-.field input[type=text], .field input[type=password] { width:100%; padding:12px 15px; background: rgba(0,0,0,0.4); border: 1.5px solid rgba(139,195,74,0.25); border-radius: 10px; color:#e8f5e9; font-size:15px; font-weight:600; font-family:inherit; }
-.field input:focus { outline:none; border-color:#8bc34a; }
-.avatar-grid { display:grid; grid-template-columns: repeat(9,1fr); gap:6px; }
-.avatar-option { aspect-ratio:1; display:flex; align-items:center; justify-content:center; background: rgba(255,255,255,0.05); border: 2px solid transparent; border-radius: 9px; font-size: 20px; cursor:pointer; overflow:hidden; }
-.avatar-option img { width:100%; height:100%; object-fit:cover; }
-.avatar-option.selected { border-color:#8bc34a; background: rgba(139,195,74,0.25); }
-.avatar-option.upload { border: 2px dashed rgba(139,195,74,0.4); }
-.color-grid { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-.color-option { width:32px; height:32px; border-radius:50%; border: 2px solid transparent; cursor:pointer; }
-.color-option.selected { border-color:#fff; box-shadow:0 0 0 3px rgba(139,195,74,0.7); }
-#rgb-picker { width: 40px; height: 32px; border-radius: 9px; cursor: pointer; border: 2px solid rgba(255,255,255,0.3); background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red); }
-#rgb-picker.selected { border-color:#8bc34a; box-shadow:0 0 0 3px rgba(139,195,74,0.7); }
-.btn { width:100%; padding:13px; border:none; border-radius: 10px; background: linear-gradient(135deg,#7cb342,#558b2f); color:#fff; font-size:15px; font-weight:800; font-style:italic; cursor:pointer; letter-spacing:1px; text-transform:uppercase; font-family:inherit; }
-.btn.secondary { background: rgba(255,255,255,0.08); }
-.error-msg { color:#ff6b6b; font-size:12px; text-align:center; margin-top:8px; min-height:16px; font-weight:700; }
-.ok-msg { color:#8bc34a; font-size:12px; text-align:center; margin-top:8px; font-weight:700; }
-.tabs { display:flex; gap:8px; margin-bottom:20px; }
-.tab { flex:1; text-align:center; padding:10px; border-radius:9px; background: rgba(255,255,255,0.05); cursor:pointer; font-size:13px; color:#7a9a7a; font-weight:800; font-style:italic; text-transform:uppercase; letter-spacing:1px; }
-.tab.active { background: rgba(139,195,74,0.22); color:#8bc34a; border:1.5px solid rgba(139,195,74,0.5); }
-.menu-header { text-align:center; margin-bottom: 30px; }
-.user-badge { display:inline-flex; align-items:center; gap:10px; background: rgba(0,0,0,0.45); padding: 9px 22px; border-radius: 30px; margin-bottom: 18px; border: 1.5px solid rgba(139,195,74,0.35); }
-.user-badge .av { font-size: 28px; }
-.user-badge .av img { width:28px; height:28px; border-radius:50%; object-fit:cover; vertical-align:middle; }
-.menu-header h2 { font-size: 42px; font-weight:900; font-style:italic; letter-spacing:2px; }
-.menu-header .tag { color:#8aaa8a; font-size:13px; margin-top: 8px; font-weight:700; font-style:italic; letter-spacing:2px; text-transform:uppercase; }
-.menu-buttons { display:flex; flex-direction:column; gap: 12px; width: 360px; }
-#bell-btn { position: fixed; top: 20px; right: 20px; z-index: 50; width: 54px; height: 54px; border-radius: 50%; background: linear-gradient(135deg,rgba(40,70,40,0.98),rgba(20,35,20,0.98)); border: 1.5px solid rgba(139,195,74,0.5); color:#8bc34a; font-size: 26px; cursor:pointer; display:none; align-items:center; justify-content:center; }
-#bell-btn.has-unread { animation: bellPulse 1.2s infinite; }
-@keyframes bellPulse { 0%,100%{ box-shadow:0 0 0 0 rgba(139,195,74,0.7); } 50%{ box-shadow:0 0 0 15px rgba(139,195,74,0); } }
-#bell-count { position:absolute; top:-4px; right:-4px; background:#e74c3c; color:#fff; font-size:11px; font-weight:900; min-width:20px; height:20px; border-radius:10px; display:flex; align-items:center; justify-content:center; padding:0 5px; }
-#notif-panel { position: fixed; top: 84px; right: 20px; width: 330px; max-height: 60vh; background: rgba(18,32,18,0.99); border:1.5px solid rgba(139,195,74,0.4); border-radius: 14px; z-index: 51; display: none; }
-#notif-panel.visible { display:block; }
-#notif-panel .np-header { padding:14px 18px; font-weight:900; font-style:italic; font-size:14px; border-bottom:1.5px solid rgba(139,195,74,0.25); display:flex; justify-content:space-between; align-items:center; }
-#notif-panel .np-list { max-height:50vh; overflow-y:auto; }
-.notif-item { padding: 12px 18px; border-bottom:1px solid rgba(255,255,255,0.06); font-size:12px; display:flex; align-items:center; gap:10px; font-weight:600; }
-.notif-item .ni-av { font-size:22px; }
-.notif-item .ni-body { flex:1; }
-.notif-item button { padding:5px 12px; border:none; border-radius:7px; cursor:pointer; font-size:12px; font-weight:900; }
-.notif-item button.accept { background:#7cb342; color:#fff; }
-.notif-item button.decline, .notif-item button.dismiss { background:#555; color:#fff; }
-.room-code { font-size: 60px; font-weight: 900; font-style:italic; letter-spacing: 12px; background: linear-gradient(135deg,#8bc34a,#ffd54f,#ff8a65); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; margin: 20px 0; }
-.spinner { display:inline-block; width:20px; height:20px; border: 3px solid rgba(139,195,74,0.2); border-top-color:#8bc34a; border-radius:50%; animation: spin 0.8s linear infinite; margin-right: 10px; }
-@keyframes spin { to { transform: rotate(360deg); } }
-#screen-game { z-index:20; background:#000; }
-#game-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #000; z-index: 1; }
-canvas { width: 100%; height: 100%; object-fit: contain; display: block; }
-.panel { position:fixed; background: linear-gradient(160deg,rgba(15,28,15,0.94),rgba(8,16,8,0.96)); color:#e8f5e9; padding: 12px 16px; border-radius: 12px; font-size: 13px; backdrop-filter: blur(10px); border: 1.5px solid rgba(139,195,74,0.25); z-index: 5; font-weight:600; }
-#stats { top: 14px; left: 14px; min-width: 230px; }
-#stats .stat-row { display:flex; justify-content:space-between; align-items:center; font-weight:800; font-style:italic; font-size:12px; }
-#stats .bar { height: 10px; border-radius:5px; margin:3px 0 7px; background:rgba(0,0,0,0.6); overflow:hidden; }
-#stats .bar-fill { height:100%; transition: width 0.2s; border-radius:5px; }
-#inventory { bottom: 14px; left: 14px; min-width: 270px; }
-#inventory .item { display:inline-flex; align-items:center; gap:5px; margin:3px 6px 3px 0; background:rgba(139,195,74,0.15); padding:4px 11px; border-radius:6px; font-size:12px; font-weight:700; }
-#craft { top: 14px; right: 14px; min-width: 250px; max-height: 58vh; overflow-y:auto; }
-#craft .recipe { display:flex; justify-content:space-between; align-items:center; padding: 7px 10px; margin:4px 0; border-radius:7px; cursor:pointer; background:rgba(139,195,74,0.05); border:1px solid rgba(139,195,74,0.1); }
-#craft .recipe:hover { background: rgba(139,195,74,0.18); }
-#craft .recipe.disabled { opacity:0.3; cursor:not-allowed; }
-#craft .recipe .cost { font-size:10px; color:#8aaa8a; font-weight:700; }
-#craft .recipe .name { font-weight:800; font-style:italic; font-size:12px; }
-#chat { bottom: 14px; right: 14px; width: 300px; height: 230px; display:flex; flex-direction:column; }
-#chat-messages { flex:1; overflow-y:auto; font-size:12px; }
-#chat-messages .msg { margin: 3px 0; word-wrap: break-word; font-weight:600; }
-#chat-messages .msg .author { color: #8bc34a; font-weight:900; font-style:italic; }
-#chat-messages .msg.system { color:#7a9a7a; font-style:italic; }
-#chat-input { margin-top: 8px; padding: 7px 11px; background: rgba(0,0,0,0.5); border:1.5px solid rgba(139,195,74,0.25); border-radius: 7px; color:#e8f5e9; font-size:12px; width:100%; font-weight:600; font-family:inherit; }
-#player-list-panel { top: 14px; right: 280px; min-width: 180px; }
-.player-row { display:flex; align-items:center; gap:8px; padding:6px 9px; border-radius:6px; margin:3px 0; background:rgba(139,195,74,0.08); font-size:12px; font-weight:700; }
-.player-row .av { font-size: 17px; }
-.player-row .av img { width:17px; height:17px; border-radius:50%; vertical-align:middle; object-fit:cover; }
-.player-row.self { background: rgba(139,195,74,0.25); }
-#message { position:fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg,rgba(20,35,20,0.97),rgba(10,20,10,0.97)); color:#ffd54f; padding: 10px 26px; border-radius: 24px; font-size: 14px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 100; font-weight:800; font-style:italic; border:1.5px solid rgba(255,213,79,0.4); }
-#message.show { opacity: 1; }
-#hint-bar { position:fixed; bottom: 14px; left:50%; transform:translateX(-50%); background:rgba(8,16,8,0.85); color:#8aaa8a; padding:6px 20px; border-radius:20px; font-size:11px; font-weight:700; font-style:italic; z-index:5; border:1px solid rgba(139,195,74,0.2); pointer-events:none; }
-#cheat-panel { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: linear-gradient(160deg,rgba(45,25,0,0.98),rgba(25,15,0,0.98)); border:1.5px solid rgba(255,213,79,0.6); border-radius: 14px; padding: 14px 22px; z-index: 100; display:none; gap:10px; align-items:center; flex-wrap:wrap; }
-#cheat-panel.visible { display:flex; }
-#cheat-panel button { padding: 9px 16px; border:none; border-radius:8px; cursor:pointer; background: linear-gradient(135deg,#ffd54f,#ff8a65); color:#2a1a00; font-weight:900; font-style:italic; font-size:12px; font-family:inherit; }
-#pause-menu { position: fixed; top:0; left:0; width:100vw; height:100vh; background: rgba(0,0,0,0.88); display: none; align-items: center; justify-content: center; z-index: 200; }
-#pause-menu.visible { display: flex; }
-.pause-box { text-align: center; padding: 40px; background: linear-gradient(160deg,rgba(25,45,25,0.98),rgba(10,20,10,0.98)); border-radius: 20px; width: 360px; border:1.5px solid rgba(139,195,74,0.35); }
-.pause-box h2 { margin-bottom: 22px; font-weight:900; font-style:italic; }
-.pause-box .btn { margin-bottom: 11px; }
-#easter-egg { position:fixed; bottom:10px; right:10px; font-size:14px; color:rgba(139,195,74,0.4); z-index:1; cursor:pointer; }
-#easter-popup { position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.92); display:none; align-items:center; justify-content:center; z-index:300; flex-direction:column; text-align:center; padding:40px; }
-#easter-popup.visible { display:flex; }
-#easter-popup .egg-title { font-size:52px; margin-bottom:22px; background:linear-gradient(135deg,#8bc34a,#ffd54f); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; font-weight:900; font-style:italic; }
-#easter-popup .egg-text { font-size:18px; color:#aaccaa; max-width:600px; line-height:1.7; font-weight:600; }
-#share-coords-btn { position:fixed; top:14px; left:50%; transform:translateX(-50%); background:linear-gradient(135deg,#4a90d9,#2e6fa8); color:#fff; border:1.5px solid rgba(74,144,217,0.6); border-radius:20px; padding:8px 20px; font-weight:900; font-style:italic; font-size:12px; cursor:pointer; z-index:6; font-family:inherit; }
-#share-modal { position:fixed; inset:0; background:rgba(0,0,0,0.85); display:none; align-items:center; justify-content:center; z-index:150; }
-#share-modal.visible { display:flex; }
-.share-box { background:linear-gradient(160deg,rgba(25,45,25,0.98),rgba(10,20,10,0.98)); border:1.5px solid rgba(74,144,217,0.4); border-radius:16px; padding:30px; width:360px; text-align:center; }
-.share-box h2 { font-weight:900; font-style:italic; margin-bottom:16px; font-size:20px; }
-.share-box input { width:100%; padding:11px 14px; background:rgba(0,0,0,0.4); border:1.5px solid rgba(74,144,217,0.3); border-radius:10px; color:#e8f5e9; font-size:14px; margin-bottom:10px; font-family:inherit; font-weight:600; }
-.water-hint { position:fixed; bottom:56px; left:50%; transform:translateX(-50%); background:rgba(74,144,217,0.9); color:#fff; padding:6px 20px; border-radius:20px; font-size:12px; font-weight:800; font-style:italic; z-index:6; display:none; }
-.water-hint.show { display:block; animation: bellPulse 1.2s infinite; }
-#pvp-toggle { position:fixed; top:14px; left:200px; background:rgba(200,30,30,0.9); color:#fff; border:1.5px solid rgba(255,80,80,0.8); border-radius:20px; padding:8px 18px; font-weight:900; font-style:italic; font-size:12px; cursor:pointer; z-index:6; font-family:inherit; }
-#pvp-toggle.off { background:rgba(60,60,60,0.9); border-color:rgba(150,150,150,0.6); color:#aaa; }
-.server-status { position:fixed; bottom:10px; left:10px; font-size:10px; font-weight:800; padding:4px 10px; border-radius:10px; z-index:100; }
-.server-status.online { background:rgba(46,204,113,0.3); color:#2ecc71; border:1px solid #2ecc71; }
-.server-status.offline { background:rgba(150,150,150,0.2); color:#aaa; border:1px solid #555; }
-</style>
+    /* ---------- ТЬМА С «ДЫРОЙ» ОТ ФОНАРИКА ---------- */
+    #darkness {
+      position: fixed;
+      inset: 0;
+      z-index: 9997;
+      pointer-events: none; /* клики проходят сквозь */
+      background: radial-gradient(
+        circle var(--r) at var(--mx) var(--my),
+        rgba(255, 226, 170, 0.07) 0%,    /* тёплый центр */
+        rgba(0, 0, 0, 0.45) 38%,
+        rgba(0, 0, 0, 0.94) 72%,
+        #000 100%
+      );
+      transition: background 0.04s linear;
+    }
+
+    /* лёгкое мерцание темноты — для атмосферы */
+    #darkness::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: #000;
+      opacity: 0;
+      animation: flicker 6s infinite;
+    }
+
+    @keyframes flicker {
+      0%, 96%, 100% { opacity: 0; }
+      97% { opacity: 0.25; }
+      98% { opacity: 0; }
+      99% { opacity: 0.15; }
+    }
+
+    /* ---------- КОНТЕНТ ---------- */
+    header {
+      text-align: center;
+      padding: 60px 20px 30px;
+      position: relative;
+      z-index: 1;
+    }
+
+    h1 {
+      font-size: clamp(1.6rem, 6vw, 3rem);
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      margin: 0;
+      color: #fff;
+      text-shadow: 0 0 18px rgba(255, 210, 140, 0.25);
+    }
+
+    p.subtitle {
+      font-size: 1.1rem;
+      color: var(--accent);
+      margin-top: 10px;
+    }
+
+    main {
+      max-width: 800px;
+      margin: 20px auto 0;
+      padding: 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .story-block {
+      border-left: 4px solid var(--accent);
+      padding-left: 20px;
+      margin-bottom: 30px;
+      line-height: 1.6;
+      font-size: 1.05rem;
+    }
+
+    .sound-cue {
+      color: #ff6b6b;
+      font-weight: bold;
+      display: block;
+      margin: 15px 0 5px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 60px 20px 80px;
+      color: #777;
+      font-size: 0.9rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .warning {
+      color: var(--accent);
+      display: inline-block;
+      margin-right: 8px;
+    }
+
+    /* ---------- КНОПКА ---------- */
+    #enter-btn {
+      padding: 15px 34px;
+      font-size: 1.05rem;
+      font-family: inherit;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      box-shadow: 0 0 0 rgba(193, 73, 22, 0);
+      transition: box-shadow 0.3s, transform 0.15s;
+    }
+
+    #enter-btn:hover {
+      box-shadow: 0 0 28px rgba(193, 73, 22, 0.85);
+    }
+
+    #enter-btn:active {
+      transform: scale(0.97);
+    }
+
+    /* ---------- ПОДСКАЗКА ВНИЗУ (всегда видна) ---------- */
+    #hint {
+      position: fixed;
+      left: 50%;
+      bottom: 35px;
+      transform: translateX(-50%);
+      z-index: 10000;
+      font-size: 0.75rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(255, 220, 160, 0.45);
+      pointer-events: none;
+      animation: hint-pulse 3.5s ease-in-out infinite;
+    }
+ /* ---------- ПОДСКАЗКА ВНИЗУ (всегда видна) ---------- */
+    #hint2 {
+      position: fixed;
+      left: 50%;
+      bottom: 14px;
+      transform: translateX(-50%);
+      z-index: 10000;
+      font-size: 0.75rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.45);
+      pointer-events: none;
+      animation: hint-pulse 3.5s ease-in-out infinite;
+    }
+
+
+    @keyframes hint-pulse {
+      0%, 100% { opacity: 0.25; }
+      50%      { opacity: 0.75; }
+    }
+  </style>
 </head>
 <body>
 
-<div id="screen-login" class="screen active forest-bg">
-    <div class="login-box">
-        <div class="game-title">WILDFALL</div>
-        <div class="subtitle">Вечный мир • Выживи в лесу</div>
-        <div class="tabs">
-            <div class="tab active" id="tab-login" onclick="switchAuthTab('login')">Вход</div>
-            <div class="tab" id="tab-register" onclick="switchAuthTab('register')">Регистрация</div>
-        </div>
-        <div class="field"><label>Никнейм</label><input id="input-username" type="text" maxlength="16" placeholder="Введите никнейм" autocomplete="off"></div>
-        <div class="field"><label>Пароль</label><input id="input-password" type="password" maxlength="32" placeholder="Пароль" autocomplete="off"></div>
-        <div id="register-fields" style="display:none;">
-            <div class="field"><label>Аватар</label><div class="avatar-grid" id="avatar-grid"></div></div>
-            <div class="field"><label>Цвет</label><div class="color-grid" id="color-grid"></div></div>
-        </div>
-        <button class="btn" id="auth-btn" onclick="doAuth()">Войти</button>
-        <div class="error-msg" id="login-error"></div>
-        <div class="ok-msg" id="login-ok"></div>
-    </div>
-</div>
+  <!-- Слой тьмы (фонарик вырезает в нём «дыру») -->
+  <div id="darkness"></div>
 
-<div id="screen-menu" class="screen forest-bg">
-    <div class="menu-header">
-        <div class="user-badge"><span class="av" id="menu-avatar">😀</span><span id="menu-username">Игрок</span></div>
-        <h2>🌲 WILDFALL</h2>
-        <div class="tag">Вечный мир • Выживи в лесу</div>
-    </div>
-    <div class="menu-buttons">
-        <button class="btn" onclick="playSolo()">🎮 Одиночная игра</button>
-        <button class="btn" onclick="showCreateRoom()">🏠 Создать комнату</button>
-        <button class="btn" onclick="showJoinRoom()">🔗 Присоединиться</button>
-        <button class="btn secondary" onclick="showFriends()">👥 Друзья</button>
-        <button class="btn secondary" onclick="doLogout()">🚪 Выйти</button>
-    </div>
-    <div id="easter-egg" onclick="showEasterEgg()">🌿</div>
-</div>
+  <header>
+    <h1>Лагерь: Вход запрещён</h1>
+    <p class="subtitle">Хоррор‑Лагерь. Ты не захочешь заходить внутрь.</p>
+  </header>
 
-<div id="screen-friends" class="screen forest-bg">
-    <div class="login-box" style="width:500px;">
-        <h2 style="text-align:center;margin-bottom:22px;font-weight:900;font-style:italic;">👥 Друзья</h2>
-        <div class="field">
-            <label>Добавить друга по никнейму</label>
-            <div style="display:flex;gap:8px;">
-                <input id="input-friend-name" type="text" maxlength="16" placeholder="Никнейм друга" style="flex:1;">
-                <button class="btn" style="width:auto;padding:12px 22px;white-space:nowrap;" onclick="addFriend()">+ Добавить</button>
-            </div>
-            <div class="error-msg" id="friend-error"></div>
-            <div class="ok-msg" id="friend-ok"></div>
-        </div>
-        <div style="font-weight:900;font-style:italic;font-size:12px;color:#9aba9a;margin-bottom:10px;">МОИ ДРУЗЬЯ</div>
-        <div id="friends-list" style="max-height:320px;overflow-y:auto;"></div>
-        <button class="btn secondary" style="margin-top:18px;" onclick="showScreen('menu')">← Назад</button>
-    </div>
-</div>
+  <main>
+    <section class="story-block">
+      <span class="sound-cue">Мы не обязываем вас играть в эту игру…</span>
+      Участвуйте только если хочется! 😄
+    </section>
 
-<div id="screen-lobby" class="screen forest-bg">
-    <div style="text-align:center;">
-        <h2 style="font-weight:900;font-style:italic;">🏠 Комната создана</h2>
-        <div style="color:#8aaa8a;font-size:13px;margin-top:8px;font-weight:700;font-style:italic;">Поделитесь кодом:</div>
-        <div class="room-code" id="room-code-display">ABC123</div>
-        <div style="color:#8aaa8a;font-size:14px;margin-bottom:24px;font-weight:700;font-style:italic;"><span class="spinner"></span><span id="lobby-status-text">Ожидание игроков...</span></div>
-        <div style="display:flex;gap:10px;">
-            <button class="btn secondary" onclick="copyRoomCode()">📋 Копировать</button>
-            <button class="btn" onclick="startGame()">▶️ Начать</button>
-        </div>
-        <button class="btn secondary" style="margin-top:10px;" onclick="leaveGame()">← Назад</button>
-    </div>
-</div>
+    <section class="story-block">
+      <span class="sound-cue">Присутствуют резкие шорохи сбоку…</span>
+     Из темноты выныривает фигура и хватает одного из игроков за ногу. Крик обрывается, будто его проглотила тишина. Проход исчезает — на его месте теперь сплошная стена.
+    </section>
 
-<div id="screen-join" class="screen forest-bg">
-    <div class="login-box" style="width:400px;">
-        <h2 style="text-align:center;margin-bottom:22px;font-weight:900;font-style:italic;">🔗 Присоединиться</h2>
-        <div class="field"><label>Код комнаты</label><input id="input-room-code" type="text" maxlength="6" placeholder="ABC123" style="text-transform:uppercase;letter-spacing:5px;text-align:center;font-size:22px;font-weight:900;"></div>
-        <button class="btn" onclick="doJoinRoom()">Подключиться</button>
-        <button class="btn secondary" style="margin-top:10px;" onclick="showScreen('menu')">← Назад</button>
-        <div class="error-msg" id="join-error"></div>
-    </div>
-</div>
+    <section class="story-block">
+      <span class="sound-cue">Глухой удар, скрип петель…</span>
+      Двери лагеря захлопываются сами по себе. Слышен короткий, отчаянный крик напарника — того самого, которого утянули. И где‑то вдалеке — тихий шорох.
+    </section>
 
-<div id="screen-game" class="screen">
-    <div id="game-container"><canvas id="game" width="1200" height="720"></canvas></div>
-    <div id="stats" class="panel">
-        <div class="stat-row"><span>❤️</span><span id="hp-val">100</span></div>
-        <div class="bar"><div class="bar-fill" id="hp-bar" style="width:100%;background:#e74c3c;"></div></div>
-        <div class="stat-row"><span>🍖</span><span id="hunger-val">100</span></div>
-        <div class="bar"><div class="bar-fill" id="hunger-bar" style="width:100%;background:#f39c12;"></div></div>
-        <div class="stat-row"><span>💧</span><span id="thirst-val">100</span></div>
-        <div class="bar"><div class="bar-fill" id="thirst-bar" style="width:100%;background:#3498db;"></div></div>
-        <div class="stat-row"><span>🌡️</span><span id="temp-val">100</span></div>
-        <div class="bar"><div class="bar-fill" id="temp-bar" style="width:100%;background:#e67e22;"></div></div>
-        <div class="stat-row" style="margin-top:6px;"><span id="time-val">День</span><span id="biome-val">Лето</span></div>
-    </div>
-    <div id="inventory" class="panel">
-        <div style="font-weight:900;font-style:italic;margin-bottom:6px;">🎒 ИНВЕНТАРЬ</div>
-        <div id="inv-list"></div>
-        <div style="font-size:11px;color:#7a9a7a;margin-top:8px;font-weight:700;font-style:italic;">WASD • ЛКМ атака/сбор • E — пить • P — PvP • T чат</div>
-    </div>
-    <div id="craft" class="panel">
-        <div style="font-weight:900;font-style:italic;margin-bottom:6px;">🔨 КРАФТ</div>
-        <div id="craft-list"></div>
-    </div>
-    <div id="chat" class="panel">
-        <div style="font-weight:900;font-style:italic;margin-bottom:6px;">💬 ЧАТ</div>
-        <div id="chat-messages"></div>
-        <input id="chat-input" type="text" maxlength="100" placeholder="Enter — отправить">
-    </div>
-    <div id="player-list-panel" class="panel">
-        <div style="font-weight:900;font-style:italic;margin-bottom:6px;">👥 ИГРОКИ</div>
-        <div id="player-list"></div>
-    </div>
-    <button id="share-coords-btn" onclick="openShareCoords()">📤 ПОДЕЛИТЬСЯ КООРДИНАТАМИ</button>
-    <button id="pvp-toggle" class="off" onclick="togglePvP()">⚔️ PvP: ВЫКЛ</button>
-    <div id="water-hint" class="water-hint">💧 Нажми E, чтобы попить</div>
-    <div id="hint-bar">WASD — движение • ЛКМ — атака/сбор • E — пить • P — PvP</div>
-    <div id="message"></div>
-</div>
+    <section style="text-align:center; margin-top:40px;">
+      <button id="enter-btn">Начать игру</button>
+    </section>
+  </main>
 
-<div id="share-modal">
-    <div class="share-box">
-        <h2>📤 Поделиться координатами</h2>
-        <div style="font-size:12px;color:#8aaa8a;margin-bottom:14px;font-weight:700;">Введите ник друга</div>
-        <input id="share-nick-input" type="text" maxlength="16" placeholder="Никнейм">
-        <div id="share-error" class="error-msg"></div>
-        <div style="display:flex;gap:8px;">
-            <button onclick="closeShareCoords()" class="btn secondary" style="margin:0;">Отмена</button>
-            <button onclick="sendCoords()" class="btn" style="margin:0;">Отправить</button>
-        </div>
-    </div>
-</div>
+  <footer>
+    <span class="warning">⚠</span> Не рекомендуется людям с повышенной чувствительностью к скримерам.
+  </footer> 
 
-<div id="cheat-panel">
-    <span style="color:#ffd54f;font-weight:900;font-style:italic;">⚡ CREATOR</span>
-    <button onclick="cheatGod()">🛡️ Бессмертие</button>
-    <button onclick="cheatSpeed()">💨 Скорость</button>
-    <button onclick="cheatRes()">📦 +999</button>
-    <button onclick="cheatHeal()">💚 Лечение</button>
-    <button onclick="cheatClose()">✖</button>
-</div>
+  <div id="hint">СТРОГО 18+</div>
+ <div id="hint2">⚠ Создано - Ainazik ⚠</div>
 
-<div id="pause-menu">
-    <div class="pause-box">
-        <h2>⏸️ Пауза</h2>
-        <button class="btn" onclick="resumeGame()">▶️ Продолжить</button>
-        <button class="btn secondary" onclick="leaveGame()">🚪 Выйти</button>
-    </div>
-</div>
 
-<div id="easter-popup">
-    <div class="egg-title">🌿 Пасхалка!</div>
-    <div class="egg-text" id="egg-text"></div>
-    <button class="btn" style="width:auto;padding:14px 34px;" onclick="document.getElementById('easter-popup').classList.remove('visible')">Закрыть</button>
-</div>
+  <script>
+    const root = document.documentElement;
 
-<button id="bell-btn" onclick="toggleNotifPanel()">🔔<span id="bell-count" style="display:none;">0</span></button>
-<div id="notif-panel">
-    <div class="np-header"><span>🔔 УВЕДОМЛЕНИЯ</span><button onclick="clearNotifs()" style="background:none;border:none;color:#8aaa8a;cursor:pointer;font-size:18px;">✖</button></div>
-    <div class="np-list" id="notif-list"></div>
-</div>
-
-<div class="server-status offline" id="server-status">⚪ Офлайн режим</div>
-
-<script>
-// ══════════════════════════════════════════════
-// ⚙️ КОНФИГ
-// ══════════════════════════════════════════════
-const CREATOR_NICK = 'CREATOR';
-const GAME_NAME = 'Wildfall';
-const VIEW_W = 1200, VIEW_H = 720;
-const CHUNK_SIZE = 700;
-const DAY_LENGTH = 300;
-const HUNGER_RATE = 1.0, THIRST_RATE = 0.8, COLD_RATE = 5;
-const PEER_PREFIX = 'wildfall-v7-';
-const API_URL = ''; // ← Если сервер на другом порту: 'http://localhost:3000'
-const EMOJI_AVATARS = ['😀','😎','🤓','😺','🐺','🦊','🐻','🐼','🐯','🦁','🐸','🐵','👽','🤖','💀','🎃','🐗','🦉'];
-const COLORS = ['#e74c3c','#f39c12','#2ecc71','#3498db','#9b59b6','#1abc9c','#e91e63','#ff5722','#8bc34a','#00bcd4'];
-
-const RECIPES = [
-    {id:'wood_pickaxe',name:'🪓 Кирка (дер.)',cat:'tool',cost:{wood:15},desc:'Добывает камень'},
-    {id:'stone_pickaxe',name:'⛏️ Кирка (кам.)',cat:'tool',cost:{wood:25,stone:15},desc:'Быстрее'},
-    {id:'wood_sword',name:'🗡️ Меч (дер.)',cat:'weapon',cost:{wood:30},desc:'Урон 15'},
-    {id:'stone_sword',name:'⚔️ Меч (кам.)',cat:'weapon',cost:{wood:50,stone:25},desc:'Урон 25'},
-    {id:'campfire',name:'🔥 Костёр',cat:'build',cost:{wood:30,stone:5},desc:'Греет ночью'},
-    {id:'bread',name:'🍞 Хлеб',cat:'food',cost:{wheat:3},desc:'+30 голода'},
-    {id:'cooked_meat',name:'🍖 Мясо',cat:'food',cost:{meat:1},desc:'+40 голода'},
-];
-
-const BIOMES = {
-    summer: {name:'☀️ Лето',grass1:'#4a7c3a',treeLeaf1:'#2e8b57',treeLeaf2:'#3cb371',treeLeaf3:'#228b22',rock1:'#7a7a7a',rock2:'#9a9a9a',coldMult:1,hungerMult:1},
-    winter: {name:'❄️ Зима',grass1:'#d0d8e0',treeLeaf1:'#2e6b4a',treeLeaf2:'#4a8b6a',treeLeaf3:'#1e5b3a',rock1:'#8a8a9a',rock2:'#aaaaba',coldMult:1.8,hungerMult:1.1},
-    autumn: {name:'🍂 Осень',grass1:'#8a6a3a',treeLeaf1:'#c05a1a',treeLeaf2:'#e07a2a',treeLeaf3:'#a04a10',rock1:'#7a6a5a',rock2:'#9a8a7a',coldMult:1.15,hungerMult:1},
-    desert: {name:'🏜️ Пустыня',grass1:'#d4a853',treeLeaf1:'#7a9a3a',treeLeaf2:'#8aaa4a',treeLeaf3:'#6a8a2a',rock1:'#9a8a6a',rock2:'#baba8a',coldMult:0.4,hungerMult:1.3},
-};
-
-// ══════════════════════════════════════════════
-// 🌍 WORLD
-// ══════════════════════════════════════════════
-const chunks = new Map();
-const destroyedResourceIds = new Set();
-let mobSpawnTimer = 0, pvpEnabled = false;
-
-function riverY(x) { return Math.sin(x * 0.0015) * 400 + Math.sin(x * 0.0006 + 2) * 300; }
-function isInRiver(x, y, b = 0) { return Math.abs(y - riverY(x)) < 70 + b; }
-function chunkKey(cx, cy) { return cx + ',' + cy; }
-function mulberry32(seed) { return function() { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-function biomeAt(x, y) {
-    const r = Math.sqrt(x * x + y * y);
-    if (r < 2500) return 'summer';
-    const a = Math.atan2(y, x), v = Math.sin(a * 3 + (r - 2500) / 2000);
-    if (v > 0.35) return 'winter';
-    if (v < -0.35) return 'desert';
-    return 'autumn';
-}
-function getChunk(cx, cy) {
-    const key = chunkKey(cx, cy);
-    if (chunks.has(key)) return chunks.get(key);
-    const seed = ((cx * 374761393) + (cy * 668265263)) ^ 0x5bd1e995;
-    const rand = mulberry32(seed);
-    const chunk = { cx, cy, resources: [] };
-    const ox = cx * CHUNK_SIZE, oy = cy * CHUNK_SIZE;
-    const treeCount = 7 + Math.floor(rand() * 6);
-    for (let i = 0; i < treeCount; i++) {
-        const rx = ox + rand() * CHUNK_SIZE, ry = oy + rand() * CHUNK_SIZE;
-        if (isInRiver(rx, ry, 30)) continue;
-        const id = `${cx}_${cy}_t${i}`;
-        chunk.resources.push({ id, type: 'tree', x: rx, y: ry, r: 26 + rand() * 10, collisionR: 14, hp: 4, maxHp: 4, alive: !destroyedResourceIds.has(id), phase: rand() * Math.PI * 2, size: 1 + rand() * 0.3, biome: biomeAt(rx, ry) });
+    // Радиус пятна зависит от размера экрана
+    function updateRadius() {
+      const r = Math.min(window.innerWidth, window.innerHeight) * 0.32;
+      root.style.setProperty('--r', Math.max(140, Math.min(300, r)) + 'px');
     }
-    const rockCount = 5 + Math.floor(rand() * 5);
-    for (let i = 0; i < rockCount; i++) {
-        const rx = ox + rand() * CHUNK_SIZE, ry = oy + rand() * CHUNK_SIZE;
-        if (isInRiver(rx, ry, 30)) continue;
-        const id = `${cx}_${cy}_k${i}`;
-        chunk.resources.push({ id, type: 'rock', x: rx, y: ry, r: 20 + rand() * 8, collisionR: 16, hp: 5, maxHp: 5, alive: !destroyedResourceIds.has(id), biome: biomeAt(rx, ry) });
-    }
-    const bushCount = 3 + Math.floor(rand() * 3);
-    for (let i = 0; i < bushCount; i++) {
-        const rx = ox + rand() * CHUNK_SIZE, ry = oy + rand() * CHUNK_SIZE;
-        if (isInRiver(rx, ry, 30)) continue;
-        const id = `${cx}_${cy}_b${i}`;
-        chunk.resources.push({ id, type: 'bush', x: rx, y: ry, r: 18, collisionR: 0, hp: 2, maxHp: 2, alive: !destroyedResourceIds.has(id), phase: rand() * Math.PI * 2, biome: biomeAt(rx, ry) });
-    }
-    chunks.set(key, chunk);
-    return chunk;
-}
-function getChunksNear(x, y, radius) {
-    const cx = Math.floor(x / CHUNK_SIZE), cy = Math.floor(y / CHUNK_SIZE);
-    const res = [];
-    for (let dx = -radius; dx <= radius; dx++) for (let dy = -radius; dy <= radius; dy++) res.push(getChunk(cx + dx, cy + dy));
-    return res;
-}
-function markDestroyed(id) {
-    destroyedResourceIds.add(id);
-    const p = id.split('_');
-    const chunk = chunks.get(chunkKey(parseInt(p[0]), parseInt(p[1])));
-    if (chunk) { const r = chunk.resources.find(r => r.id === id); if (r) r.alive = false; }
-}
+    updateRadius();
+    window.addEventListener('resize', updateRadius);
 
-// ══════════════════════════════════════════════
-// 🔐 СЕРВЕР + FALLBACK
-// ══════════════════════════════════════════════
-let SERVER_ONLINE = false;
-
-async function apiCall(path, method = 'GET', body = null) {
-    try {
-        const res = await fetch(API_URL + path, {
-            method,
-            headers: { 'Content-Type': 'application/json' },
-            body: body ? JSON.stringify(body) : null,
-            signal: AbortSignal.timeout(3000)
-        });
-        if (!res.ok) return null;
-        return await res.json();
-    } catch { return null; }
-}
-
-async function checkServer() {
-    const r = await apiCall('/api/ping');
-    SERVER_ONLINE = !!r;
-    const el = document.getElementById('server-status');
-    el.textContent = SERVER_ONLINE ? '🟢 Сервер онлайн' : '⚪ Офлайн режим';
-    el.className = 'server-status ' + (SERVER_ONLINE ? 'online' : 'offline');
-    return SERVER_ONLINE;
-}
-
-// ══════════════════════════════════════════════
-// 👤 АККАУНТЫ (server + localStorage)
-// ══════════════════════════════════════════════
-function hashPass(s){let h=0;for(let i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0;}return 'h'+Math.abs(h).toString(36);}
-function getAccountsLocal(){try{return JSON.parse(localStorage.getItem('wildfall_accounts')||'{}');}catch{return{};}}
-function saveAccountsLocal(a){localStorage.setItem('wildfall_accounts',JSON.stringify(a));}
-
-let authMode = 'login', selectedAvatar = EMOJI_AVATARS[0], selectedColor = COLORS[0], selectedAvatarIsImage = false;
-
-function switchAuthTab(mode){
-    authMode=mode;
-    document.getElementById('tab-login').classList.toggle('active',mode==='login');
-    document.getElementById('tab-register').classList.toggle('active',mode==='register');
-    document.getElementById('register-fields').style.display=mode==='register'?'block':'none';
-    document.getElementById('auth-btn').textContent=mode==='login'?'Войти':'Зарегистрироваться';
-    document.getElementById('login-error').textContent='';
-    document.getElementById('login-ok').textContent='';
-}
-
-async function doAuth() {
-    const name = document.getElementById('input-username').value.trim();
-    const pass = document.getElementById('input-password').value;
-    const errEl = document.getElementById('login-error'), okEl = document.getElementById('login-ok');
-    errEl.textContent = ''; okEl.textContent = '';
-    if (name.length < 2) { errEl.textContent = 'Никнейм от 2 символов'; return; }
-    if (!/^[a-zA-Zа-яА-Я0-9_\- ]+$/.test(name)) { errEl.textContent = 'Только буквы, цифры, _ - и пробел'; return; }
-    if (pass.length < 3) { errEl.textContent = 'Пароль от 3 символов'; return; }
-
-    if (SERVER_ONLINE) {
-        // Регистрация / вход через сервер
-        const endpoint = authMode === 'register' ? '/api/register' : '/api/login';
-        const body = { username: name, password: pass,
-            avatar: selectedAvatar, avatarIsImage: selectedAvatarIsImage, color: selectedColor };
-        const r = await apiCall(endpoint, 'POST', body);
-        if (!r) { errEl.textContent = 'Ошибка сервера'; return; }
-        if (!r.ok) { errEl.textContent = r.error || 'Ошибка'; return; }
-        if (authMode === 'register') {
-            okEl.textContent = 'Аккаунт создан! Войдите.';
-            switchAuthTab('login');
-            document.getElementById('input-username').value = name;
-        } else {
-            user = { username: name, avatar: r.avatar, avatarIsImage: r.avatarIsImage, color: r.color };
-            localStorage.setItem('wildfall_current', JSON.stringify(user));
-            enterMenu();
-        }
-    } else {
-        // Локальный fallback
-        const accs = getAccountsLocal();
-        if (authMode === 'register') {
-            if (accs[name]) { errEl.textContent = 'Ник занят'; return; }
-            accs[name] = { passHash: hashPass(pass), avatar: selectedAvatar, avatarIsImage: selectedAvatarIsImage, color: selectedColor };
-            saveAccountsLocal(accs);
-            okEl.textContent = 'Аккаунт создан! Войдите.';
-            switchAuthTab('login');
-            document.getElementById('input-username').value = name;
-        } else {
-            const a = accs[name];
-            if (!a) { errEl.textContent = 'Аккаунт не найден'; return; }
-            if (a.passHash !== hashPass(pass)) { errEl.textContent = 'Неверный пароль'; return; }
-            user = { username: name, avatar: a.avatar, avatarIsImage: a.avatarIsImage, color: a.color };
-            localStorage.setItem('wildfall_current', JSON.stringify(user));
-            enterMenu();
-        }
-    }
-}
-
-function enterMenu(){
-    document.getElementById('menu-avatar').innerHTML = user.avatarIsImage
-        ? `<img src="${user.avatar}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">`
-        : user.avatar;
-    document.getElementById('menu-username').textContent = user.username;
-    document.getElementById('menu-username').style.color = user.color;
-    showScreen('menu');
-    refreshNotifs();
-    updateBell();
-}
-function doLogout(){localStorage.removeItem('wildfall_current');user=null;showScreen('login');}
-
-function initAvatarPicker(){
-    const ag=document.getElementById('avatar-grid');
-    let html=EMOJI_AVATARS.map((a,i)=>`<div class="avatar-option ${i===0?'selected':''}" data-avatar="${a}" onclick="selectAvatar(this)">${a}</div>`).join('');
-    html+=`<div class="avatar-option upload" onclick="document.getElementById('avatar-upload').click()">📷</div>`;
-    ag.innerHTML=html;
-    if(!document.getElementById('avatar-upload')){
-        const inp=document.createElement('input');
-        inp.type='file';inp.accept='image/*';inp.id='avatar-upload';
-        inp.style.display='none';inp.onchange=handleAvatarUpload;
-        document.body.appendChild(inp);
-    }
-}
-function selectAvatar(el){
-    document.querySelectorAll('.avatar-option').forEach(e=>e.classList.remove('selected'));
-    el.classList.add('selected');
-    if(el.classList.contains('upload'))return;
-    selectedAvatar=el.dataset.avatar;selectedAvatarIsImage=false;
-}
-function handleAvatarUpload(e){
-    const f=e.target.files[0];if(!f)return;
-    if(f.size>500000){document.getElementById('login-error').textContent='Фото до 500 КБ';return;}
-    const r=new FileReader();
-    r.onload=ev=>{
-        selectedAvatar=ev.target.result;selectedAvatarIsImage=true;
-        document.querySelectorAll('.avatar-option').forEach(x=>x.classList.remove('selected'));
-        const ag=document.getElementById('avatar-grid');
-        const prev=document.createElement('div');
-        prev.className='avatar-option selected custom-photo';
-        prev.innerHTML=`<img src="${selectedAvatar}">`;
-        prev.onclick=()=>{document.querySelectorAll('.avatar-option').forEach(x=>x.classList.remove('selected'));prev.classList.add('selected');selectedAvatarIsImage=true;};
-        const old=ag.querySelector('.avatar-option.custom-photo');if(old)old.remove();
-        ag.insertBefore(prev,ag.lastChild);
-    };
-    r.readAsDataURL(f);
-}
-function initColorPicker(){
-    const cg=document.getElementById('color-grid');
-    cg.innerHTML=COLORS.map((c,i)=>`<div class="color-option ${i===0?'selected':''}" style="background:${c}" data-color="${c}" onclick="selectColor(this)"></div>`).join('')
-        +`<div id="rgb-picker" onclick="openRgbPicker()"></div>
-          <input type="color" id="rgb-input" style="display:none;" onchange="applyRgb(this.value)">`;
-}
-function selectColor(el){
-    document.querySelectorAll('.color-option').forEach(e=>e.classList.remove('selected'));
-    document.getElementById('rgb-picker')?.classList.remove('selected');
-    el.classList.add('selected');selectedColor=el.dataset.color;
-}
-function openRgbPicker(){const i=document.getElementById('rgb-input');i.value=selectedColor;i.click();}
-function applyRgb(c){selectedColor=c;document.querySelectorAll('.color-option').forEach(e=>e.classList.remove('selected'));const rp=document.getElementById('rgb-picker');if(rp){rp.classList.add('selected');rp.style.background=c;}}
-
-// ══════════════════════════════════════════════
-// 💌 УВЕДОМЛЕНИЯ (server + localStorage)
-// ══════════════════════════════════════════════
-function getNotifsLocal(){if(!user)return[];try{return JSON.parse(localStorage.getItem('wildfall_notifs_'+user.username)||'[]');}catch{return[];}}
-function saveNotifsLocal(n){if(user)localStorage.setItem('wildfall_notifs_'+user.username,JSON.stringify(n));}
-let _notifsCache = [];
-
-async function refreshNotifs() {
-    if (!user) return [];
-    if (SERVER_ONLINE) {
-        const r = await apiCall('/api/notifs/' + encodeURIComponent(user.username));
-        if (r && Array.isArray(r.notifs)) { _notifsCache = r.notifs; updateBell(); return _notifsCache; }
-    }
-    _notifsCache = getNotifsLocal();
-    updateBell();
-    return _notifsCache;
-}
-function getNotifs() { return _notifsCache.length ? _notifsCache : getNotifsLocal(); }
-
-async function pushNotif(targetUser, notif) {
-    notif.t = Date.now();
-    if (SERVER_ONLINE) {
-        await apiCall('/api/notifs/' + encodeURIComponent(targetUser), 'POST', notif);
-    }
-    const local = (() => { try { return JSON.parse(localStorage.getItem('wildfall_notifs_' + targetUser) || '[]'); } catch { return []; } })();
-    local.push(notif);
-    localStorage.setItem('wildfall_notifs_' + targetUser, JSON.stringify(local));
-}
-
-async function removeNotifAt(i) {
-    const n = getNotifs();
-    const notif = n[i];
-    if (!notif) return;
-    if (SERVER_ONLINE) {
-        await apiCall('/api/notifs/' + encodeURIComponent(user.username) + '/' + notif.t, 'DELETE');
-    }
-    const local = getNotifsLocal();
-    const idx = local.findIndex(x => x.t === notif.t);
-    if (idx >= 0) local.splice(idx, 1);
-    saveNotifsLocal(local);
-    _notifsCache = _notifsCache.filter(x => x.t !== notif.t);
-    updateBell();
-}
-
-// ══════════════════════════════════════════════
-// 👥 ДРУЗЬЯ
-// ══════════════════════════════════════════════
-function getFriends(){if(!user)return[];try{return JSON.parse(localStorage.getItem('wildfall_friends_'+user.username)||'[]');}catch{return[];}}
-function saveFriends(f){if(user)localStorage.setItem('wildfall_friends_'+user.username,JSON.stringify(f));}
-
-async function addFriend(){
-    const name=document.getElementById('input-friend-name').value.trim();
-    const errEl=document.getElementById('friend-error'),okEl=document.getElementById('friend-ok');
-    errEl.textContent='';okEl.textContent='';
-    if(!name){errEl.textContent='Введите ник';return;}
-    if(name===user.username){errEl.textContent='Нельзя себя';return;}
-    if (SERVER_ONLINE) {
-        const r = await apiCall('/api/user/' + encodeURIComponent(name));
-        if (!r || !r.exists) { errEl.textContent = 'Не зарегистрирован'; return; }
-    } else {
-        const accs = getAccountsLocal();
-        if (!accs[name]) { errEl.textContent = 'Не зарегистрирован'; return; }
-    }
-    const friends = getFriends();
-    if (friends.includes(name)) { errEl.textContent = 'Уже в друзьях'; return; }
-    friends.push(name); saveFriends(friends);
-    await pushNotif(name, { type:'friend_request', from:user.username, avatar:user.avatar, avatarIsImage:user.avatarIsImage });
-    okEl.textContent='✅ Запрос отправлен '+name;
-    document.getElementById('input-friend-name').value='';
-    renderFriends();
-}
-function renderFriends(){
-    const f=getFriends();const el=document.getElementById('friends-list');
-    if(!f.length){el.innerHTML='<div style="color:#666;font-size:12px;padding:8px;">Пока нет друзей</div>';return;}
-    const accs = getAccountsLocal();
-    el.innerHTML=f.map(n=>{
-        const a=accs[n]||{};
-        const av=a.avatarIsImage?`<img src="${a.avatar}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;">`:(a.avatar||'😀');
-        return `<div style="display:flex;align-items:center;gap:10px;padding:10px;background:rgba(139,195,74,0.08);border-radius:9px;margin-bottom:7px;">
-            <span style="font-size:24px;">${av}</span>
-            <span style="flex:1;color:${a.color||'#8bc34a'};font-weight:800;font-style:italic;">${n}</span>
-            <button onclick="removeFriend('${n}')" style="background:rgba(231,76,60,0.2);border:none;color:#e74c3c;padding:6px 12px;border-radius:7px;cursor:pointer;font-weight:900;">✖</button>
-        </div>`;
-    }).join('');
-}
-function removeFriend(n){saveFriends(getFriends().filter(f=>f!==n));renderFriends();}
-function showFriends(){renderFriends();showScreen('friends');}
-
-function updateBell(){
-    const n=getNotifs();const b=document.getElementById('bell-btn'),c=document.getElementById('bell-count');
-    if(!user){b.style.display='none';return;}
-    b.style.display='flex';
-    if(n.length>0){c.style.display='flex';c.textContent=n.length;b.classList.add('has-unread');}
-    else{c.style.display='none';b.classList.remove('has-unread');}
-}
-function toggleNotifPanel(){
-    const p=document.getElementById('notif-panel');p.classList.toggle('visible');
-    if(p.classList.contains('visible'))renderNotifs();
-}
-function renderNotifs(){
-    const n=getNotifs();const l=document.getElementById('notif-list');
-    if(!n.length){l.innerHTML='<div style="padding:20px;text-align:center;color:#666;font-size:12px;">Нет уведомлений</div>';return;}
-    l.innerHTML=n.map((x,i)=>{
-        if(x.type==='friend_request'){
-            const av=x.avatarIsImage?`<img src="${x.avatar}" style="width:22px;height:22px;border-radius:50%;">`:x.avatar;
-            return `<div class="notif-item"><span class="ni-av">${av}</span>
-                <div class="ni-body"><b>${x.from}</b> хочет в друзья</div>
-                <div class="ni-actions"><button class="accept" onclick="acceptFriend(${i})">✓</button>
-                <button class="decline" onclick="declineFriend(${i})">✖</button></div></div>`;
-        }
-        if(x.type==='coords'){
-            return `<div class="notif-item"><span class="ni-av">📍</span>
-                <div class="ni-body"><b>${x.from}</b> прислал координаты:<br>
-                <span style="color:#4a90d9;font-weight:900;">X: ${x.x} &nbsp; Y: ${x.y}</span></div>
-                <button class="dismiss" onclick="clearNotif(${i})">✖</button></div>`;
-        }
-        return '';
-    }).join('');
-}
-async function acceptFriend(i){
-    const n = getNotifs(); const x = n[i]; if (!x) return;
-    const f = getFriends(); if (!f.includes(x.from)) { f.push(x.from); saveFriends(f); }
-    await removeNotifAt(i);
-    renderNotifs(); showMessage('✅ '+x.from+' в друзьях');
-}
-async function declineFriend(i){ await removeNotifAt(i); renderNotifs(); }
-async function clearNotif(i){ await removeNotifAt(i); renderNotifs(); }
-async function clearNotifs(){ 
-    const n = getNotifs();
-    for (let i = n.length-1; i >= 0; i--) await removeNotifAt(i);
-    renderNotifs(); document.getElementById('notif-panel').classList.remove('visible');
-}
-
-// ══════════════════════════════════════════════
-// 💬 СОХРАНЕНИЕ ЧАТА
-// ══════════════════════════════════════════════
-function chatKey() {
-    if (!isOnline) return 'wildfall_chat_solo_' + (user ? user.username : 'guest');
-    return 'wildfall_chat_room_' + (roomCode || 'unknown');
-}
-function saveChatMessage(msg) {
-    try {
-        const key = chatKey();
-        const arr = JSON.parse(localStorage.getItem(key) || '[]');
-        arr.push(msg);
-        if (arr.length > 200) arr.splice(0, arr.length - 200);
-        localStorage.setItem(key, JSON.stringify(arr));
-    } catch(e) {}
-}
-function loadChatHistory() {
-    const el = document.getElementById('chat-messages');
-    el.innerHTML = '';
-    try {
-        const key = chatKey();
-        const arr = JSON.parse(localStorage.getItem(key) || '[]');
-        arr.forEach(m => _renderChatMessage(m.author, m.text, m.color, m.system, false));
-    } catch(e) {}
-}
-function _renderChatMessage(author, text, color, isSystem, save=true) {
-    const el = document.getElementById('chat-messages');
-    const d = document.createElement('div');
-    d.className = 'msg' + (isSystem ? ' system' : '');
-    if (isSystem) d.textContent = '» ' + text;
-    else d.innerHTML = `<span class="author" style="color:${color||'#8bc34a'}">${esc(author)}:</span> ${esc(text)}`;
-    el.appendChild(d); el.scrollTop = el.scrollHeight;
-    while (el.children.length > 200) el.removeChild(el.firstChild);
-    if (save) saveChatMessage({author, text, color, system: isSystem, t: Date.now()});
-}
-function addChatMessage(author, text, color) {
-    _renderChatMessage(author, text, color, false, true);
-}
-function addChatSystem(text) {
-    _renderChatMessage(null, text, null, true, true);
-}
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function sendChat(){
-    const inp=document.getElementById('chat-input');
-    const text=inp.value.trim();if(!text)return;
-    inp.value='';
-    addChatMessage(user.username,text,user.color);
-    const msg={type:'chat',user,text};
-    if(isHost)broadcast(msg);
-    else if(hostConn&&hostConn.open)hostConn.send(msg);
-}
-
-// ══════════════════════════════════════════════
-// 📤 ПОДЕЛИТЬСЯ КООРДИНАТАМИ
-// ══════════════════════════════════════════════
-function openShareCoords() {
-    if (!game.player) return;
-    document.getElementById('share-nick-input').value = '';
-    document.getElementById('share-error').textContent = '';
-    document.getElementById('share-modal').classList.add('visible');
-    setTimeout(() => document.getElementById('share-nick-input').focus(), 50);
-}
-function closeShareCoords() { document.getElementById('share-modal').classList.remove('visible'); }
-async function sendCoords() {
-    const target = document.getElementById('share-nick-input').value.trim();
-    const err = document.getElementById('share-error'); err.textContent = '';
-    if (!target) { err.textContent = 'Введите ник'; return; }
-    if (target === user.username) { err.textContent = 'Нельзя себе'; return; }
-    if (SERVER_ONLINE) {
-        const r = await apiCall('/api/user/' + encodeURIComponent(target));
-        if (!r || !r.exists) { err.textContent = 'Игрок не зарегистрирован'; return; }
-    } else {
-        const accs = getAccountsLocal();
-        if (!accs[target]) { err.textContent = 'Игрок не зарегистрирован'; return; }
-    }
-    const px = Math.round(game.player.x), py = Math.round(game.player.y);
-    await pushNotif(target, { type: 'coords', from: user.username, x: px, y: py });
-    if (isHost) {
-        for (const [id, p] of game.allPlayers) {
-            if (p.username === target && id !== 'host') {
-                const conn = clientConns.get(id);
-                if (conn) { try { conn.send({ type: 'coords_received', from: user.username, x: px, y: py }); } catch {} }
-            }
-        }
-    } else if (hostConn && hostConn.open) {
-        hostConn.send({ type: 'coords_share', to: target, from: user.username, x: px, y: py });
-    }
-    showMessage(`📤 Координаты отправлены ${target}`);
-    closeShareCoords();
-}
-
-// ══════════════════════════════════════════════
-// ⚔️ PVP
-// ══════════════════════════════════════════════
-function togglePvP() {
-    if (!isOnline) { showMessage('⚔️ PvP доступен в мультиплеере'); return; }
-    pvpEnabled = !pvpEnabled;
-    const btn = document.getElementById('pvp-toggle');
-    if (pvpEnabled) {
-        btn.textContent = '⚔️ PvP: ВКЛ';
-        btn.classList.remove('off');
-        showMessage('⚔️ PvP ВКЛЮЧЁН!');
-        if (isHost) broadcast({ type: 'pvp_state', username: user.username, enabled: true });
-        else if (hostConn && hostConn.open) hostConn.send({ type: 'pvp_state', username: user.username, enabled: true });
-    } else {
-        btn.textContent = '⚔️ PvP: ВЫКЛ';
-        btn.classList.add('off');
-        showMessage('⚔️ PvP выключен');
-        if (isHost) broadcast({ type: 'pvp_state', username: user.username, enabled: false });
-        else if (hostConn && hostConn.open) hostConn.send({ type: 'pvp_state', username: user.username, enabled: false });
-    }
-}
-
-// ══════════════════════════════════════════════
-// 🌿 ПАСХАЛКА / ЧИТЫ
-// ══════════════════════════════════════════════
-function showEasterEgg(){
-    document.getElementById('egg-text').innerHTML =
-        `Создатель игры — <b style="color:#ffd54f;">${CREATOR_NICK}</b>.<br><br>` +
-        `Спасибо, что играешь в <b style="color:#8bc34a;">${GAME_NAME}</b>! 🌲<br><br>` +
-        `<span style="font-size:13px;color:#7a9a7a;">Подсказка: если твой ник — ${CREATOR_NICK}, нажми 5 раз на 🌿</span>`;
-    document.getElementById('easter-popup').classList.add('visible');
-}
-let eggClicks=0;
-document.getElementById('easter-egg').addEventListener('click',()=>{
-    eggClicks++;
-    if(eggClicks>=5&&user&&user.username===CREATOR_NICK){
-        eggClicks=0;
-        document.getElementById('cheat-panel').classList.add('visible');
-        showMessage('⚡ CREATOR MODE');
-    }
-});
-function cheatGod(){game.cheats.god=!game.cheats.god;showMessage(game.cheats.god?'🛡️ ВКЛ':'🛡️ ВЫКЛ');}
-function cheatSpeed(){game.cheats.speed=!game.cheats.speed;showMessage(game.cheats.speed?'💨 x3':'💨 Обычная');}
-function cheatRes(){if(!game.player)return;['wood','stone','meat','wheat','berry'].forEach(k=>game.player.inv[k]=(game.player.inv[k]||0)+999);lastCraftHash='';updateUI();showMessage('📦 +999');}
-function cheatHeal(){if(!game.player)return;game.player.hp=100;game.player.hunger=100;game.player.thirst=100;game.player.temp=100;showMessage('💚');}
-function cheatClose(){document.getElementById('cheat-panel').classList.remove('visible');}
-
-// ══════════════════════════════════════════════
-// 🌐 STATE
-// ══════════════════════════════════════════════
-let user = null, peer = null, isHost = false, roomCode = null, myPeerId = null;
-let hostConn = null, clientConns = new Map();
-let gameRunning = false, gamePaused = false, lastTime = performance.now(), stateSendTimer = 0;
-let lastCraftHash = '', isOnline = false;
-
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
-
-let game = {
-    player: null, allPlayers: new Map(), mobs: [], buildings: [],
-    particles: [], floatTexts: [], time: 0, isDay: true, biome: 'summer',
-    camera: {x:0, y:0}, keys: {}, mouse: {x:0, y:0, down:false},
-    gameOver: false, cheats: {god:false, speed:false}, screenShake: 0,
-    nearWater: false,
-};
-
-// ══════════════════════════════════════════════
-// 🖥️ NETWORKING
-// ══════════════════════════════════════════════
-function initHost(code){
-    isHost=true;myPeerId='host';isOnline=true;
-    if(peer){try{peer.destroy();}catch{}}
-    peer=new Peer(PEER_PREFIX+code,{debug:1});
-    peer.on('connection',conn=>{
-        conn.on('open',()=>clientConns.set(conn.peer,conn));
-        conn.on('data',data=>handleClientMsg(conn,data));
-        conn.on('close',()=>{clientConns.delete(conn.peer);const p=game.allPlayers.get(conn.peer);if(p){addChatSystem(p.username+' покинул');game.allPlayers.delete(conn.peer);updatePlayerList();}});
-        conn.on('error',()=>{});
-    });
-    peer.on('error',err=>{
-        if(err.type==='unavailable-id'){
-            const nc=generateRoomCode();roomCode=nc;
-            document.getElementById('room-code-display').textContent=nc;
-            initHost(nc);
-        }
-    });
-}
-
-function handleClientMsg(conn,msg){
-    if(!msg||!msg.type)return;
-    switch(msg.type){
-        case 'join':{
-            const p={id:conn.peer,x:400,y:350,hp:100,maxHp:100,hunger:100,thirst:100,temp:100,
-                username:msg.user.username,avatar:msg.user.avatar,avatarIsImage:msg.user.avatarIsImage,color:msg.user.color,
-                facing:0,walkPhase:0,isMoving:false,attackAnim:0,pvp:false};
-            game.allPlayers.set(conn.peer,p);
-            addChatSystem(p.username+' присоединился');updatePlayerList();
-            conn.send({type:'init',yourId:conn.peer,biome:biomeAt(400,350),
-                players:getPlayersArray(),destroyedResources:Array.from(destroyedResourceIds)});
-            break;
-        }
-        case 'position':{
-            const p=game.allPlayers.get(conn.peer);
-            if(p){p.x=msg.x;p.y=msg.y;p.hp=msg.hp;p.facing=msg.facing;p.isMoving=msg.isMoving;p.walkPhase=msg.walkPhase;p.attackAnim=msg.attackAnim;}
-            break;
-        }
-        case 'chat':{addChatMessage(msg.user.username,msg.text,msg.user.color);broadcast({type:'chat',user:msg.user,text:msg.text});break;}
-        case 'res_destroy':{markDestroyed(msg.id);broadcast({type:'res_destroy',id:msg.id});break;}
-        case 'coords_share':{
-            if (msg.to === user.username) {
-                pushNotif(user.username, { type: 'coords', from: msg.from, x: msg.x, y: msg.y });
-                addNotifRealtime({ type: 'coords', from: msg.from, x: msg.x, y: msg.y });
-            }
-            for (const [id, p] of game.allPlayers) {
-                if (p.username === msg.to && id !== conn.peer) {
-                    const targetConn = clientConns.get(id);
-                    if (targetConn) { try { targetConn.send({ type: 'coords_received', from: msg.from, x: msg.x, y: msg.y }); } catch {} }
-                    break;
-                }
-            }
-            break;
-        }
-        case 'pvp_state':{
-            const p = game.allPlayers.get(conn.peer);
-            if (p) p.pvp = msg.enabled;
-            broadcast({type:'pvp_state_bc', username: msg.username, enabled: msg.enabled});
-            break;
-        }
-        case 'pvp_hit':{
-            const attacker = game.allPlayers.get(conn.peer);
-            if (!attacker || !attacker.pvp) break;
-            for (const [id, target] of game.allPlayers) {
-                if (id === conn.peer) continue;
-                if (target.username === msg.target && target.pvp) {
-                    target.hp -= msg.damage;
-                    if (id === 'host') {
-                        game.player.hp = target.hp;
-                        spawnFloatText(game.player.x, game.player.y - 30, '-' + msg.damage, '#ff5252');
-                        game.screenShake = 0.3;
-                    } else {
-                        const tconn = clientConns.get(id);
-                        if (tconn) { try { tconn.send({type:'pvp_damage', damage: msg.damage, from: msg.from}); } catch {} }
-                    }
-                    if (target.hp <= 0) {
-                        target.hp = target.maxHp;
-                        addChatSystem(`${msg.from} убил ${target.username}! 💀`);
-                        broadcast({type:'pvp_death', victim: target.username, killer: msg.from});
-                        target.x = Math.random() * 800 + 200;
-                        target.y = Math.random() * 800 + 200;
-                    }
-                    break;
-                }
-            }
-            break;
-        }
-    }
-}
-function broadcast(msg){for(const c of clientConns.values()){try{c.send(msg);}catch{}}}
-
-function doJoinRoom(){
-    const code=document.getElementById('input-room-code').value.trim().toUpperCase();
-    if(code.length!==6){document.getElementById('join-error').textContent='Код из 6 символов';return;}
-    isHost=false;roomCode=code;isOnline=true;
-    if(peer){try{peer.destroy();}catch{}}
-    peer=new Peer({debug:1});
-    const to=setTimeout(()=>{document.getElementById('join-error').textContent='Не удалось подключиться';},10000);
-    peer.on('open',id=>{
-        myPeerId=id;
-        hostConn=peer.connect(PEER_PREFIX+code,{reliable:true});
-        hostConn.on('open',()=>{clearTimeout(to);hostConn.send({type:'join',user});});
-        hostConn.on('data',data=>handleHostMsg(data));
-        hostConn.on('close',()=>{clearTimeout(to);showMessage('Хост отключился');setTimeout(()=>showScreen('menu'),1500);});
-        hostConn.on('error',e=>{clearTimeout(to);document.getElementById('join-error').textContent='Ошибка: '+e.type;});
-    });
-    peer.on('error',err=>{clearTimeout(to);document.getElementById('join-error').textContent='Ошибка: '+err.type;});
-}
-
-function handleHostMsg(msg){
-    if(!msg||!msg.type)return;
-    switch(msg.type){
-        case 'init':{
-            destroyedResourceIds.clear();
-            (msg.destroyedResources||[]).forEach(id=>destroyedResourceIds.add(id));
-            chunks.clear();game.mobs=[];game.buildings=[];
-            for(const p of msg.players)if(p.id!==msg.yourId)game.allPlayers.set(p.id,p);
-            game.player=makePlayer(400,350);
-            game.camera.x=game.player.x-VIEW_W/2;game.camera.y=game.player.y-VIEW_H/2;
-            startGame();
-            break;
-        }
-        case 'state':{
-            const seen=new Set();
-            for(const p of msg.players){
-                if(p.id===myPeerId)continue;
-                seen.add(p.id);
-                if(!game.allPlayers.has(p.id))game.allPlayers.set(p.id,p);
-                else Object.assign(game.allPlayers.get(p.id),p);
-            }
-            for(const id of game.allPlayers.keys())if(!seen.has(id))game.allPlayers.delete(id);
-            game.isDay=msg.isDay;game.time=msg.time;
-            updatePlayerList();
-            break;
-        }
-        case 'chat':addChatMessage(msg.user.username,msg.text,msg.user.color);break;
-        case 'res_destroy':markDestroyed(msg.id);break;
-        case 'coords_received':addNotifRealtime({type:'coords', from: msg.from, x: msg.x, y: msg.y});break;
-        case 'pvp_state_bc':{
-            for (const p of game.allPlayers.values()) if (p.username === msg.username) p.pvp = msg.enabled;
-            break;
-        }
-        case 'pvp_damage':{
-            const p = game.player; if (!p) break;
-            p.hp -= msg.damage;
-            spawnFloatText(p.x, p.y - 30, '-' + msg.damage, '#ff5252');
-            spawnParticles(p.x, p.y, '#ff3333', 8);
-            game.screenShake = 0.3;
-            if (p.hp <= 0) {
-                p.hp = p.maxHp;
-                p.x = Math.random() * 800 + 200;
-                p.y = Math.random() * 800 + 200;
-                game.camera.x = p.x - VIEW_W/2;
-                game.camera.y = p.y - VIEW_H/2;
-                showMessage(`💀 ${msg.from} убил тебя!`, 2500);
-                addChatSystem(`${msg.from} убил тебя 💀`);
-            }
-            break;
-        }
-        case 'pvp_death':{ addChatSystem(`💀 ${msg.killer} убил ${msg.victim}`); break; }
-    }
-}
-
-function addNotifRealtime(notif) {
-    notif.t = Date.now();
-    _notifsCache.push(notif);
-    updateBell();
-    if (notif.type === 'coords') showMessage(`📍 ${notif.from} прислал координаты`, 2500);
-    if (document.getElementById('notif-panel').classList.contains('visible')) renderNotifs();
-}
-
-// ══════════════════════════════════════════════
-// 🎮 PLAYER
-// ══════════════════════════════════════════════
-function makePlayer(x,y){
-    return {x,y,r:16,speed:220,baseSpeed:220,
-        hp:100,maxHp:100,hunger:100,thirst:100,temp:100,
-        facing:0,walkPhase:0,isMoving:false,attackCooldown:0,attackAnim:0,
-        inv:{wood:0,stone:0,meat:0,wheat:0,berry:0},
-        tools:{},equipped:{weapon:null}};
-}
-
-function canMoveTo(x, y, r) {
-    for (const chunk of getChunksNear(x, y, 1)) {
-        for (const res of chunk.resources) {
-            if (!res.alive || !res.collisionR) continue;
-            if (Math.hypot(x - res.x, y - res.y) < res.collisionR + r) return false;
-        }
-    }
-    return true;
-}
-
-// ══════════════════════════════════════════════
-// 🚀 GAME START
-// ══════════════════════════════════════════════
-function startGame(){
-    showScreen('game');
-    gamePaused=false;gameRunning=true;game.gameOver=false;
-    game.cheats={god:false,speed:false};game.particles=[];game.floatTexts=[];game.allPlayers.clear();
-    chunks.clear();destroyedResourceIds.clear();lastCraftHash='';
-    pvpEnabled = false;
-    const btn = document.getElementById('pvp-toggle');
-    btn.textContent = '⚔️ PvP: ВЫКЛ'; btn.classList.add('off');
-    btn.style.display = isOnline ? 'block' : 'none';
-    if(isHost){
-        game.mobs=[];game.buildings=[];
-        game.allPlayers.set('host',{id:'host',x:400,y:350,hp:100,maxHp:100,hunger:100,thirst:100,temp:100,
-            username:user.username,avatar:user.avatar,avatarIsImage:user.avatarIsImage,color:user.color,
-            facing:0,walkPhase:0,isMoving:false,attackAnim:0,pvp:false});
-        game.player=makePlayer(400,350);
-    } else if(!game.player){
-        game.player=makePlayer(400,350);
-    }
-    game.camera.x=game.player.x-VIEW_W/2;game.camera.y=game.player.y-VIEW_H/2;
-    game.time=0;mobSpawnTimer=0;
-    for (const chunk of getChunksNear(game.player.x, game.player.y, 2)) {
-        for (const r of chunk.resources) {
-            if (Math.hypot(r.x - game.player.x, r.y - game.player.y) < 120) r.alive = false;
-        }
-    }
-    for(let i=0;i<5;i++) spawnWolf();
-    loadChatHistory(); // 📝 Загружаем историю
-    addChatSystem(isOnline ? (isHost && roomCode ? `Комната ${roomCode}` : 'Добро пожаловать!') : 'Одиночная игра');
-    updatePlayerList();updateUI();
-    lastTime=performance.now();
-    requestAnimationFrame(gameLoop);
-}
-
-function spawnWolf(){
-    const p = game.player; if (!p) return;
-    const angle = Math.random() * Math.PI * 2;
-    const dist = 500 + Math.random() * 400;
-    let wx = p.x + Math.cos(angle) * dist, wy = p.y + Math.sin(angle) * dist;
-    if (isInRiver(wx, wy, 50)) return;
-    game.mobs.push({type:'wolf', x: wx, y: wy, r:15, speed:90, hp:4, maxHp:4, damage:8,
-        alive:true, lastAttack:0, walkPhase:Math.random()*Math.PI*2, hitAnim:0});
-}
-
-function playSolo(){isHost=true;roomCode=null;isOnline=false;startGame();}
-function showCreateRoom(){showScreen('lobby');const code=generateRoomCode();roomCode=code;document.getElementById('room-code-display').textContent=code;initHost(code);}
-function showJoinRoom(){showScreen('join');document.getElementById('join-error').textContent='';}
-function copyRoomCode(){navigator.clipboard?.writeText(roomCode).then(()=>showMessage('📋 Скопировано'));}
-function generateRoomCode(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let r='';for(let i=0;i<6;i++)r+=c[Math.floor(Math.random()*c.length)];return r;}
-
-function leaveGame(){
-    gameRunning=false;gamePaused=false;
-    document.getElementById('pause-menu').classList.remove('visible');
-    document.getElementById('cheat-panel').classList.remove('visible');
-    if(peer){try{peer.destroy();}catch{}peer=null;}
-    hostConn=null;clientConns.clear();
-    showScreen('menu');
-}
-function togglePause(){
-    if (isOnline) { showMessage('⏸️ Пауза недоступна в мультиплеере', 1800); return; }
-    gamePaused=!gamePaused;
-    document.getElementById('pause-menu').classList.toggle('visible',gamePaused);
-}
-function resumeGame(){gamePaused=false;document.getElementById('pause-menu').classList.remove('visible');}
-
-// ══════════════════════════════════════════════
-// 🔄 GAME LOOP
-// ══════════════════════════════════════════════
-function gameLoop(now){
-    if(!gameRunning)return;
-    const dt=Math.min((now-lastTime)/1000,0.05);
-    lastTime=now;
-    if(!gamePaused)update(dt);
-    render();
-    updateUI();
-    if(isHost){stateSendTimer+=dt;if(stateSendTimer>0.066){stateSendTimer=0;sendStateToClients();}}
-    requestAnimationFrame(gameLoop);
-}
-
-function update(dt){
-    const p=game.player;
-    if(!p)return;
-    if(p.hp<=0){p.isMoving=false;p.attackAnim=Math.max(0,p.attackAnim-dt*3);return;}
-
-    let dx=0,dy=0;
-    if(game.keys['w']||game.keys['ц'])dy-=1;
-    if(game.keys['s']||game.keys['ы'])dy+=1;
-    if(game.keys['a']||game.keys['ф'])dx-=1;
-    if(game.keys['d']||game.keys['в'])dx+=1;
-    const len=Math.hypot(dx,dy);
-    p.isMoving=len>0;
-    if(len>0){
-        const speed=game.cheats.speed?p.baseSpeed*3:p.baseSpeed;
-        const step=speed*dt;
-        const nx=p.x+(dx/len)*step, ny=p.y+(dy/len)*step;
-        if(canMoveTo(nx,p.y,p.r))p.x=nx;
-        if(canMoveTo(p.x,ny,p.r))p.y=ny;
-        p.facing=Math.atan2(dy,dx);
-        p.walkPhase+=dt*10;
-    } else p.walkPhase+=dt*2;
-
-    const tx=p.x-VIEW_W/2, ty=p.y-VIEW_H/2;
-    game.camera.x+=(tx-game.camera.x)*Math.min(1,dt*8);
-    game.camera.y+=(ty-game.camera.y)*Math.min(1,dt*8);
-    game.biome = biomeAt(p.x, p.y);
-
-    game.nearWater = Math.abs(p.y - riverY(p.x)) < 90;
-    const wh = document.getElementById('water-hint');
-    if (game.nearWater) wh.classList.add('show'); else wh.classList.remove('show');
-
-    if(p.attackCooldown>0)p.attackCooldown-=dt;
-    if(p.attackAnim>0)p.attackAnim=Math.max(0,p.attackAnim-dt*3);
-    if(game.mouse.down&&p.attackCooldown<=0)doAttack();
-
-    if(game.mouse.down){
-        const wx=game.mouse.x+game.camera.x, wy=game.mouse.y+game.camera.y;
-        for(const chunk of getChunksNear(p.x, p.y, 2)){
-            for(const r of chunk.resources){
-                if(!r.alive)continue;
-                const playerDist = Math.hypot(r.x - p.x, r.y - p.y);
-                const maxReach = r.r + p.r + 40;
-                if (playerDist > maxReach) continue;
-                if(Math.hypot(r.x-wx,r.y-wy)<r.r+20){
-                    let dmg=1;
-                    if(r.type==='tree'&&p.tools.wood_pickaxe)dmg=1.5;
-                    if(r.type==='tree'&&p.tools.stone_pickaxe)dmg=2.5;
-                    if(r.type==='rock'&&p.tools.stone_pickaxe)dmg=2;
-                    if(r.type==='rock'&&!p.tools.wood_pickaxe)dmg=0.4;
-                    r.hp-=dmg*dt*3;
-                    if(Math.random()<0.3)spawnParticles(r.x,r.y,r.type==='tree'?'#8b5a2b':'#888',1);
-                    if(r.hp<=0){
-                        r.alive=false;
-                        markDestroyed(r.id);
-                        if(isHost) broadcast({type:'res_destroy', id:r.id});
-                        else if(hostConn && hostConn.open) hostConn.send({type:'res_destroy', id:r.id});
-                        const gain=r.type==='tree'?{wood:5}:r.type==='rock'?{stone:5}:{berry:2};
-                        Object.entries(gain).forEach(([k,v])=>p.inv[k]=(p.inv[k]||0)+v);
-                        spawnFloatText(r.x,r.y-20,'+'+Object.values(gain)[0],'#8bc34a');
-                        spawnParticles(r.x,r.y,r.type==='tree'?'#8b5a2b':'#888',18);
-                    }
-                }
-            }
-        }
+    // Перемещение фонарика
+    function moveLight(x, y) {
+      root.style.setProperty('--mx', x + 'px');
+      root.style.setProperty('--my', y + 'px');
     }
 
-    if(!game.cheats.god){
-        const b=BIOMES[game.biome];
-        p.hunger=Math.max(0,p.hunger-HUNGER_RATE*b.hungerMult*dt);
-        p.thirst=Math.max(0,p.thirst-THIRST_RATE*dt);
-        if(p.hunger<=0)p.hp=Math.max(0,p.hp-4*dt);
-        if(p.thirst<=0)p.hp=Math.max(0,p.hp-4*dt);
-        const nearFire=game.buildings.some(b2=>b2.alive&&b2.id==='campfire'&&Math.hypot(b2.x-p.x,b2.y-p.y)<100);
-        const night=!isDayTime();
-        if(!nearFire&&night)p.temp=Math.max(0,p.temp-COLD_RATE*b.coldMult*dt);
-        else p.temp=Math.min(100,p.temp+15*dt);
-        if(p.temp<=0)p.hp=Math.max(0,p.hp-4*dt);
-        if(p.hunger>50&&p.thirst>50&&p.temp>50&&p.hp<p.maxHp)p.hp=Math.min(p.maxHp,p.hp+2*dt);
-        if(p.hp<=0&&!isOnline)game.gameOver=true;
-    }
+    // Инициализация — фонарик по центру, чтобы сразу было видно текст
+    moveLight(window.innerWidth / 2, window.innerHeight / 2);
 
-    mobSpawnTimer+=dt;
-    if(mobSpawnTimer>2){mobSpawnTimer=0;if(game.mobs.filter(m=>m.alive).length<8)spawnWolf();}
-
-    game.mobs.forEach(m=>{
-        if(!m.alive)return;
-        if(m.hitAnim>0)m.hitAnim-=dt;
-        const d=Math.hypot(m.x-p.x,m.y-p.y);
-        if(d<280){
-            const ang=Math.atan2(p.y-m.y,p.x-m.x);
-            m.x+=Math.cos(ang)*m.speed*dt;
-            m.y+=Math.sin(ang)*m.speed*dt;
-            m.walkPhase+=dt*8;
-        }
-        if(d<m.r+p.r&&!game.cheats.god){
-            m.lastAttack+=dt;
-            if(m.lastAttack>0.9){
-                p.hp=Math.max(0,p.hp-m.damage);
-                spawnFloatText(p.x,p.y-30,'-'+m.damage,'#ff5252');
-                spawnParticles(p.x,p.y,'#ff3333',6);
-                game.screenShake=0.3;m.lastAttack=0;
-            }
-        }
-    });
-    game.mobs=game.mobs.filter(m=>m.alive && Math.hypot(m.x-p.x,m.y-p.y)<2000);
-    game.particles=game.particles.filter(pt=>{pt.x+=pt.vx*dt;pt.y+=pt.vy*dt;pt.vy+=200*dt;pt.life-=dt;return pt.life>0;});
-    game.floatTexts=game.floatTexts.filter(f=>{f.y-=50*dt;f.life-=dt;return f.life>0;});
-    if(game.screenShake>0)game.screenShake=Math.max(0,game.screenShake-dt*3);
-
-    game.time+=dt;
-    game.isDay=isDayTime();
-
-    if(!isHost&&hostConn&&hostConn.open){
-        hostConn.send({type:'position',x:p.x,y:p.y,hp:p.hp,
-            facing:p.facing,isMoving:p.isMoving,walkPhase:p.walkPhase,attackAnim:p.attackAnim});
-    }
-    if(isHost){
-        const self=game.allPlayers.get('host');
-        if(self){self.x=p.x;self.y=p.y;self.hp=p.hp;self.facing=p.facing;self.isMoving=p.isMoving;self.walkPhase=p.walkPhase;self.attackAnim=p.attackAnim;}
-    }
-}
-
-function drinkWater() {
-    const p = game.player; if (!p) return;
-    if (Math.abs(p.y - riverY(p.x)) < 90 + p.r) {
-        if (p.thirst >= 100) { showMessage('💧 Ты не хочешь пить'); return; }
-        p.thirst = Math.min(100, p.thirst + 40);
-        spawnParticles(p.x, p.y, '#4a90d9', 14);
-        spawnFloatText(p.x, p.y - 30, '+40 💧', '#4a90d9');
-        showMessage('💧 Ты попил воды');
-    } else showMessage('❌ Нужно быть у реки');
-}
-
-function doAttack(){
-    const p=game.player;
-    p.attackCooldown=0.4;p.attackAnim=1;
-    let dmg=10;
-    if(p.equipped.weapon==='wood_sword')dmg=15;
-    if(p.equipped.weapon==='stone_sword')dmg=25;
-    let hitSomething=false;
-
-    if (isOnline && pvpEnabled) {
-        for (const [id, target] of game.allPlayers) {
-            if (id === (isHost ? 'host' : myPeerId)) continue;
-            if (!target.pvp) continue;
-            const d=Math.hypot(target.x-p.x,target.y-p.y);
-            if (d < 70) {
-                hitSomething = true;
-                if (isHost) {
-                    const tconn = clientConns.get(id);
-                    if (tconn) { try { tconn.send({type:'pvp_damage', damage: dmg, from: user.username}); } catch {} }
-                    target.hp -= dmg;
-                    if (target.hp <= 0) {
-                        target.hp = target.maxHp;
-                        target.x = Math.random() * 800 + 200;
-                        target.y = Math.random() * 800 + 200;
-                        addChatSystem(`${user.username} убил ${target.username}! 💀`);
-                        broadcast({type:'pvp_death', victim: target.username, killer: user.username});
-                        if (tconn) try { tconn.send({type:'pvp_respawn', by: user.username}); } catch {}
-                    }
-                } else if (hostConn && hostConn.open) {
-                    hostConn.send({type:'pvp_hit', target: target.username, damage: dmg, from: user.username});
-                }
-                spawnFloatText(target.x, target.y - 30, '-' + dmg, '#ff5252');
-                spawnParticles(target.x, target.y, '#cc0000', 10);
-            }
-        }
-    }
-
-    game.mobs.forEach(m=>{
-        if(!m.alive)return;
-        const d=Math.hypot(m.x-p.x,m.y-p.y);
-        if(d<70){
-            m.hp-=dmg;m.hitAnim=0.2;hitSomething=true;
-            spawnFloatText(m.x,m.y-25,'-'+dmg,'#ff5252');
-            spawnParticles(m.x,m.y,'#cc0000',10);
-            if(m.hp<=0){m.alive=false;spawnParticles(m.x,m.y,'#990000',20);}
-        }
-    });
-    if(hitSomething)game.screenShake=0.2;
-}
-
-function isDayTime(){
-    const t=(game.time%DAY_LENGTH)/DAY_LENGTH;
-    return Math.sin(t*Math.PI*2-Math.PI/2)>-0.2;
-}
-
-// ══════════════════════════════════════════════
-// 🎨 RENDER
-// ══════════════════════════════════════════════
-function render(){
-    const b=BIOMES[game.biome];
-    const t=(game.time%DAY_LENGTH)/DAY_LENGTH;
-    const sun=Math.sin(t*Math.PI*2-Math.PI/2);
-    const dayAmount=(sun+1)/2;
-
-    let sx=0,sy=0;
-    if(game.screenShake>0){sx=(Math.random()-0.5)*game.screenShake*20;sy=(Math.random()-0.5)*game.screenShake*20;}
-    const camX=game.camera.x+sx, camY=game.camera.y+sy;
-
-    const groundR=Math.round(lerp(15,74,dayAmount));
-    const groundG=Math.round(lerp(20,124,dayAmount));
-    const groundB=Math.round(lerp(30,58,dayAmount));
-    ctx.fillStyle=`rgb(${groundR},${groundG},${groundB})`;
-    ctx.fillRect(0,0,VIEW_W,VIEW_H);
-
-    const startX=Math.floor(camX/60)*60, startY=Math.floor(camY/60)*60;
-    for(let gx=startX;gx<camX+VIEW_W;gx+=60){
-        for(let gy=startY;gy<camY+VIEW_H;gy+=60){
-            const n=((gx*7+gy*13)%100)/100;
-            ctx.fillStyle=`rgba(${b.grass1},${dayAmount*0.15})`;
-            if(n>0.5){ctx.beginPath();ctx.arc(gx-n*30+30,gy-n*30+30,4+n*4,0,Math.PI*2);ctx.fill();}
-        }
-    }
-
-    ctx.save();
-    ctx.translate(-camX,-camY);
-    drawRiver(camX, camY, dayAmount);
-
-    const drawList=[];
-    for(const chunk of getChunksNear(game.player.x, game.player.y, 2)){
-        for(const r of chunk.resources){
-            if(!r.alive)continue;
-            if(r.x<camX-120||r.x>camX+VIEW_W+120||r.y<camY-120||r.y>camY+VIEW_H+120)continue;
-            drawList.push({y:r.y,fn:()=>drawResource(r)});
-        }
-    }
-    game.mobs.forEach(m=>{
-        if(!m.alive)return;
-        if(m.x<camX-120||m.x>camX+VIEW_W+120||m.y<camY-120||m.y>camY+VIEW_H+120)return;
-        drawList.push({y:m.y,fn:()=>drawMob(m,t)});
-    });
-    for(const [id,pl] of game.allPlayers){
-        if(id===myPeerId||id==='host')continue;
-        if(pl.x<camX-120||pl.x>camX+VIEW_W+120||pl.y<camY-120||pl.y>camY+VIEW_H+120)continue;
-        drawList.push({y:pl.y,fn:()=>drawPlayerAt(pl,t,false)});
-    }
-    if(game.player)drawList.push({y:game.player.y,fn:()=>drawPlayerAt(game.player,t,true)});
-    drawList.sort((a,b)=>a.y-b.y);
-    drawList.forEach(o=>o.fn());
-
-    game.buildings.forEach(bd=>{
-        if(bd.x<camX-100||bd.x>camX+VIEW_W+100||bd.y<camY-100||bd.y>camY+VIEW_H+100)return;
-        drawBuilding(bd,t);
+    document.addEventListener('mousemove', (e) => {
+      moveLight(e.clientX, e.clientY);
     });
 
-    game.particles.forEach(pt=>{
-        ctx.globalAlpha=pt.life/pt.maxLife;
-        ctx.fillStyle=pt.color;
-        ctx.beginPath();ctx.arc(pt.x,pt.y,pt.size,0,Math.PI*2);ctx.fill();
+    // Тач-устройства
+    document.addEventListener('touchstart', (e) => {
+      const t = e.touches[0];
+      if (t) moveLight(t.clientX, t.clientY);
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+      const t = e.touches[0];
+      if (t) moveLight(t.clientX, t.clientY);
+    }, { passive: true });
+
+    // Кнопка
+    document.getElementById('enter-btn').addEventListener('click', () => {
+      alert('Хоррор откроется в среду в 14:00 по МСК. Не опаздывай.');
     });
-    ctx.globalAlpha=1;
-
-    game.floatTexts.forEach(f=>{
-        ctx.globalAlpha=f.life/f.maxLife;
-        ctx.font='900 18px Montserrat';
-        ctx.fillStyle=f.color;
-        ctx.strokeStyle='#000';ctx.lineWidth=3;ctx.textAlign='center';
-        ctx.strokeText(f.text,f.x,f.y);
-        ctx.fillText(f.text,f.x,f.y);
-    });
-    ctx.globalAlpha=1;ctx.textAlign='left';
-    ctx.restore();
-
-    if(dayAmount<0.7){
-        const alpha=(0.7-dayAmount)/0.7*0.65;
-        ctx.fillStyle=`rgba(10,15,50,${alpha})`;
-        ctx.fillRect(0,0,VIEW_W,VIEW_H);
-    }
-    const horizon=1-Math.abs(sun);
-    if(horizon>0.65){
-        const sa=(horizon-0.65)/0.35;
-        ctx.fillStyle=`rgba(255,100,30,${sa*0.25})`;
-        ctx.fillRect(0,0,VIEW_W,VIEW_H);
-    }
-
-    if(dayAmount>0.35){
-        const sunX=VIEW_W-140,sunY=100;
-        const g=ctx.createRadialGradient(sunX,sunY,10,sunX,sunY,300);
-        g.addColorStop(0,`rgba(255,230,120,${dayAmount*0.5})`);
-        g.addColorStop(0.5,`rgba(255,200,80,${dayAmount*0.15})`);
-        g.addColorStop(1,'rgba(255,200,80,0)');
-        ctx.fillStyle=g;ctx.beginPath();ctx.arc(sunX,sunY,300,0,Math.PI*2);ctx.fill();
-        ctx.fillStyle='#ffe88a';ctx.beginPath();ctx.arc(sunX,sunY,40,0,Math.PI*2);ctx.fill();
-    }
-    if(dayAmount<0.5){
-        const na=(0.5-dayAmount)/0.5;
-        for(let i=0;i<100;i++){
-            const sx2=(i*127.3)%VIEW_W, sy2=(i*79.7)%(VIEW_H*0.6);
-            const tw=0.5+0.5*Math.sin(game.time*2+i);
-            ctx.fillStyle=`rgba(255,255,255,${na*tw*0.9})`;
-            ctx.fillRect(sx2,sy2,2,2);
-        }
-        ctx.save();ctx.globalAlpha=na;
-        const mx=VIEW_W-140,my=100;
-        const mg=ctx.createRadialGradient(mx,my,10,mx,my,180);
-        mg.addColorStop(0,'rgba(200,220,255,0.4)');
-        mg.addColorStop(1,'rgba(200,220,255,0)');
-        ctx.fillStyle=mg;ctx.beginPath();ctx.arc(mx,my,180,0,Math.PI*2);ctx.fill();
-        ctx.fillStyle='#e8eef0';ctx.beginPath();ctx.arc(mx,my,32,0,Math.PI*2);ctx.fill();
-        ctx.restore();
-    }
-
-    if(game.gameOver){
-        ctx.fillStyle='rgba(0,0,0,0.78)';ctx.fillRect(0,0,VIEW_W,VIEW_H);
-        ctx.fillStyle='#fff';ctx.font='900 56px Montserrat';ctx.textAlign='center';
-        ctx.fillText('💀 ВЫ ПОГИБЛИ',VIEW_W/2,VIEW_H/2-20);
-        ctx.font='italic 700 18px Montserrat';ctx.fillStyle='#aaa';
-        ctx.fillText('ESC → Выйти в меню',VIEW_W/2,VIEW_H/2+30);
-        ctx.textAlign='left';
-    }
-}
-
-function lerp(a,b,t){return a+(b-a)*t;}
-
-function drawRiver(camX, camY, dayAmount) {
-    const startX = Math.floor((camX - 100) / 20) * 20;
-    const endX = camX + VIEW_W + 100;
-    ctx.beginPath();
-    ctx.moveTo(startX, riverY(startX));
-    for (let x = startX; x <= endX; x += 20) ctx.lineTo(x, riverY(x));
-    ctx.strokeStyle = `rgba(${Math.round(lerp(20,74,dayAmount))}, ${Math.round(lerp(60,140,dayAmount))}, ${Math.round(lerp(100,200,dayAmount))}, 0.85)`;
-    ctx.lineWidth = 140;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.stroke();
-    ctx.strokeStyle = `rgba(255,255,255,${dayAmount * 0.15})`;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(startX, riverY(startX));
-    for (let x = startX; x <= endX; x += 20) ctx.lineTo(x, riverY(x) + Math.sin(x * 0.05 + game.time * 2) * 10);
-    ctx.stroke();
-}
-
-function drawResource(r){
-    const b = BIOMES[r.biome] || BIOMES.summer;
-    if(r.type==='tree')drawTree(r,b);
-    else if(r.type==='rock')drawRock(r,b);
-    else if(r.type==='bush')drawBush(r,b);
-}
-
-function drawTree(r,b){
-    const sway=Math.sin(game.time*0.9+r.phase)*3;
-    const x=r.x,y=r.y,s=r.size;
-    ctx.fillStyle='rgba(0,0,0,0.28)';
-    ctx.beginPath();ctx.ellipse(x,y+6,r.r*0.9,r.r*0.3,0,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#4a2e1a';ctx.fillRect(x-6*s,y-20*s,12*s,26*s);
-    ctx.fillStyle='#6b4423';ctx.fillRect(x-5*s,y-20*s,4*s,26*s);
-    const l1={x:x+sway,y:y-r.r*0.9,r:r.r*0.95,c:b.treeLeaf1};
-    const l2={x:x-r.r*0.4+sway*0.8,y:y-r.r*0.6,r:r.r*0.75,c:b.treeLeaf2};
-    const l3={x:x+r.r*0.4+sway,y:y-r.r*0.7,r:r.r*0.7,c:b.treeLeaf3};
-    ctx.fillStyle=l1.c;ctx.beginPath();ctx.arc(l1.x,l1.y,l1.r,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle=l2.c;ctx.beginPath();ctx.arc(l2.x,l2.y,l2.r,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle=l3.c;ctx.beginPath();ctx.arc(l3.x,l3.y,l3.r,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='rgba(220,255,200,0.18)';
-    ctx.beginPath();ctx.arc(x-r.r*0.2+sway,y-r.r*1.1,r.r*0.35,0,Math.PI*2);ctx.fill();
-    if(r.hp<r.maxHp){
-        ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(x-20,y-r.r*1.7,40,4);
-        ctx.fillStyle='#e74c3c';ctx.fillRect(x-20,y-r.r*1.7,40*(r.hp/r.maxHp),4);
-    }
-}
-
-function drawRock(r,b){
-    const x=r.x,y=r.y;
-    ctx.fillStyle='rgba(0,0,0,0.28)';
-    ctx.beginPath();ctx.ellipse(x,y+r.r*0.7,r.r*0.9,r.r*0.3,0,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle=b.rock1;
-    ctx.beginPath();
-    ctx.moveTo(x-r.r,y+r.r*0.6);ctx.lineTo(x-r.r*0.7,y-r.r*0.5);ctx.lineTo(x-r.r*0.1,y-r.r);
-    ctx.lineTo(x+r.r*0.7,y-r.r*0.6);ctx.lineTo(x+r.r,y+r.r*0.4);ctx.lineTo(x+r.r*0.4,y+r.r*0.8);
-    ctx.closePath();ctx.fill();
-    ctx.fillStyle=b.rock2;
-    ctx.beginPath();
-    ctx.moveTo(x-r.r*0.7,y-r.r*0.5);ctx.lineTo(x-r.r*0.1,y-r.r);
-    ctx.lineTo(x+r.r*0.2,y-r.r*0.3);ctx.lineTo(x-r.r*0.2,y+r.r*0.1);
-    ctx.closePath();ctx.fill();
-    if(r.hp<r.maxHp){
-        ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(x-18,y-r.r*1.4,36,4);
-        ctx.fillStyle='#e74c3c';ctx.fillRect(x-18,y-r.r*1.4,36*(r.hp/r.maxHp),4);
-    }
-}
-
-function drawBush(r,b){
-    const sway=Math.sin(game.time*1.2+r.phase)*1.5;
-    const x=r.x,y=r.y;
-    ctx.fillStyle='rgba(0,0,0,0.25)';
-    ctx.beginPath();ctx.ellipse(x,y+r.r*0.6,r.r*0.8,r.r*0.25,0,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#2e6b2e';ctx.beginPath();ctx.arc(x+sway,y,r.r,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#3a8b3a';ctx.beginPath();ctx.arc(x-r.r*0.3+sway,y-r.r*0.2,r.r*0.6,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#c0392b';
-    for(let i=0;i<4;i++){ctx.beginPath();ctx.arc(x-6+i*4+sway,y-2+(i%2)*6,3,0,Math.PI*2);ctx.fill();}
-}
-
-function drawBuilding(bd,t){
-    if(bd.id==='campfire'){
-        const x=bd.x,y=bd.y;
-        const g=ctx.createRadialGradient(x,y,5,x,y,90);
-        g.addColorStop(0,'rgba(255,150,0,0.55)');g.addColorStop(1,'rgba(255,80,0,0)');
-        ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,90,0,Math.PI*2);ctx.fill();
-        ctx.fillStyle='#4a2e1a';ctx.fillRect(x-14,y-2,28,6);
-        ctx.fillStyle='#6b4423';ctx.fillRect(x-2,y-12,6,24);
-        const flicker=Math.sin(t*15)*2;
-        ctx.fillStyle='#ff6600';
-        ctx.beginPath();ctx.moveTo(x-8,y);ctx.quadraticCurveTo(x-6+flicker,y-15,x,y-20-flicker);
-        ctx.quadraticCurveTo(x+6-flicker,y-15,x+8,y);ctx.closePath();ctx.fill();
-        ctx.fillStyle='#ffcc00';
-        ctx.beginPath();ctx.moveTo(x-5,y-2);ctx.quadraticCurveTo(x-3+flicker,y-10,x,y-14);
-        ctx.quadraticCurveTo(x+3-flicker,y-10,x+5,y-2);ctx.closePath();ctx.fill();
-    }
-}
-
-function drawMob(m,t){
-    const x=m.x,y=m.y;
-    const bob=Math.sin(m.walkPhase||t*2)*1.5;
-    ctx.fillStyle='rgba(0,0,0,0.3)';
-    ctx.beginPath();ctx.ellipse(x,m.y+m.r*0.7,m.r*0.9,m.r*0.3,0,0,Math.PI*2);ctx.fill();
-    const hitFlash=m.hitAnim>0;
-    ctx.fillStyle=hitFlash?'#ff6666':'#6b0000';
-    ctx.beginPath();ctx.ellipse(x,y+bob,m.r*1.2,m.r,0,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle=hitFlash?'#ff8888':'#8b0000';
-    ctx.beginPath();ctx.arc(x+m.r*0.9,y-2+bob,m.r*0.65,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#ffeb3b';
-    ctx.beginPath();ctx.arc(x+m.r*1.1,y-4+bob,2.5,0,Math.PI*2);ctx.fill();
-    if(m.hp<m.maxHp){
-        ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(x-18,y-m.r-12,36,4);
-        ctx.fillStyle='#e74c3c';ctx.fillRect(x-18,y-m.r-12,36*(m.hp/m.maxHp),4);
-    }
-}
-
-function drawPlayerAt(p,t,isSelf){
-    const bob=p.isMoving?Math.sin(p.walkPhase)*2:Math.sin(t*2)*0.4;
-    const x=p.x,y=p.y+bob;
-    ctx.fillStyle='rgba(0,0,0,0.35)';
-    ctx.beginPath();ctx.ellipse(p.x,p.y+14,14,5,0,0,Math.PI*2);ctx.fill();
-    if(p.isMoving){
-        const legOffset=Math.sin(p.walkPhase)*4;
-        ctx.fillStyle='#333';
-        ctx.fillRect(x-6,y+8,4,6+legOffset);
-        ctx.fillRect(x+2,y+8,4,6-legOffset);
-    }
-    if(p.attackAnim>0){
-        const swing=Math.sin((1-p.attackAnim)*Math.PI)*Math.PI*0.8;
-        ctx.save();ctx.translate(x,y);ctx.rotate(p.facing+swing-Math.PI/4);
-        ctx.strokeStyle='#ddd';ctx.lineWidth=4;
-        ctx.beginPath();ctx.moveTo(8,0);ctx.lineTo(30,0);ctx.stroke();
-        ctx.strokeStyle='#ffd54f';ctx.lineWidth=2;
-        ctx.beginPath();ctx.moveTo(28,0);ctx.lineTo(32,0);ctx.stroke();
-        ctx.restore();
-    }
-    if (p.pvp) {
-        ctx.strokeStyle='#ff3333';ctx.lineWidth=2;
-        ctx.beginPath();ctx.arc(x,y,20,0,Math.PI*2);ctx.stroke();
-    }
-    ctx.fillStyle=p.color||'#4a90d9';
-    ctx.beginPath();ctx.arc(x,y,16,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,0.2)';
-    ctx.beginPath();ctx.arc(x-5,y-5,6,0,Math.PI*2);ctx.fill();
-    const fx=Math.cos(p.facing)*3,fy=Math.sin(p.facing)*3;
-    ctx.fillStyle='#fff';
-    ctx.beginPath();ctx.arc(x-5+fx,y-4+fy,4,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.arc(x+5+fx,y-4+fy,4,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#000';
-    ctx.beginPath();ctx.arc(x-5+fx*1.3,y-4+fy*1.3,2,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.arc(x+5+fx*1.3,y-4+fy*1.3,2,0,Math.PI*2);ctx.fill();
-    if(p.avatar&&!p.avatarIsImage){
-        ctx.font='16px sans-serif';ctx.textAlign='center';
-        ctx.fillText(p.avatar,x,y+5);ctx.textAlign='left';
-    }
-    if(p.username){
-        ctx.font=isSelf?'900 12px Montserrat':'700 11px Montserrat';
-        ctx.textAlign='center';
-        ctx.strokeStyle='#000';ctx.lineWidth=3;
-        ctx.strokeText(p.username,x,y-24);
-        ctx.fillStyle=isSelf?'#ffd54f':(p.pvp?'#ff5252':'#fff');
-        ctx.fillText(p.username,x,y-24);
-        if (!isSelf && p.hp !== undefined && p.maxHp) {
-            const ratio = Math.max(0, p.hp / p.maxHp);
-            ctx.fillStyle='rgba(0,0,0,0.6)';
-            ctx.fillRect(x-20, y-40, 40, 4);
-            ctx.fillStyle='#e74c3c';
-            ctx.fillRect(x-20, y-40, 40*ratio, 4);
-        }
-        ctx.textAlign='left';
-    }
-}
-
-function spawnParticles(x,y,color,count){
-    for(let i=0;i<count;i++){
-        const ang=Math.random()*Math.PI*2;
-        const speed=50+Math.random()*150;
-        game.particles.push({x,y,vx:Math.cos(ang)*speed,vy:Math.sin(ang)*speed-100,color,size:2+Math.random()*3,life:0.5+Math.random()*0.5,maxLife:1});
-    }
-}
-function spawnFloatText(x,y,text,color){game.floatTexts.push({x,y,text,color,life:0.8,maxLife:0.8});}
-
-function updateUI(){
-    if(!game.player)return;
-    const p=game.player;
-    document.getElementById('hp-val').textContent=Math.round(p.hp);
-    document.getElementById('hunger-val').textContent=Math.round(p.hunger);
-    document.getElementById('thirst-val').textContent=Math.round(p.thirst);
-    document.getElementById('temp-val').textContent=Math.round(p.temp);
-    document.getElementById('hp-bar').style.width=(p.hp/p.maxHp*100)+'%';
-    document.getElementById('hunger-bar').style.width=p.hunger+'%';
-    document.getElementById('thirst-bar').style.width=p.thirst+'%';
-    document.getElementById('temp-bar').style.width=p.temp+'%';
-    document.getElementById('time-val').textContent=game.isDay?'☀️ День':'🌙 Ночь';
-    document.getElementById('biome-val').textContent=BIOMES[game.biome].name;
-
-    const inv=document.getElementById('inv-list');
-    const icons={wood:'🪵',stone:'🪨',meat:'🥩',wheat:'🌾',berry:'🍓'};
-    const items=[];
-    for(const [k,v] of Object.entries(p.inv))if(v>0)items.push(`<span class="item">${icons[k]||k} ${v}</span>`);
-    for(const t of Object.keys(p.tools))if(p.tools[t])items.push(`<span class="item">✅ ${RECIPES.find(r=>r.id===t)?.name||t}</span>`);
-    if(p.equipped.weapon)items.push(`<span class="item">⚔️ В руке</span>`);
-    inv.innerHTML=items.length?items.join(''):'<span style="color:#666;">Пусто</span>';
-
-    const hash = JSON.stringify(p.inv) + JSON.stringify(p.tools);
-    if (hash !== lastCraftHash) {
-        lastCraftHash = hash;
-        const cl=document.getElementById('craft-list');
-        cl.innerHTML=RECIPES.map((r,i)=>{
-            const ok=canCraft(r,p);
-            const costStr=Object.entries(r.cost).map(([k,v])=>`${icons[k]||k}${v}`).join(' ');
-            return `<div class="recipe ${ok?'':'disabled'}" onclick="craftItem(${i})">
-                <div><span class="name">${r.name}</span><br><span class="cost">${costStr}</span></div>
-                <div style="font-size:10px;color:#7a9a7a;max-width:80px;text-align:right;">${r.desc}</div>
-            </div>`;
-        }).join('');
-    }
-}
-function canCraft(r,p){if(p.tools[r.id])return false;return Object.entries(r.cost).every(([k,v])=>(p.inv[k]||0)>=v);}
-function craftItem(i){
-    const r=RECIPES[i],p=game.player;
-    if(!p||!canCraft(r,p)){showMessage('❌ Мало ресурсов');return;}
-    Object.entries(r.cost).forEach(([k,v])=>{p.inv[k]-=v;});
-    if(r.cat==='tool')p.tools[r.id]=true;
-    if(r.cat==='weapon'){p.tools[r.id]=true;p.equipped.weapon=r.id;}
-    if(r.cat==='build'&&r.id==='campfire'){game.buildings.push({id:'campfire',x:p.x,y:p.y,alive:true});showMessage('🔥 Костёр');}
-    if(r.cat==='food'){
-        if(r.id==='bread')p.hunger=Math.min(100,p.hunger+30);
-        if(r.id==='cooked_meat')p.hunger=Math.min(100,p.hunger+40);
-        showMessage('🍽️');
-    }
-    if(r.cat==='tool'||r.cat==='weapon')showMessage('✅ '+r.name);
-    lastCraftHash='';
-    updateUI();
-}
-function updatePlayerList(){
-    const el=document.getElementById('player-list');if(!el)return;
-    const selfId=isHost?'host':myPeerId;
-    const rows=[];
-    for(const [id,p] of game.allPlayers){
-        const isSelf=id===selfId;
-        const av=p.avatarIsImage?`<img src="${p.avatar}" style="width:16px;height:16px;border-radius:50%;object-fit:cover;">`:(p.avatar||'😀');
-        const pvpTag = p.pvp ? ' <span style="color:#ff5252;font-size:10px;">⚔️</span>' : '';
-        rows.push(`<div class="player-row ${isSelf?'self':''}"><span class="av">${av}</span><span style="color:${p.color||'#8bc34a'};">${p.username||'?'}${pvpTag}</span>${isSelf?'<span style="color:#ffd54f;font-size:10px;">(вы)</span>':''}</div>`);
-    }
-    el.innerHTML=rows.join('')||'<div style="color:#666;font-size:11px;">Только вы</div>';
-}
-function showMessage(text,ms=1500){
-    const el=document.getElementById('message');
-    el.textContent=text;el.classList.add('show');
-    clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),ms);
-}
-function showScreen(name){
-    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-    const el=document.getElementById('screen-'+name);
-    if(el)el.classList.add('active');
-}
-function getPlayersArray(){
-    const arr=[];
-    for(const [id,p] of game.allPlayers){
-        arr.push({id,x:p.x,y:p.y,hp:p.hp,maxHp:p.maxHp,username:p.username,avatar:p.avatar,avatarIsImage:p.avatarIsImage,color:p.color,facing:p.facing,isMoving:p.isMoving,walkPhase:p.walkPhase,attackAnim:p.attackAnim,pvp:p.pvp});
-    }
-    return arr;
-}
-function sendStateToClients(){
-    if(clientConns.size===0)return;
-    broadcast({type:'state',players:getPlayersArray(),isDay:game.isDay,time:Math.round(game.time*10)/10});
-}
-
-// ══════════════════════════════════════════════
-// ⌨️ INPUT
-// ══════════════════════════════════════════════
-window.addEventListener('keydown',e=>{
-    const a=document.activeElement;
-    const typing=a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA');
-    if(a===document.getElementById('chat-input')){
-        if(e.key==='Enter')sendChat();
-        if(e.key==='Escape')a.blur();
-        return;
-    }
-    if(typing)return;
-    if(e.key==='Escape'){if(gameRunning)togglePause();return;}
-    if(gameRunning){
-        game.keys[e.key.toLowerCase()]=true;
-        if(['1','2','3','4','5','6','7','8','9'].includes(e.key))craftItem(parseInt(e.key)-1);
-        if(e.key.toLowerCase()==='t'){e.preventDefault();document.getElementById('chat-input').focus();}
-        if(e.key.toLowerCase()==='e'){e.preventDefault();drinkWater();}
-        if(e.key.toLowerCase()==='p'){e.preventDefault();togglePvP();}
-        if([' ','w','a','s','d','W','A','S','D'].includes(e.key))e.preventDefault();
-    }
-});
-window.addEventListener('keyup',e=>{game.keys[e.key.toLowerCase()]=false;});
-
-canvas.addEventListener('mousemove',e=>{
-    const rect=canvas.getBoundingClientRect();
-    const canvasRatio=VIEW_W/VIEW_H;
-    const rectRatio=rect.width/rect.height;
-    let rw,rh,ox,oy;
-    if(rectRatio>canvasRatio){rh=rect.height;rw=rh*canvasRatio;ox=(rect.width-rw)/2;oy=0;}
-    else{rw=rect.width;rh=rw/canvasRatio;ox=0;oy=(rect.height-rh)/2;}
-    game.mouse.x=(e.clientX-rect.left-ox)/rw*VIEW_W;
-    game.mouse.y=(e.clientY-rect.top-oy)/rh*VIEW_H;
-});
-canvas.addEventListener('mousedown',e=>{if(e.button===0)game.mouse.down=true;});
-canvas.addEventListener('mouseup',()=>game.mouse.down=false);
-canvas.addEventListener('mouseleave',()=>game.mouse.down=false);
-canvas.addEventListener('contextmenu',e=>e.preventDefault());
-
-// ══════════════════════════════════════════════
-// 🚀 INIT
-// ══════════════════════════════════════════════
-initAvatarPicker();
-initColorPicker();
-checkServer();
-setInterval(checkServer, 30000);
-setInterval(() => { if (user) refreshNotifs(); }, 15000);
-
-const saved=(()=>{try{return JSON.parse(localStorage.getItem('wildfall_current')||'null');}catch{return null;}})();
-if(saved){user=saved;enterMenu();}else showScreen('login');
-
-// Экспорты
-['switchAuthTab','doAuth','doLogout','selectAvatar','selectColor','openRgbPicker','applyRgb','handleAvatarUpload',
-'playSolo','showCreateRoom','showJoinRoom','doJoinRoom','copyRoomCode','startGame','craftItem','showScreen',
-'resumeGame','leaveGame','showFriends','addFriend','removeFriend','toggleNotifPanel','acceptFriend','declineFriend',
-'clearNotifs','clearNotif','showEasterEgg','cheatGod','cheatSpeed','cheatRes','cheatHeal','cheatClose',
-'openShareCoords','closeShareCoords','sendCoords','togglePvP','drinkWater'].forEach(fn => {
-    window[fn] = eval(fn);
-});
-</script>
+  </script>
 </body>
 </html>
