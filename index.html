@@ -1154,4 +1154,98 @@
       gameplayTime += dt;
 
       if (gameplayTime > 0.3 && !doorCreakPlayed) { playCreak(); doorCreakPlayed = true; }
-      if (gameplayTime
+      if (gameplayTime > 1.1 && !doorSlamPlayed) { playSlam(); doorSlamPlayed = true; }
+      if (gameplayTime > 1.5 && !gameScreamPlayed) { playScreamCut(3.5); gameScreamPlayed = true; }
+      if (gameplayTime > 3 && !rustlePlayed) { playRustle(); rustlePlayed = true; }
+
+      // Случайные звуки
+      eventTimer += dt;
+      if (eventTimer > 6 + Math.random() * 6) {
+        if (Math.random() < 0.5) playCreak();
+        else playScreamCut(4 + Math.random() * 3);
+        eventTimer = 0;
+      }
+
+      // Мигание ламп
+      for (const fl of flickerLights) {
+        const flicker = Math.sin(gameplayTime * 7 + fl.z) * 0.2 + (Math.random() - 0.5) * 0.3;
+        fl.light.intensity = Math.max(0.1, fl.base + flicker);
+      }
+
+      camera.rotation.order = 'YXZ';
+      camera.rotation.y = yaw;
+      camera.rotation.x = pitch;
+
+      prevGameplayPos.copy(playerState.pos);
+
+      // Движение
+      const speed = 2.6 * dt;
+      const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
+      const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+      if (keys['KeyW']) playerState.pos.addScaledVector(forward, speed);
+      if (keys['KeyS']) playerState.pos.addScaledVector(forward, -speed);
+      if (keys['KeyA']) playerState.pos.addScaledVector(right, -speed);
+      if (keys['KeyD']) playerState.pos.addScaledVector(right, speed);
+
+      // Коллизии со стенами
+      playerState.pos.x = Math.max(-1.6, Math.min(1.6, playerState.pos.x));
+      playerState.pos.z = Math.max(-7.6, Math.min(7.5, playerState.pos.z));
+
+      // Коллизии с мебелью (круглые препятствия)
+      for (const obs of obstacles) {
+        const dx = playerState.pos.x - obs.x;
+        const dz = playerState.pos.z - obs.z;
+        const dist = Math.sqrt(dx*dx + dz*dz);
+        if (dist < obs.r) {
+          // Выталкиваем игрока
+          const push = (obs.r - dist) / dist;
+          playerState.pos.x += dx * push;
+          playerState.pos.z += dz * push;
+        }
+      }
+
+      playerState.pos.y = 1.6;
+
+      // Проверка близости к двери
+      nearDoor = playerState.pos.z < -6.5 && Math.abs(playerState.pos.x) < 1.5;
+      promptEl.style.opacity = (nearDoor && doorState === 'closed') ? 1 : 0;
+
+      // Анимация открытия двери
+      if (doorState === 'opening') {
+        doorOpenProgress += dt * 1.5;
+        if (doorOpenProgress >= 1) {
+          doorOpenProgress = 1;
+          doorState = 'open';
+        }
+        const angle = doorOpenProgress * (Math.PI / 2);
+        doorPivotL.rotation.y = angle;
+        doorPivotR.rotation.y = -angle;
+      }
+
+      const realMove = prevGameplayPos.distanceTo(playerState.pos) > 0.005;
+      if (realMove && gameplayTime - lastGameplayStep > 0.5) {
+        playFootstep();
+        lastGameplayStep = gameplayTime;
+      }
+
+      camera.position.copy(playerState.pos);
+    }
+
+    // ===================== ЦИКЛ =====================
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = Math.min(clock.getDelta(), 0.1);
+      if (state === 'cutscene') updateCutscene(cutsceneTime += dt, dt);
+      else if (state === 'playing') updateGameplay(dt);
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+  </script>
+</body>
+</html>
