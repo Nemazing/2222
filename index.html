@@ -1,264 +1,556 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Хоррор:Лагерь</title>
+  <meta charset="UTF-8">
+  <title>Хоррор-прототип</title>
   <style>
-    :root {
-      --bg-dark: #000;
-      --text-main: #e0e0e0;
-      --accent: #c14916;
-      --r: 260px;          /* радиус «пятна» фонарика */
-      --mx: 50%;           /* позиция фонарика по X */
-      --my: 50%;           /* позиция фонарика по Y */
-    }
-
-    * { box-sizing: border-box; }
-
-    html, body {
-      margin: 0;
-      padding: 0;
-      min-height: 100%;
-      background-color: var(--bg-dark);
-      color: var(--text-main);
-      font-family: 'Courier New', Courier, monospace;
-      overflow-x: hidden;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    /* ---------- ТЬМА С «ДЫРОЙ» ОТ ФОНАРИКА ---------- */
-    #darkness {
-      position: fixed;
-      inset: 0;
-      z-index: 9997;
-      pointer-events: none; /* клики проходят сквозь */
-      background: radial-gradient(
-        circle var(--r) at var(--mx) var(--my),
-        rgba(255, 226, 170, 0.07) 0%,    /* тёплый центр */
-        rgba(0, 0, 0, 0.45) 38%,
-        rgba(0, 0, 0, 0.94) 72%,
-        #000 100%
-      );
-      transition: background 0.04s linear;
-    }
-
-    /* лёгкое мерцание темноты — для атмосферы */
-    #darkness::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: #000;
-      opacity: 0;
-      animation: flicker 6s infinite;
-    }
-
-    @keyframes flicker {
-      0%, 96%, 100% { opacity: 0; }
-      97% { opacity: 0.25; }
-      98% { opacity: 0; }
-      99% { opacity: 0.15; }
-    }
-
-    /* ---------- КОНТЕНТ ---------- */
-    header {
-      text-align: center;
-      padding: 60px 20px 30px;
-      position: relative;
-      z-index: 1;
-    }
-
-    h1 {
-      font-size: clamp(1.6rem, 6vw, 3rem);
-      text-transform: uppercase;
-      letter-spacing: 3px;
-      margin: 0;
-      color: #fff;
-      text-shadow: 0 0 18px rgba(255, 210, 140, 0.25);
-    }
-
-    p.subtitle {
-      font-size: 1.1rem;
-      color: var(--accent);
-      margin-top: 10px;
-    }
-
-    main {
-      max-width: 800px;
-      margin: 20px auto 0;
-      padding: 20px;
-      position: relative;
-      z-index: 1;
-    }
-
-    .story-block {
-      border-left: 4px solid var(--accent);
-      padding-left: 20px;
-      margin-bottom: 30px;
-      line-height: 1.6;
-      font-size: 1.05rem;
-    }
-
-    .sound-cue {
-      color: #ff6b6b;
-      font-weight: bold;
-      display: block;
-      margin: 15px 0 5px;
-    }
-
-    footer {
-      text-align: center;
-      padding: 60px 20px 80px;
-      color: #777;
-      font-size: 0.9rem;
-      position: relative;
-      z-index: 1;
-    }
-
-    .warning {
-      color: var(--accent);
-      display: inline-block;
-      margin-right: 8px;
-    }
-
-    /* ---------- КНОПКА ---------- */
-    #enter-btn {
-      padding: 15px 34px;
-      font-size: 1.05rem;
-      font-family: inherit;
-      background: var(--accent);
-      color: #000;
-      border: none;
-      cursor: pointer;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      box-shadow: 0 0 0 rgba(193, 73, 22, 0);
-      transition: box-shadow 0.3s, transform 0.15s;
-    }
-
-    #enter-btn:hover {
-      box-shadow: 0 0 28px rgba(193, 73, 22, 0.85);
-    }
-
-    #enter-btn:active {
-      transform: scale(0.97);
-    }
-
-    /* ---------- ПОДСКАЗКА ВНИЗУ (всегда видна) ---------- */
+    body { margin: 0; overflow: hidden; background: #000; }
+    canvas { display: block; }
     #hint {
-      position: fixed;
-      left: 50%;
-      bottom: 35px;
-      transform: translateX(-50%);
-      z-index: 10000;
-      font-size: 0.75rem;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: rgba(255, 220, 160, 0.45);
-      pointer-events: none;
-      animation: hint-pulse 3.5s ease-in-out infinite;
+      position: fixed; bottom: 10px; left: 10px;
+      color: #aaa; font-family: monospace; font-size: 13px;
+      pointer-events: none; z-index: 5; opacity: 0; transition: opacity 0.5s;
     }
- /* ---------- ПОДСКАЗКА ВНИЗУ (всегда видна) ---------- */
-    #hint2 {
-      position: fixed;
-      left: 50%;
-      bottom: 14px;
-      transform: translateX(-50%);
-      z-index: 10000;
-      font-size: 0.75rem;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.45);
-      pointer-events: none;
-      animation: hint-pulse 3.5s ease-in-out infinite;
+    #overlay {
+      position: fixed; inset: 0; display: flex;
+      align-items: center; justify-content: center;
+      background: #000; color: #ccc; font-family: sans-serif;
+      font-size: 22px; cursor: pointer; z-index: 20; user-select: none;
     }
-
-
-    @keyframes hint-pulse {
-      0%, 100% { opacity: 0.25; }
-      50%      { opacity: 0.75; }
+    #fade { position: fixed; inset: 0; background: #000;
+      opacity: 1; pointer-events: none; z-index: 10; }
+    #flash { position: fixed; inset: 0; background: #fff;
+      opacity: 0; pointer-events: none; z-index: 11; }
+    #grain {
+      position: fixed; inset: 0; opacity: 0;
+      pointer-events: none; z-index: 8; mix-blend-mode: overlay;
+      background-repeat: repeat;
+    }
+    #vignette {
+      position: fixed; inset: 0; pointer-events: none; z-index: 7;
+      background: radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.85) 100%);
+      opacity: 0;
+    }
+    #prompt {
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+      color: #fff; font-family: monospace; font-size: 18px;
+      background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 5px;
+      pointer-events: none; z-index: 6; opacity: 0; transition: opacity 0.3s;
     }
   </style>
 </head>
 <body>
+  <div id="hint">WASD — ходьба. Клик — захват мыши. F — фонарик. Esc — отпустить.</div>
+  <div id="prompt">Нажмите E, чтобы открыть дверь</div>
+  <div id="overlay">Кликните, чтобы начать</div>
+  <div id="grain"></div>
+  <div id="vignette"></div>
+  <div id="fade"></div>
+  <div id="flash"></div>
 
-  <!-- Слой тьмы (фонарик вырезает в нём «дыру») -->
-  <div id="darkness"></div>
-
-  <header>
-    <h1>Лагерь: Вход запрещён</h1>
-    <p class="subtitle">Хоррор‑Лагерь. Ты не захочешь заходить внутрь.</p>
-  </header>
-
-  <main>
-    <section class="story-block">
-      <span class="sound-cue">Мы не обязываем вас играть в эту игру…</span>
-      Участвуйте только если хочется! 😄
-    </section>
-
-    <section class="story-block">
-      <span class="sound-cue">Присутствуют резкие шорохи сбоку…</span>
-     Из темноты выныривает фигура и хватает одного из игроков за ногу. Крик обрывается, будто его проглотила тишина. Проход исчезает — на его месте теперь сплошная стена.
-    </section>
-
-    <section class="story-block">
-      <span class="sound-cue">Глухой удар, скрип петель…</span>
-      Двери лагеря захлопываются сами по себе. Слышен короткий, отчаянный крик напарника — того самого, которого утянули. И где‑то вдалеке — тихий шорох.
-    </section>
-
-    <section style="text-align:center; margin-top:40px;">
-      <button id="enter-btn">Начать игру</button>
-    </section>
-  </main>
-
-  <footer>
-    <span class="warning">⚠</span> Не рекомендуется людям с повышенной чувствительностью к скримерам.
-  </footer> 
-
-  <div id="hint">СТРОГО 18+</div>
- <div id="hint2">⚠ Создано - Ainazik ⚠</div>
-
-
-  <script>
-    const root = document.documentElement;
-
-    // Радиус пятна зависит от размера экрана
-    function updateRadius() {
-      const r = Math.min(window.innerWidth, window.innerHeight) * 0.32;
-      root.style.setProperty('--r', Math.max(140, Math.min(300, r)) + 'px');
-    }
-    updateRadius();
-    window.addEventListener('resize', updateRadius);
-
-    // Перемещение фонарика
-    function moveLight(x, y) {
-      root.style.setProperty('--mx', x + 'px');
-      root.style.setProperty('--my', y + 'px');
-    }
-
-    // Инициализация — фонарик по центру, чтобы сразу было видно текст
-    moveLight(window.innerWidth / 2, window.innerHeight / 2);
-
-    document.addEventListener('mousemove', (e) => {
-      moveLight(e.clientX, e.clientY);
-    });
-
-    // Тач-устройства
-    document.addEventListener('touchstart', (e) => {
-      const t = e.touches[0];
-      if (t) moveLight(t.clientX, t.clientY);
-    }, { passive: true });
-
-    document.addEventListener('touchmove', (e) => {
-      const t = e.touches[0];
-      if (t) moveLight(t.clientX, t.clientY);
-    }, { passive: true });
-
-    // Кнопка
-    document.getElementById('enter-btn').addEventListener('click', () => {
-      alert('Хоррор откроется в среду в 14:00 по МСК. Не опаздывай.');
-    });
+  <script type="importmap">
+  { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
   </script>
-</body>
-</html>
+
+  <script type="module">
+    import * as THREE from 'three';
+
+    // ===================== ЗВУК =====================
+    let audioCtx = null;
+    let breathingNodes = null;
+
+    function initAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    function startBreathing() {
+      if (!audioCtx || breathingNodes) return;
+      const t = audioCtx.currentTime;
+      const bufSize = audioCtx.sampleRate * 2;
+      const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) d[i] = Math.random() * 2 - 1;
+      const src = audioCtx.createBufferSource(); src.buffer = buf; src.loop = true;
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'bandpass'; filter.frequency.value = 450; filter.Q.value = 1.2;
+      const gain = audioCtx.createGain(); gain.gain.value = 0.03;
+      const lfo = audioCtx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 0.25;
+      const lfoGain = audioCtx.createGain(); lfoGain.gain.value = 0.025;
+      lfo.connect(lfoGain); lfoGain.connect(gain.gain);
+      src.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+      src.start(); lfo.start();
+      breathingNodes = { src, lfo, gain };
+    }
+
+    function stopBreathing() {
+      if (!breathingNodes) return;
+      try { breathingNodes.src.stop(); breathingNodes.lfo.stop(); } catch(e) {}
+      breathingNodes = null;
+    }
+
+    function playCreak() {
+      if (!audioCtx) return;
+      const t = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(900, t);
+      filter.frequency.exponentialRampToValueAtTime(180, t + 1.8);
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(140, t);
+      osc.frequency.exponentialRampToValueAtTime(55, t + 1.8);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.13, t + 0.15);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 1.9);
+      osc.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(t); osc.stop(t + 1.9);
+    }
+
+    function playSlam() {
+      if (!audioCtx) return;
+      const t = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(85, t);
+      osc.frequency.exponentialRampToValueAtTime(28, t + 0.5);
+      gain.gain.setValueAtTime(0.7, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(t); osc.stop(t + 0.6);
+      const bufSize = audioCtx.sampleRate * 0.25;
+      const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / bufSize);
+      const src = audioCtx.createBufferSource(); src.buffer = buf;
+      const g2 = audioCtx.createGain();
+      g2.gain.setValueAtTime(0.35, t);
+      g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
+      src.connect(g2); g2.connect(audioCtx.destination); src.start(t);
+    }
+
+    function playScreamCut(distance = 1) {
+      if (!audioCtx) return;
+      const t = audioCtx.currentTime;
+      const vol = 0.28 / distance;
+      const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = distance > 2 ? 800 : 2400;
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(720, t);
+      osc.frequency.exponentialRampToValueAtTime(360, t + 0.7);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(vol, t + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.7);
+      osc.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(t); osc.stop(t + 0.7);
+    }
+
+    function playRustle() {
+      if (!audioCtx) return;
+      const t = audioCtx.currentTime;
+      const bufSize = audioCtx.sampleRate * 3.5;
+      const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) d[i] = (Math.random() * 2 - 1);
+      const src = audioCtx.createBufferSource(); src.buffer = buf;
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'bandpass'; filter.frequency.value = 340; filter.Q.value = 6;
+      const gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.linearRampToValueAtTime(0.025, t + 0.8);
+      gain.gain.linearRampToValueAtTime(0.04, t + 2);
+      gain.gain.linearRampToValueAtTime(0.0001, t + 3.5);
+      src.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+      src.start(t);
+    }
+
+    function playFootstep() {
+      if (!audioCtx) return;
+      const t = audioCtx.currentTime;
+      const bufSize = audioCtx.sampleRate * 0.09;
+      const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufSize * 0.35));
+      const src = audioCtx.createBufferSource(); src.buffer = buf;
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass'; filter.frequency.value = 420;
+      const gain = audioCtx.createGain(); gain.gain.value = 0.09;
+      src.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+      src.start(t);
+    }
+
+    function playThud() {
+      if (!audioCtx) return;
+      const t = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(160, t);
+      osc.frequency.exponentialRampToValueAtTime(45, t + 0.18);
+      gain.gain.setValueAtTime(0.3, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(t); osc.stop(t + 0.22);
+      const bufSize = audioCtx.sampleRate * 0.12;
+      const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / bufSize);
+      const src = audioCtx.createBufferSource(); src.buffer = buf;
+      const g2 = audioCtx.createGain(); g2.gain.value = 0.2;
+      src.connect(g2); g2.connect(audioCtx.destination); src.start(t);
+    }
+
+    function playCrawl() {
+      if (!audioCtx) return;
+      const t = audioCtx.currentTime;
+      const bufSize = audioCtx.sampleRate * 1.8;
+      const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) d[i] = (Math.random() * 2 - 1);
+      const src = audioCtx.createBufferSource(); src.buffer = buf;
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'bandpass'; filter.frequency.value = 650; filter.Q.value = 2;
+      const gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.linearRampToValueAtTime(0.07, t + 0.25);
+      gain.gain.linearRampToValueAtTime(0.0001, t + 1.8);
+      src.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+      src.start(t);
+    }
+
+    function playDrag() {
+      if (!audioCtx) return;
+      const t = audioCtx.currentTime;
+      const dur = 2.2;
+      const bufSize = audioCtx.sampleRate * dur;
+      const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) {
+        const env = Math.sin((i / bufSize) * Math.PI);
+        const jerk = 0.6 + 0.4 * Math.sin((i / bufSize) * 30);
+        d[i] = (Math.random() * 2 - 1) * env * jerk;
+      }
+      const src = audioCtx.createBufferSource(); src.buffer = buf;
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass'; filter.frequency.value = 300; filter.Q.value = 2;
+      const gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.linearRampToValueAtTime(0.22, t + 0.15);
+      gain.gain.linearRampToValueAtTime(0.18, t + dur * 0.8);
+      gain.gain.linearRampToValueAtTime(0.0001, t + dur);
+      src.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+      src.start(t);
+    }
+
+    function playGrowl() {
+      if (!audioCtx) return;
+      const t = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass'; filter.frequency.value = 400;
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(70, t);
+      osc.frequency.exponentialRampToValueAtTime(40, t + 0.8);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.25, t + 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
+      osc.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(t); osc.stop(t + 0.9);
+    }
+
+    // ===================== ЗЕРНО =====================
+    const grainEl = document.getElementById('grain');
+    (function makeGrain() {
+      const c = document.createElement('canvas');
+      c.width = c.height = 256;
+      const ctx = c.getContext('2d');
+      const img = ctx.createImageData(256, 256);
+      for (let i = 0; i < img.data.length; i += 4) {
+        const v = Math.random() * 255 | 0;
+        img.data[i] = img.data[i+1] = img.data[i+2] = v;
+        img.data[i+3] = 255;
+      }
+      ctx.putImageData(img, 0, 0);
+      grainEl.style.backgroundImage = `url(${c.toDataURL()})`;
+    })();
+
+    // ===================== ТЕКСТУРЫ =====================
+    function makeWoodTexture(baseColor = [85, 62, 42]) {
+      const c = document.createElement('canvas');
+      c.width = 256; c.height = 256;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = `rgb(${baseColor[0]},${baseColor[1]},${baseColor[2]})`;
+      ctx.fillRect(0, 0, 256, 256);
+      for (let y = 0; y < 256; y += 22) {
+        ctx.fillStyle = `rgba(${baseColor[0]+Math.random()*20-10|0},${baseColor[1]+Math.random()*15-7|0},${baseColor[2]+Math.random()*10-5|0},1)`;
+        ctx.fillRect(0, y, 256, 20);
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(256, y); ctx.stroke();
+      }
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      return tex;
+    }
+    function makeStoneTexture() {
+      const c = document.createElement('canvas');
+      c.width = 256; c.height = 256;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#3a3a3a';
+      ctx.fillRect(0, 0, 256, 256);
+      for (let i = 0; i < 80; i++) {
+        ctx.fillStyle = `rgba(${20+Math.random()*30|0},${20+Math.random()*30|0},${20+Math.random()*30|0},0.9)`;
+        ctx.beginPath();
+        ctx.ellipse(Math.random()*256, Math.random()*256, 8+Math.random()*15, 6+Math.random()*12, Math.random()*Math.PI, 0, Math.PI*2);
+        ctx.fill();
+      }
+      return new THREE.CanvasTexture(c);
+    }
+    function makeWallTexture() {
+      const c = document.createElement('canvas');
+      c.width = 256; c.height = 256;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#1a1410';
+      ctx.fillRect(0, 0, 256, 256);
+      for (let x = 0; x < 256; x += 32) {
+        ctx.fillStyle = `rgb(${20 + Math.random()*15|0}, ${15 + Math.random()*10|0}, ${10 + Math.random()*8|0})`;
+        ctx.fillRect(x, 0, 30, 256);
+        ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 256); ctx.stroke();
+        ctx.fillStyle = 'rgba(40,30,20,0.9)';
+        ctx.fillRect(x + 6, 30, 3, 3); ctx.fillRect(x + 6, 130, 3, 3);
+        ctx.fillRect(x + 22, 80, 3, 3); ctx.fillRect(x + 22, 200, 3, 3);
+      }
+      return new THREE.CanvasTexture(c);
+    }
+    function makeCarpetTexture() {
+      const c = document.createElement('canvas');
+      c.width = 128; c.height = 256;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#4a1a1a'; ctx.fillRect(0,0,128,256);
+      ctx.strokeStyle = '#aa8844'; ctx.lineWidth = 4;
+      ctx.strokeRect(10,10,108,236);
+      ctx.beginPath();
+      ctx.moveTo(64, 40); ctx.lineTo(100, 128); ctx.lineTo(64, 216); ctx.lineTo(28, 128); ctx.closePath();
+      ctx.stroke();
+      return new THREE.CanvasTexture(c);
+    }
+    function makePaintingTexture() {
+      const c = document.createElement('canvas');
+      c.width = 128; c.height = 160;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#3a2a20'; ctx.fillRect(0,0,128,160);
+      ctx.fillStyle = '#1a1410'; ctx.fillRect(10,10,108,140);
+      ctx.fillStyle = '#8a4a3a';
+      ctx.beginPath(); ctx.arc(64, 80, 30, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(64, 70, 25, 0, Math.PI*2); ctx.fill();
+      return new THREE.CanvasTexture(c);
+    }
+    function makeGlassTexture() {
+      const c = document.createElement('canvas');
+      c.width = 128; c.height = 128;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#1a1a24'; ctx.fillRect(0,0,128,128);
+      // Трещины
+      ctx.strokeStyle = '#5a5a6a'; ctx.lineWidth = 1;
+      for (let i = 0; i < 5; i++) {
+        ctx.beginPath();
+        ctx.moveTo(64, 64);
+        ctx.lineTo(64 + Math.random()*60-30, 64 + Math.random()*60-30);
+        ctx.stroke();
+      }
+      return new THREE.CanvasTexture(c);
+    }
+
+    // ===================== СЦЕНА + КАЧЕСТВО =====================
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0d12);
+    scene.fog = new THREE.Fog(0x0a0d12, 12, 60);
+
+    const camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.05, 250);
+    camera.position.set(0, 2.5, 6);
+    scene.add(camera);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.4;
+    document.body.appendChild(renderer.domElement);
+
+    // ===================== СВЕТ =====================
+    scene.add(new THREE.HemisphereLight(0x8899cc, 0x2a2a2a, 1.2));
+    scene.add(new THREE.AmbientLight(0x445566, 1.2));
+    const moonLight = new THREE.DirectionalLight(0xaabbdd, 1.5);
+    moonLight.position.set(-8, 14, 6);
+    moonLight.castShadow = true;
+    moonLight.shadow.mapSize.set(2048, 2048);
+    moonLight.shadow.camera.left = -22;
+    moonLight.shadow.camera.right = 22;
+    moonLight.shadow.camera.top = 22;
+    moonLight.shadow.camera.bottom = -22;
+    moonLight.shadow.camera.near = 0.5;
+    moonLight.shadow.camera.far = 60;
+    moonLight.shadow.bias = -0.0005;
+    scene.add(moonLight);
+
+    // ===================== ФОНАРИК =====================
+    const flashlight = new THREE.SpotLight(0xfff2cc, 4.5, 22, Math.PI / 6.5, 0.45, 1.2);
+    flashlight.position.set(0.18, -0.15, 0);
+    flashlight.target.position.set(0, 0, -5);
+    flashlight.castShadow = false;
+    camera.add(flashlight);
+    camera.add(flashlight.target);
+    flashlight.visible = false;
+
+    // ===================== РУКИ =====================
+    const viewmodel = new THREE.Group();
+    camera.add(viewmodel);
+    viewmodel.visible = false;
+
+    const skinMat = new THREE.MeshStandardMaterial({ color: 0x8a6a5a, roughness: 0.9 });
+    const sleeveMat = new THREE.MeshStandardMaterial({ color: 0x2a2a3a, roughness: 0.9 });
+
+    const leftForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.32, 8), sleeveMat);
+    leftForearm.rotation.x = Math.PI / 2; leftForearm.position.set(-0.16, -0.22, -0.26);
+    viewmodel.add(leftForearm);
+    const leftHand = new THREE.Mesh(new THREE.SphereGeometry(0.042, 8, 8), skinMat);
+    leftHand.position.set(-0.13, -0.2, -0.44); viewmodel.add(leftHand);
+
+    const rightForearm = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.32, 8), sleeveMat);
+    rightForearm.rotation.x = Math.PI / 2; rightForearm.position.set(0.16, -0.22, -0.26);
+    viewmodel.add(rightForearm);
+    const rightHand = new THREE.Mesh(new THREE.SphereGeometry(0.042, 8, 8), skinMat);
+    rightHand.position.set(0.13, -0.2, -0.44); viewmodel.add(rightHand);
+
+    const flashBody = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.025, 0.032, 0.17, 8),
+      new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.8, roughness: 0.3 })
+    );
+    flashBody.rotation.x = Math.PI / 2; flashBody.position.set(0.13, -0.18, -0.52);
+    viewmodel.add(flashBody);
+
+    const flashLens = new THREE.Mesh(
+      new THREE.CircleGeometry(0.026, 12),
+      new THREE.MeshBasicMaterial({ color: 0xfff2cc })
+    );
+    flashLens.position.set(0.13, -0.18, -0.61); viewmodel.add(flashLens);
+
+    // ===================== ГРУППЫ =====================
+    const outsideGroup = new THREE.Group();
+    const roomGroup = new THREE.Group();
+    const gameGroup = new THREE.Group();
+    scene.add(outsideGroup, roomGroup, gameGroup);
+
+    // ============ ЗЕМЛЯ ============
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(80, 80),
+      new THREE.MeshStandardMaterial({ color: 0x1a1612, roughness: 1 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    outsideGroup.add(ground);
+
+    // ============ ЗДАНИЕ ЛАГЕРЯ ============
+    const woodTex = makeWoodTexture([85, 62, 42]);
+    const stoneTex = makeStoneTexture();
+    const glassTex = makeGlassTexture();
+    const cabinWoodMat = new THREE.MeshStandardMaterial({ color: 0xb09880, roughness: 0.85, map: woodTex });
+    const darkWoodMat = new THREE.MeshStandardMaterial({ color: 0x4a3420, roughness: 0.95 });
+    const stoneMat = new THREE.MeshStandardMaterial({ color: 0x707070, roughness: 1, map: stoneTex });
+    const roofMat = new THREE.MeshStandardMaterial({ color: 0x2a2018, roughness: 0.95 });
+
+    function buildCabin() {
+      const g = new THREE.Group();
+
+      // Фундамент
+      const foundation = new THREE.Mesh(new THREE.BoxGeometry(10.6, 0.5, 12.6), stoneMat);
+      foundation.position.set(0, 0.25, -16);
+      foundation.castShadow = true; foundation.receiveShadow = true;
+      g.add(foundation);
+
+      // Стены
+      function cabinWall(w, h, d, x, y, z) {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), cabinWoodMat);
+        m.position.set(x, y, z);
+        m.castShadow = true; m.receiveShadow = true;
+        g.add(m); return m;
+      }
+      cabinWall(0.3, 4.6, 12, -4.85, 2.8, -16);
+      cabinWall(0.3, 4.6, 12,  4.85, 2.8, -16);
+      cabinWall(10, 4.6, 0.3, 0, 2.8, -21.85);
+      cabinWall(3, 4.6, 0.3, -3.5, 2.8, -9.85);
+      cabinWall(3, 4.6, 0.3,  3.5, 2.8, -9.85);
+      cabinWall(4, 1.2, 0.3, 0, 4.0, -9.85);
+
+      // Пол
+      const floor = new THREE.Mesh(new THREE.BoxGeometry(9.7, 0.2, 12), cabinWoodMat);
+      floor.position.set(0, 0.6, -16);
+      floor.receiveShadow = true;
+      g.add(floor);
+
+      // === КРЫША ===
+      const roofAngle = 0.52;
+      const roofLen = 6.1;
+      const roofL = new THREE.Mesh(new THREE.BoxGeometry(roofLen, 0.25, 13.5), roofMat);
+      roofL.position.set(-(roofLen/2)*Math.cos(roofAngle), 5.1 + (roofLen/2)*Math.sin(roofAngle), -16);
+      roofL.rotation.z = roofAngle;
+      roofL.castShadow = true; roofL.receiveShadow = true;
+      g.add(roofL);
+      
+      const roofR = new THREE.Mesh(new THREE.BoxGeometry(roofLen, 0.25, 13.5), roofMat);
+      roofR.position.set((roofLen/2)*Math.cos(roofAngle), 5.1 + (roofLen/2)*Math.sin(roofAngle), -16);
+      roofR.rotation.z = -roofAngle;
+      roofR.castShadow = true; roofR.receiveShadow = true;
+      g.add(roofR);
+      
+      const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 13.5), darkWoodMat);
+      ridge.position.set(0, 5.1 + roofLen*Math.sin(roofAngle), -16);
+      ridge.castShadow = true;
+      g.add(ridge);
+      
+      const chimney = new THREE.Mesh(new THREE.BoxGeometry(0.9, 3.0, 0.9), stoneMat);
+      chimney.position.set(-2, 7.0, -18);
+      chimney.castShadow = true;
+      g.add(chimney);
+
+      // === ОКНА (Исправлены) ===
+      function makeWindow(x, y, z, rotY = 0) {
+        const winGroup = new THREE.Group();
+        // Стекло теперь имеет текстуру трещин
+        const glass = new THREE.Mesh(
+          new THREE.PlaneGeometry(0.7, 0.9),
+          new THREE.MeshStandardMaterial({ map: glassTex, roughness: 0.2, metalness: 0.6 })
+        );
+        winGroup.add(glass);
+        // Рамы
+        const fT = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.1, 0.12), darkWoodMat);
+        fT.position.y = 0.5; winGroup.add(fT);
+        const fB = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.1, 0.12), darkWoodMat);
+        fB.position.y = -0.5; winGroup.add(fB);
+        const fL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.0, 0.12), darkWoodMat);
+        fL.position.x = -0.41; winGroup.add(fL);
+        const fR = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.0, 0.12), darkWoodMat);
+        fR.position.x = 0.41; winGroup.add(fR);
+        const cross = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.9, 0.12), darkWoodMat);
+        winGroup.add(cross);
+        // Ставни
+        const shL = new THREE.Mesh(new THREE.BoxGeometry(0.38, 1.05, 0.08), cabinWoodMat);
+        shL.position.set(-0.66, 0, 0.06); winGroup.add(shL);
+        const shR = new THREE.Mesh(new THREE.BoxGeometry(0.38, 1.05, 0.08), cabinWoodMat);
+        shR.position.set(0.66, 0, 0.06); winGroup.add(shR);
+        winGroup.position.set(x, y, z);
+        winGroup.rotation.y = rotY;
+        g.add(winGroup);
+      }
+      makeWindow(-3.5, 3.0, -9.67);
+      makeWindow( 3.5, 3.0, -9.67);
+      makeWindow(-4.67, 3.0, -14, Math.PI/2);
+      makeWindow( 4.67, 3.0, -14, -Math.PI/2);
+      makeWindow(-4.67, 3.0, -18, Math.PI/2);
+      makeWindow( 4.67, 3.0, -18, -Math.PI/2);
+
+      // Дверь (приоткрыта)
+      const doorFrame = new
