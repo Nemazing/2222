@@ -283,11 +283,6 @@
   <script type="module">
     import * as THREE from 'three';
 
-    // ВЫВОДИМ ПРЕДУПРЕЖДЕНИЕ, ЕСЛИ ОТКРЫЛИ ЛОКАЛЬНО
-    if (location.protocol === 'file:') {
-      console.warn("⚠️ ВНИМАНИЕ! Вы открыли игру локально (file:///). Звуки НЕ БУДУТ работать из-за защиты браузера. Используйте Live Server или загрузите на GitHub Pages.");
-    }
-
     // === МЕНЮ ЛОГИКА (ФОНАРИК) ===
     const root = document.documentElement;
     function updateRadius() {
@@ -314,15 +309,9 @@
     }, { passive: true });
 
     // === СИСТЕМА ЗВУКОВ ===
-    // Используем ТОЛЬКО файл creak.mp3
+    // ОСТАВЛЕНО ТОЛЬКО ОДНО СОБЫТИЕ, ЧТОБЫ ЗВУК НЕ НАКЛАДЫВАЛСЯ
     const SOUND_EVENTS = [
-      { file: "sounds/2.mp3", time: 0.5, volume: 1.0 },
-      { file: "sounds/creak1.mp3", time: 2.5, volume: 0.6 },
-      { file: "sounds/creak1.mp3", time: 8.5, volume: 1.0 },
-      { file: "sounds/creak1.mp3", time: 7.8, volume: 1.0 },
-      { file: "sounds/creak1.mp3", time: 1.2, volume: 1.0 },
-      { file: "sounds/creak1.mp3", time: 1.8, volume: 0.8 },
-      { file: "sounds/1.mp3", time: 4.0, volume: 0.5 }
+      { file: "sounds/creak1.mp3", time: 2.5, volume: 1.0 }
     ];
 
     const audioLoader = new THREE.AudioLoader();
@@ -371,17 +360,12 @@
           if (phase === 'cutscene' && ev.time < 15) {
             playSoundEvent(ev.file, ev.volume);
             played.add(i);
-          } else if (phase === 'gameplay' && ev.time <= 10) {
-            if (i >= 4) {
-              playSoundEvent(ev.file, ev.volume);
-              played.add(i);
-            }
           }
         }
       }
     }
 
-    // === ЗВУКИ-СИНТЕЗАТОРЫ ===
+    // === ЗВУКИ-СИНТЕЗАТОРЫ (Шаги и дыхание) ===
     let audioCtx = null;
     let breathingNodes = null;
 
@@ -1312,7 +1296,7 @@
         if (i === 0) p.position.set(-2, 0, 6);
         if (i === 1) { p.position.set(0, 0, 6); }
         if (i === 2) p.position.set(2, 0, 6);
-        p.rotation.set(0, Math.PI, 0); // Принудительный разворот (лицом вглубь)
+        p.rotation.set(0, Math.PI, 0);
         p.visible = true;
       });
       
@@ -1353,7 +1337,7 @@
       }
       if (e.code === 'KeyE' && state === 'playing' && nearDoor && doorState === 'closed') {
         doorState = 'opening';
-        playSoundEvent("sounds/creak.mp3", 1.0);
+        playSoundEvent("sounds/creak1.mp3", 1.0);
       }
     });
     document.addEventListener('keyup', (e) => keys[e.code] = false);
@@ -1412,7 +1396,6 @@
         p2.position.z = 6 - walkT * 10; p2.position.x = 0;
         p3.position.z = 6 - walkT * 10; p3.position.x = 2;
         
-        // Смотрят вглубь (в сторону дома)
         p1.rotation.y = Math.PI; p2.rotation.y = Math.PI; p3.rotation.y = Math.PI;
         
         animateWalk(p1, t, 0.8);
@@ -1440,7 +1423,7 @@
         p2.visible = true;
         if (t <= 7.7) {
           p2.position.set(0, 0, -4);
-          p2.rotation.set(0, Math.PI, 0); 
+          p2.rotation.set(0, Math.PI, 0);
         }
         if (t <= 7.9) {
           p1.position.set(-2, 0, -4); p1.rotation.set(0, Math.PI, 0);
@@ -1458,14 +1441,12 @@
           const dragT = Math.min((t - 7.7) / 3.8, 1); 
           const lieT = Math.min((t - 7.7) / 0.3, 1);
           
-          // Жертва лежит лицом вниз, головой вглубь
           p2.rotation.set(lieT * Math.PI / 2, Math.PI, 0);
           p2.position.y = lieT * 0.6; 
           
           const jerk = Math.sin(dragT * 25) * 0.1;
           const baseZ = -4 - dragT * 5;
           
-          // Монстр тащит её на себя
           monster.position.set(0, 0, baseZ + 1.5); 
           monster.rotation.y = Math.PI;
           
@@ -1478,10 +1459,6 @@
             p1.rotation.set(crawlT * Math.PI / 2, Math.PI, 0);
             p3.position.set(2 + crawlT * 2, crawlT * 0.3, -4 + crawlT * 2);
             p3.rotation.set(crawlT * Math.PI / 2, Math.PI, 0);
-            if (!playedEvents.cutscene.has('thud')) {
-              playSoundEvent("sounds/creak.mp3", 0.7);
-              playedEvents.cutscene.add('thud');
-            }
           }
           if (t >= 9.0) {
             const runT = Math.min((t - 9.0) / 1.5, 1);
@@ -1489,7 +1466,6 @@
             const yOff = (1 - standT) * 0.3;
             const rotX = (1 - standT) * Math.PI / 2;
             
-            // Убегают лицом к нам
             p1.position.set(-4 - runT * 5, yOff, -2 + runT * 6);
             p1.rotation.set(rotX, 0, 0); 
             p3.position.set(4 + runT * 5, yOff, -2 + runT * 6);
@@ -1575,8 +1551,8 @@
 
       eventTimer += dt;
       if (eventTimer > 6 + Math.random() * 6) {
-        if (Math.random() < 0.5) playSoundEvent("sounds/creak.mp3", 0.8);
-        else playSoundEvent("sounds/creak.mp3", 0.5);
+        if (Math.random() < 0.5) playSoundEvent("sounds/creak1.mp3", 0.8);
+        else playSoundEvent("sounds/creak1.mp3", 0.5);
         eventTimer = 0;
       }
 
