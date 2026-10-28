@@ -26,7 +26,7 @@
       overflow-x: hidden;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
-      touch-action: none; /* Отключаем скролл на мобильных */
+      touch-action: none;
     }
 
     #menu-screen {
@@ -223,7 +223,6 @@
       pointer-events: none; z-index: 6; opacity: 0; transition: opacity 0.3s;
     }
 
-    /* МОБИЛЬНОЕ УПРАВЛЕНИЕ */
     #mobile-controls {
       display: none;
       position: fixed; inset: 0;
@@ -322,7 +321,6 @@
     <div id="hint-game">WASD — ходьба. Клик — захват мыши. F — фонарик. Esc — отпустить.</div>
     <div id="prompt">Нажмите E, чтобы открыть дверь</div>
     
-    <!-- Мобильное управление -->
     <div id="mobile-controls">
       <div id="joystick-left" class="joystick-zone">
         <div id="knob-left" class="joystick-knob"></div>
@@ -913,20 +911,26 @@
 
     // ============ ИГРОКИ ============
     
-    // Игрок 1 (Светло-серый спортивный костюм с капюшоном)
+    // Игрок 1 (Голубая кофта, голубые штаны, белые кроссы, длинные волосы)
     function createP1() {
       const g = new THREE.Group();
-      const suitMat = new THREE.MeshStandardMaterial({ color: 0xd0d4d8, roughness: 0.9 });
-      const darkMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9 });
+      const suitMat = new THREE.MeshStandardMaterial({ color: 0x5a9bd4, roughness: 0.9 }); // Голубой
+      const shoeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 }); // Белый
       const skinMatLocal = new THREE.MeshStandardMaterial({ color: 0xd4b4a4, roughness: 0.9 });
 
-      // Ноги
+      // Ноги (голубые спортивки)
       const legGeo = new THREE.BoxGeometry(0.22, 0.8, 0.22);
       const legL = new THREE.Mesh(legGeo, suitMat); legL.position.set(-0.15, 0.4, 0);
       const legR = new THREE.Mesh(legGeo, suitMat); legR.position.set(0.15, 0.4, 0);
       g.add(legL, legR);
 
-      // Торс (кофта)
+      // Кроссовки (белые)
+      const shoeGeo = new THREE.BoxGeometry(0.24, 0.12, 0.32);
+      const shoeL = new THREE.Mesh(shoeGeo, shoeMat); shoeL.position.set(-0.15, 0.06, 0.05);
+      const shoeR = new THREE.Mesh(shoeGeo, shoeMat); shoeR.position.set(0.15, 0.06, 0.05);
+      g.add(shoeL, shoeR);
+
+      // Торс (голубая кофта)
       const torsoGeo = new THREE.BoxGeometry(0.65, 0.75, 0.35);
       const torso = new THREE.Mesh(torsoGeo, suitMat); torso.position.y = 1.15; g.add(torso);
 
@@ -946,21 +950,27 @@
       const headGeo = new THREE.SphereGeometry(0.16, 12, 12);
       const head = new THREE.Mesh(headGeo, skinMatLocal); head.position.y = 1.65; g.add(head);
 
-      // Волосы (тёмные, длинные)
-      const hairGeo = new THREE.CylinderGeometry(0.17, 0.2, 0.6, 8);
-      const hairMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 1 });
-      const hair = new THREE.Mesh(hairGeo, hairMat); hair.position.set(0, 1.45, -0.05); g.add(hair);
-
-      // Капюшон (надет)
-      const hoodGeo = new THREE.SphereGeometry(0.22, 8, 8);
-      const hood = new THREE.Mesh(hoodGeo, suitMat); 
-      hood.scale.set(1, 1.2, 1);
-      hood.position.set(0, 1.65, -0.05); 
-      g.add(hood);
+      // Длинные волосы (светло-русые)
+      const hairMat = new THREE.MeshStandardMaterial({ color: 0xc0a080, roughness: 1 });
       
-      // Лицо (чтобы было видно, что капюшон надет)
+      // Шапка волос
+      const hairTop = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), hairMat);
+      hairTop.scale.set(1, 1.1, 1);
+      hairTop.position.set(0, 1.7, -0.02); g.add(hairTop);
+      
+      // Свисающие пряди сзади
+      const hairBack = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.6, 0.1), hairMat);
+      hairBack.position.set(0, 1.35, -0.16); g.add(hairBack);
+      
+      // Боковые пряди
+      const hairSideL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.4, 0.1), hairMat);
+      hairSideL.position.set(-0.16, 1.45, 0.05); g.add(hairSideL);
+      const hairSideR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.4, 0.1), hairMat);
+      hairSideR.position.set(0.16, 1.45, 0.05); g.add(hairSideR);
+      
+      // Лицо
       const faceGeo = new THREE.CircleGeometry(0.12, 12);
-      const face = new THREE.Mesh(faceGeo, skinMatLocal); face.position.set(0, 1.65, 0.15); g.add(face);
+      const face = new THREE.Mesh(faceGeo, skinMatLocal); face.position.set(0, 1.65, 0.16); g.add(face);
 
       const wrapper = new THREE.Group(); wrapper.add(g);
       wrapper.traverse(c => { if(c.isMesh) c.castShadow = true; });
@@ -970,7 +980,7 @@
     p1.position.set(-2, 0, 0);
     outsideGroup.add(p1);
 
-    // Игрок 2 (ЖЕРТВА - ХУДИ С ДРАКОНОМ)
+    // Игрок 2 (ЖЕРТВА - ХУДИ С ДРАКОНОМ, СВЕТЛЫЕ ВОЛОСЫ)
     function createVictim() {
       const g = new THREE.Group();
       const legGeo = new THREE.BoxGeometry(0.2, 0.8, 0.2);
@@ -1004,12 +1014,15 @@
       const headGeo = new THREE.SphereGeometry(0.16, 12, 12);
       const head = new THREE.Mesh(headGeo, skinMatLocal); head.position.y = 1.65; g.add(head);
 
-      const hairGeo = new THREE.SphereGeometry(0.18, 12, 12);
+      // Светлые волосы
       const hairMat = new THREE.MeshStandardMaterial({ color: 0xc0b0a0, roughness: 1 });
-      const hair = new THREE.Mesh(hairGeo, hairMat); hair.scale.set(1, 1.2, 1.1); hair.position.set(0, 1.68, 0.02); g.add(hair);
+      const hairTop = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), hairMat);
+      hairTop.scale.set(1, 1.1, 1.1); hairTop.position.set(0, 1.7, 0); g.add(hairTop);
+      const hairBack = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.1), hairMat);
+      hairBack.position.set(0, 1.55, -0.16); g.add(hairBack);
       
       const faceGeo = new THREE.CircleGeometry(0.14, 12);
-      const face = new THREE.Mesh(faceGeo, skinMatLocal); face.position.set(0, 1.65, 0.17); g.add(face);
+      const face = new THREE.Mesh(faceGeo, skinMatLocal); face.position.set(0, 1.65, 0.16); g.add(face);
 
       const wrapper = new THREE.Group(); wrapper.add(g);
       wrapper.traverse(c => { if(c.isMesh) c.castShadow = true; });
@@ -1053,21 +1066,19 @@
       const headGeo = new THREE.SphereGeometry(0.16, 12, 12);
       const head = new THREE.Mesh(headGeo, skinMatLocal); head.position.y = 1.65; g.add(head);
 
-      const hairGeo = new THREE.SphereGeometry(0.18, 12, 12);
+      // Темные волосы (хвост)
       const hairMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 1 });
-      const hair = new THREE.Mesh(hairGeo, hairMat);
-      hair.scale.set(1, 1.1, 1);
-      hair.position.set(0, 1.68, 0.02); 
-      g.add(hair);
+      const hairTop = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), hairMat);
+      hairTop.scale.set(1, 1.1, 1); hairTop.position.set(0, 1.7, 0); g.add(hairTop);
       
-      const ponytailGeo = new THREE.CylinderGeometry(0.06, 0.02, 0.3, 8);
+      const ponytailGeo = new THREE.CylinderGeometry(0.06, 0.02, 0.35, 8);
       const ponytail = new THREE.Mesh(ponytailGeo, hairMat);
-      ponytail.position.set(0, 1.55, -0.2);
-      ponytail.rotation.x = 0.3;
+      ponytail.position.set(0, 1.5, -0.2);
+      ponytail.rotation.x = 0.4;
       g.add(ponytail);
 
       const faceGeo = new THREE.CircleGeometry(0.14, 12);
-      const face = new THREE.Mesh(faceGeo, skinMatLocal); face.position.set(0, 1.65, 0.17); g.add(face);
+      const face = new THREE.Mesh(faceGeo, skinMatLocal); face.position.set(0, 1.65, 0.16); g.add(face);
 
       const wrapper = new THREE.Group(); wrapper.add(g);
       wrapper.traverse(c => { if(c.isMesh) c.castShadow = true; });
@@ -1079,15 +1090,49 @@
 
     const players = [p1, p2, p3];
 
-    // ============ МОНСТР ============
-    const monster = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.45, 1.9, 4, 8),
-      new THREE.MeshStandardMaterial({ color: 0x1a1418, roughness: 0.7 })
-    );
-    monster.position.set(2.5, 0.95, -9.5);
-    monster.castShadow = true;
-    monster.visible = false;
-    outsideGroup.add(monster);
+    // ============ МОНСТР (Парень с фото: черная кофта, черные штаны, растрепанные волосы) ============
+    const monsterGroup = new THREE.Group();
+    const mSkin = new THREE.MeshStandardMaterial({ color: 0xd4b4a4, roughness: 0.9 });
+    const mCloth = new THREE.MeshStandardMaterial({ color: 0x080808, roughness: 1 });
+    const mHair = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 1 });
+
+    // Ноги
+    const mLegL = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.9, 0.22), mCloth); mLegL.position.set(-0.16, 0.45, 0);
+    const mLegR = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.9, 0.22), mCloth); mLegR.position.set(0.16, 0.45, 0);
+    
+    // Торс (черная кофта)
+    const mTorso = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.8, 0.35), mCloth); mTorso.position.y = 1.3;
+    
+    // Руки (вытянуты вперед для захвата)
+    const mArmL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.6, 0.2), mCloth); mArmL.position.set(-0.45, 1.3, 0.3); mArmL.rotation.x = -Math.PI/3;
+    const mArmR = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.6, 0.2), mCloth); mArmR.position.set(0.45, 1.3, 0.3); mArmR.rotation.x = -Math.PI/3;
+    
+    // Кисти рук
+    const mHandL = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), mSkin); mHandL.position.set(-0.45, 1.1, 0.6);
+    const mHandR = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), mSkin); mHandR.position.set(0.45, 1.1, 0.6);
+
+    // Голова
+    const mHead = new THREE.Mesh(new THREE.SphereGeometry(0.17, 12, 12), mSkin); mHead.position.y = 1.85;
+    
+    // Растрепанные волосы
+    const mHairTop = new THREE.Mesh(new THREE.SphereGeometry(0.19, 8, 8), mHair);
+    mHairTop.scale.set(1.1, 1.2, 1.1);
+    mHairTop.position.set(0, 1.9, 0);
+    // Клок волос на лоб
+    const mHairFringe = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.15, 0.1), mHair);
+    mHairFringe.position.set(0, 1.85, 0.15);
+
+    // Лицо (скрыто в тени, просто темное пятно)
+    const mFace = new THREE.Mesh(new THREE.CircleGeometry(0.13, 12), new THREE.MeshBasicMaterial({ color: 0x050505 }));
+    mFace.position.set(0, 1.85, 0.16);
+
+    monsterGroup.add(mLegL, mLegR, mTorso, mArmL, mArmR, mHandL, mHandR, mHead, mHairTop, mHairFringe, mFace);
+    
+    monsterGroup.position.set(2.5, 0, -9.5);
+    monsterGroup.traverse(c => { if(c.isMesh) c.castShadow = true; });
+    monsterGroup.visible = false;
+    outsideGroup.add(monsterGroup);
+    const monster = monsterGroup; // Для совместимости
 
     // ============ КОМНАТА-ЛОВУШКА ============
     roomGroup.position.set(0, 0, -14);
@@ -1353,7 +1398,6 @@
       joystickZone.addEventListener('touchcancel', resetJoy);
     }
 
-    // Свайп для камеры (правая часть экрана)
     document.addEventListener('touchstart', (e) => {
       if (state !== 'playing') return;
       if (e.target.closest('#joystick-left') || e.target.closest('#btn-flash') || e.target.closest('#btn-interact')) return;
@@ -1390,7 +1434,6 @@
       }
     });
 
-    // Кнопки
     if (btnFlash) {
       btnFlash.addEventListener('touchstart', (e) => {
         e.preventDefault();
@@ -1440,7 +1483,7 @@
       });
       
       monster.visible = false;
-      monster.position.set(2.5, 0.95, -9.5);
+      monster.position.set(2.5, 0, -9.5);
       sealedWall.position.set(0, 6, -1.15);
       lastFootstep = 0; lastGameplayStep = -1;
       eventTimer = 0;
@@ -1481,6 +1524,28 @@
     });
     document.addEventListener('keyup', (e) => keys[e.code] = false);
 
+    // ===================== АНИМАЦИЯ ХОДЬБЫ =====================
+    function animateWalk(p, time, speedMult = 1) {
+      if (p.children.length === 0) return;
+      const inner = p.children[0];
+      if (!inner) return;
+      // Ищем ноги (первые два элемента)
+      const legL = inner.children[0];
+      const legR = inner.children[1];
+      // Ищем руки (если есть)
+      let armL = null, armR = null;
+      if (inner.children.length > 3) {
+        armL = inner.children[3];
+        armR = inner.children[4];
+      }
+      
+      const swing = Math.sin(time * 10 * speedMult) * 0.4;
+      if (legL) legL.rotation.x = swing;
+      if (legR) legR.rotation.x = -swing;
+      if (armL) armL.rotation.x = -swing;
+      if (armR) armR.rotation.x = swing;
+    }
+
     // ===================== РОЛИК =====================
     function updateCutscene(t, dt) {
       grainEl.style.backgroundPosition =
@@ -1517,6 +1582,11 @@
         p2.position.z = -walkT * 9.5; p2.position.x = 0 + Math.sin(t * 4 + 1) * 0.05;
         p3.position.z = -walkT * 9.5; p3.position.x = 2 + Math.sin(t * 4 + 2) * 0.05;
         
+        // Включаем анимацию ходьбы
+        animateWalk(p1, t, 1.0);
+        animateWalk(p2, t, 1.0);
+        animateWalk(p3, t, 1.0);
+        
         clampCutscenePlayer(p1); clampCutscenePlayer(p2); clampCutscenePlayer(p3);
         
         if (walkT > 0.05 && walkT < 0.98 && t - lastFootstep > 0.6) {
@@ -1543,7 +1613,10 @@
         if (t > 7.3) {
           monster.visible = true;
           const appearT = Math.min((t - 7.3) / 0.4, 1);
-          monster.position.set(2.5 - appearT * 2.5, 0.95, -9.5);
+          // Монстр выбегает сбоку
+          monster.position.set(2.5 - appearT * 2.5, 0, -9.5);
+          // Анимация бега монстра
+          animateWalk(monster, t * 1.5, 1.5);
         }
         
         if (t > 7.7) {
@@ -1556,7 +1629,7 @@
           const jerk = Math.sin(dragT * 25) * 0.1;
           const baseZ = -9.5 - dragT * 5;
           
-          monster.position.set(0, 0.95, baseZ);
+          monster.position.set(0, 0, baseZ);
           p2.position.x = 0;
           p2.position.z = baseZ - 1.2 + jerk;
 
@@ -1580,6 +1653,11 @@
             p1.rotation.x = rotX;
             p3.position.set(3.2 - runT * 3, yOff, -8 + runT * 6);
             p3.rotation.x = rotX;
+            // Анимация бега
+            if (runT < 0.9) {
+              animateWalk(p1, t * 1.5, 1.5);
+              animateWalk(p3, t * 1.5, 1.5);
+            }
             if (t - lastFootstep > 0.5) { playFootstep(); lastFootstep = t; }
             if (runT > 0.85) { p1.visible = false; p3.visible = false; }
           }
@@ -1674,7 +1752,6 @@
       const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
       const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
       
-      // Мобильный джойстик или клавиатура
       if (joyX !== 0 || joyY !== 0) {
         playerState.pos.addScaledVector(forward, -joyY * speed);
         playerState.pos.addScaledVector(right, joyX * speed);
