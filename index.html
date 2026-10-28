@@ -311,8 +311,8 @@
     }, { passive: true });
 
     // === СИСТЕМА ЗВУКОВЫХ СОБЫТИЙ ===
-    const SOUND_EVENTS = [
-      { file: "sounds/creak.mp3",   time: 0.5,  volume: 1.0 },
+    const SOUND_EVENTS = [	
+      { file: "sounds/sounds1.mp3",   time: 1.5,  volume: 1.0 },
       { file: "sounds/footsteps.mp3", time: 2.5,  volume: 0.6 },
       { file: "sounds/scream.mp3",  time: 8.5,  volume: 1.0 },
       { file: "sounds/drag.mp3",    time: 7.8,  volume: 1.0 },
@@ -566,7 +566,6 @@
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.4;
     
-    // ВАЖНО: Добавляем Canvas в игровой контейнер, а не в body
     document.getElementById('game-container').appendChild(renderer.domElement);
 
     // === СВЕТ ===
@@ -1245,6 +1244,7 @@
     let state = 'menu';
     let cutsceneTime = 0;
     let gameplayTime = 0;
+    let flashlightOn = true; // <--- ИСПРАВЛЕНИЕ: добавили переменную фонарика
     const clock = new THREE.Clock();
     const playerState = { pos: new THREE.Vector3(0, 1.6, 5), yaw: 0, pitch: 0 };
 
@@ -1280,7 +1280,6 @@
 
     // === СТАРТ ИГРЫ ===
     enterBtn.addEventListener('click', () => {
-      // Запускаем звук и убираем меню
       initAudio();
       initSoundSystem();
       
@@ -1553,7 +1552,7 @@
       prevGameplayPos.copy(playerState.pos);
       eventTimer = 0;
       startBreathing();
-      setTimeout(() => { fade.style.opacity = 0; }, 100);
+      setTimeout(() => { fade.style.opacity = 0; }, 200); // Чуть больше времени на прогрузку
       hintGame.style.opacity = 1;
     }
 
