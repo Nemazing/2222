@@ -1,21 +1,208 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <title>Хоррор-прототип</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Хоррор‑Лагерь: Лагерь</title>
   <style>
-    body { margin: 0; overflow: hidden; background: #000; }
+    :root {
+      --bg-dark: #000;
+      --text-main: #e0e0e0;
+      --accent: #c14916;
+      --r: 260px;
+      --mx: 50%;
+      --my: 50%;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Courier New', Courier, monospace;
+      overflow-x: hidden;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ===== МЕНЮ ===== */
+    #menu-screen {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      transition: opacity 1s ease;
+    }
+    #menu-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Слой тьмы */
+    #darkness {
+      position: fixed;
+      inset: 0;
+      z-index: 9997;
+      pointer-events: none;
+      background: radial-gradient(
+        circle var(--r) at var(--mx) var(--my),
+        rgba(255, 226, 170, 0.07) 0%,
+        rgba(0, 0, 0, 0.45) 38%,
+        rgba(0, 0, 0, 0.94) 72%,
+        #000 100%
+      );
+      transition: background 0.04s linear;
+    }
+
+    #darkness::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: #000;
+      opacity: 0;
+      animation: flicker 6s infinite;
+    }
+
+    @keyframes flicker {
+      0%, 96%, 100% { opacity: 0; }
+      97% { opacity: 0.25; }
+      98% { opacity: 0; }
+      99% { opacity: 0.15; }
+    }
+
+    header {
+      text-align: center;
+      padding: 60px 20px 30px;
+      position: relative;
+      z-index: 1;
+    }
+
+    h1 {
+      font-size: clamp(1.6rem, 6vw, 3rem);
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      margin: 0;
+      color: #fff;
+      text-shadow: 0 0 18px rgba(255, 210, 140, 0.25);
+    }
+
+    p.subtitle {
+      font-size: 1.1rem;
+      color: var(--accent);
+      margin-top: 10px;
+    }
+
+    main {
+      max-width: 800px;
+      margin: 20px auto 0;
+      padding: 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .story-block {
+      border-left: 4px solid var(--accent);
+      padding-left: 20px;
+      margin-bottom: 30px;
+      line-height: 1.6;
+      font-size: 1.05rem;
+    }
+
+    .sound-cue {
+      color: #ff6b6b;
+      font-weight: bold;
+      display: block;
+      margin: 15px 0 5px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 60px 20px 80px;
+      color: #777;
+      font-size: 0.9rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .warning {
+      color: var(--accent);
+      display: inline-block;
+      margin-right: 8px;
+    }
+
+    #enter-btn {
+      padding: 15px 34px;
+      font-size: 1.05rem;
+      font-family: inherit;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      box-shadow: 0 0 0 rgba(193, 73, 22, 0);
+      transition: box-shadow 0.3s, transform 0.15s;
+    }
+
+    #enter-btn:hover {
+      box-shadow: 0 0 28px rgba(193, 73, 22, 0.85);
+    }
+
+    #enter-btn:active {
+      transform: scale(0.97);
+    }
+
+    #hint-menu {
+      position: fixed;
+      left: 50%;
+      bottom: 14px;
+      transform: translateX(-50%);
+      z-index: 10000;
+      font-size: 0.75rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(255, 220, 160, 0.45);
+      pointer-events: none;
+      animation: hint-pulse 3.5s ease-in-out infinite;
+    }
+    
+    #hint-menu2 {
+      position: fixed;
+      left: 50%;
+      bottom: 36px;
+      transform: translateX(-50%);
+      z-index: 10000;
+      font-size: 0.75rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.45);
+      pointer-events: none;
+      animation: hint-pulse 3.5s ease-in-out infinite;
+    }
+
+    @keyframes hint-pulse {
+      0%, 100% { opacity: 0.25; }
+      50%      { opacity: 0.75; }
+    }
+
+    /* ===== ИГРА ===== */
+    #game-container {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+    }
     canvas { display: block; }
-    #hint {
+    #hint-game {
       position: fixed; bottom: 10px; left: 10px;
       color: #aaa; font-family: monospace; font-size: 13px;
       pointer-events: none; z-index: 5; opacity: 0; transition: opacity 0.5s;
-    }
-    #overlay {
-      position: fixed; inset: 0; display: flex;
-      align-items: center; justify-content: center;
-      background: #000; color: #ccc; font-family: sans-serif;
-      font-size: 22px; cursor: pointer; z-index: 20; user-select: none;
     }
     #fade { position: fixed; inset: 0; background: #000;
       opacity: 1; pointer-events: none; z-index: 10; }
@@ -40,13 +227,53 @@
   </style>
 </head>
 <body>
-  <div id="hint">WASD — ходьба. Клик — захват мыши. F — фонарик. Esc — отпустить.</div>
-  <div id="prompt">Нажмите E, чтобы открыть дверь</div>
-  <div id="overlay">Кликните, чтобы начать</div>
-  <div id="grain"></div>
-  <div id="vignette"></div>
-  <div id="fade"></div>
-  <div id="flash"></div>
+
+  <!-- МЕНЮ -->
+  <div id="menu-screen">
+    <div id="darkness"></div>
+    <header>
+      <h1>Лагерь: Вход запрещён</h1>
+      <p class="subtitle">Хоррор‑Лагерь. Ты не захочешь заходить внутрь.</p>
+    </header>
+
+    <main>
+      <section class="story-block">
+        <span class="sound-cue">[Мы не обязываем вас играть в эту игру…]</span>
+        Участвуйте только если хочется! 😄
+      </section>
+
+      <section class="story-block">
+        <span class="sound-cue">[Резкий шорох сбоку…]</span>
+        Из темноты выныривает фигура и хватает одного из игроков за ногу. Крик обрывается, будто его проглотила тишина. Проход исчезает — на его месте теперь сплошная стена.
+      </section>
+
+      <section class="story-block">
+        <span class="sound-cue">[Глухой удар, скрип петель…]</span>
+        Двери лагеря захлопываются сами по себе. Слышен короткий, отчаянный крик напарника — того самого, которого утянули. И где‑то вдалеке — тихий шорох.
+      </section>
+
+      <section style="text-align:center; margin-top:40px;">
+        <button id="enter-btn">Подтверждаю вход</button>
+      </section>
+    </main>
+
+    <footer>
+      <span class="warning">⚠</span> Не рекомендуется людям с повышенной чувствительностью к скримерам.
+    </footer>
+
+    <div id="hint-menu">СТРОГО 18+</div>
+    <div id="hint-menu2">СОЗДАЛ - Ainazik</div>
+  </div>
+
+  <!-- ИГРА -->
+  <div id="game-container">
+    <div id="hint-game">WASD — ходьба. Клик — захват мыши. F — фонарик. Esc — отпустить.</div>
+    <div id="prompt">Нажмите E, чтобы открыть дверь</div>
+    <div id="grain"></div>
+    <div id="vignette"></div>
+    <div id="fade"></div>
+    <div id="flash"></div>
+  </div>
 
   <script type="importmap">
   { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
@@ -55,7 +282,81 @@
   <script type="module">
     import * as THREE from 'three';
 
-    // ===================== ЗВУК =====================
+    // =======================================================
+    // === СИСТЕМА ЗВУКОВЫХ СОБЫТИЙ (Sound Events) ===
+    // =======================================================
+    const SOUND_EVENTS = [
+      // --- РОЛИК ---
+      { file: "sounds/creak.mp3",   time: 0.5,  volume: 1.0 },
+      { file: "sounds/footsteps.mp3", time: 2.5,  volume: 0.6 },
+      { file: "sounds/scream.mp3",  time: 8.0,  volume: 1.0 },
+      { file: "sounds/drag.mp3",    time: 7.8,  volume: 1.0 },
+      
+      // --- ГЕЙМПЛЕЙ (время относительно старта геймплея) ---
+      { file: "sounds/door_slam.mp3", time: 1.2,  volume: 1.0 },
+      { file: "sounds/cry.mp3",       time: 1.8,  volume: 0.8 },
+      { file: "sounds/rustle.mp3",    time: 4.0,  volume: 0.5 }
+    ];
+
+    const audioLoader = new THREE.AudioLoader();
+    const loadedSounds = {};
+    let audioListener = null;
+    const playedEvents = { cutscene: new Set(), gameplay: new Set() };
+
+    function initSoundSystem() {
+      if (!audioListener) {
+        audioListener = new THREE.AudioListener();
+        camera.add(audioListener);
+      }
+      const uniqueFiles = [...new Set(SOUND_EVENTS.map(e => e.file))];
+      uniqueFiles.forEach(file => {
+        if (!loadedSounds[file]) {
+          audioLoader.load(file, 
+            (buffer) => {
+              loadedSounds[file] = buffer;
+              console.log(`✅ Звук загружен: ${file}`);
+            },
+            undefined,
+            (err) => {
+              console.warn(`⚠️ Не удалось загрузить звук: ${file} (проверь путь)`);
+              loadedSounds[file] = null;
+            }
+          );
+        }
+      });
+    }
+
+    function playSoundEvent(file, volume = 1.0) {
+      if (!audioListener) return;
+      const buffer = loadedSounds[file];
+      if (!buffer) return;
+      const sound = new THREE.Audio(audioListener);
+      sound.setBuffer(buffer);
+      sound.setVolume(volume);
+      sound.play();
+    }
+
+    function processSoundEvents(currentTime, phase) {
+      const played = playedEvents[phase];
+      for (let i = 0; i < SOUND_EVENTS.length; i++) {
+        const ev = SOUND_EVENTS[i];
+        if (currentTime >= ev.time && !played.has(i)) {
+          if (phase === 'cutscene' && ev.time < 12) {
+            playSoundEvent(ev.file, ev.volume);
+            played.add(i);
+          } else if (phase === 'gameplay' && ev.time <= 10) {
+            if (i >= 4) { // Вторая половина массива для геймплея
+              playSoundEvent(ev.file, ev.volume);
+              played.add(i);
+            }
+          }
+        }
+      }
+    }
+
+    // =======================================================
+    // === ЗВУКИ-СИНТЕЗАТОРЫ ===
+    // =======================================================
     let audioCtx = null;
     let breathingNodes = null;
 
@@ -88,83 +389,6 @@
       breathingNodes = null;
     }
 
-    function playCreak() {
-      if (!audioCtx) return;
-      const t = audioCtx.currentTime;
-      const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-      const filter = audioCtx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(900, t);
-      filter.frequency.exponentialRampToValueAtTime(180, t + 1.8);
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(140, t);
-      osc.frequency.exponentialRampToValueAtTime(55, t + 1.8);
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(0.13, t + 0.15);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 1.9);
-      osc.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
-      osc.start(t); osc.stop(t + 1.9);
-    }
-
-    function playSlam() {
-      if (!audioCtx) return;
-      const t = audioCtx.currentTime;
-      const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(85, t);
-      osc.frequency.exponentialRampToValueAtTime(28, t + 0.5);
-      gain.gain.setValueAtTime(0.7, t);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
-      osc.connect(gain); gain.connect(audioCtx.destination);
-      osc.start(t); osc.stop(t + 0.6);
-      const bufSize = audioCtx.sampleRate * 0.25;
-      const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
-      const d = buf.getChannelData(0);
-      for (let i = 0; i < bufSize; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / bufSize);
-      const src = audioCtx.createBufferSource(); src.buffer = buf;
-      const g2 = audioCtx.createGain();
-      g2.gain.setValueAtTime(0.35, t);
-      g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
-      src.connect(g2); g2.connect(audioCtx.destination); src.start(t);
-    }
-
-    function playScreamCut(distance = 1) {
-      if (!audioCtx) return;
-      const t = audioCtx.currentTime;
-      const vol = 0.28 / distance;
-      const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-      const filter = audioCtx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.value = distance > 2 ? 800 : 2400;
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(720, t);
-      osc.frequency.exponentialRampToValueAtTime(360, t + 0.7);
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(vol, t + 0.05);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.7);
-      osc.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
-      osc.start(t); osc.stop(t + 0.7);
-    }
-
-    function playRustle() {
-      if (!audioCtx) return;
-      const t = audioCtx.currentTime;
-      const bufSize = audioCtx.sampleRate * 3.5;
-      const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
-      const d = buf.getChannelData(0);
-      for (let i = 0; i < bufSize; i++) d[i] = (Math.random() * 2 - 1);
-      const src = audioCtx.createBufferSource(); src.buffer = buf;
-      const filter = audioCtx.createBiquadFilter();
-      filter.type = 'bandpass'; filter.frequency.value = 340; filter.Q.value = 6;
-      const gain = audioCtx.createGain();
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.linearRampToValueAtTime(0.025, t + 0.8);
-      gain.gain.linearRampToValueAtTime(0.04, t + 2);
-      gain.gain.linearRampToValueAtTime(0.0001, t + 3.5);
-      src.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
-      src.start(t);
-    }
-
     function playFootstep() {
       if (!audioCtx) return;
       const t = audioCtx.currentTime;
@@ -178,84 +402,6 @@
       const gain = audioCtx.createGain(); gain.gain.value = 0.09;
       src.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
       src.start(t);
-    }
-
-    function playThud() {
-      if (!audioCtx) return;
-      const t = audioCtx.currentTime;
-      const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(160, t);
-      osc.frequency.exponentialRampToValueAtTime(45, t + 0.18);
-      gain.gain.setValueAtTime(0.3, t);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
-      osc.connect(gain); gain.connect(audioCtx.destination);
-      osc.start(t); osc.stop(t + 0.22);
-      const bufSize = audioCtx.sampleRate * 0.12;
-      const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
-      const d = buf.getChannelData(0);
-      for (let i = 0; i < bufSize; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / bufSize);
-      const src = audioCtx.createBufferSource(); src.buffer = buf;
-      const g2 = audioCtx.createGain(); g2.gain.value = 0.2;
-      src.connect(g2); g2.connect(audioCtx.destination); src.start(t);
-    }
-
-    function playCrawl() {
-      if (!audioCtx) return;
-      const t = audioCtx.currentTime;
-      const bufSize = audioCtx.sampleRate * 1.8;
-      const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
-      const d = buf.getChannelData(0);
-      for (let i = 0; i < bufSize; i++) d[i] = (Math.random() * 2 - 1);
-      const src = audioCtx.createBufferSource(); src.buffer = buf;
-      const filter = audioCtx.createBiquadFilter();
-      filter.type = 'bandpass'; filter.frequency.value = 650; filter.Q.value = 2;
-      const gain = audioCtx.createGain();
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.linearRampToValueAtTime(0.07, t + 0.25);
-      gain.gain.linearRampToValueAtTime(0.0001, t + 1.8);
-      src.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
-      src.start(t);
-    }
-
-    function playDrag() {
-      if (!audioCtx) return;
-      const t = audioCtx.currentTime;
-      const dur = 2.2;
-      const bufSize = audioCtx.sampleRate * dur;
-      const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
-      const d = buf.getChannelData(0);
-      for (let i = 0; i < bufSize; i++) {
-        const env = Math.sin((i / bufSize) * Math.PI);
-        const jerk = 0.6 + 0.4 * Math.sin((i / bufSize) * 30);
-        d[i] = (Math.random() * 2 - 1) * env * jerk;
-      }
-      const src = audioCtx.createBufferSource(); src.buffer = buf;
-      const filter = audioCtx.createBiquadFilter();
-      filter.type = 'lowpass'; filter.frequency.value = 300; filter.Q.value = 2;
-      const gain = audioCtx.createGain();
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.linearRampToValueAtTime(0.22, t + 0.15);
-      gain.gain.linearRampToValueAtTime(0.18, t + dur * 0.8);
-      gain.gain.linearRampToValueAtTime(0.0001, t + dur);
-      src.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
-      src.start(t);
-    }
-
-    function playGrowl() {
-      if (!audioCtx) return;
-      const t = audioCtx.currentTime;
-      const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-      const filter = audioCtx.createBiquadFilter();
-      filter.type = 'lowpass'; filter.frequency.value = 400;
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(70, t);
-      osc.frequency.exponentialRampToValueAtTime(40, t + 0.8);
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(0.25, t + 0.1);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
-      osc.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
-      osc.start(t); osc.stop(t + 0.9);
     }
 
     // ===================== ЗЕРНО =====================
@@ -351,7 +497,6 @@
       c.width = 128; c.height = 128;
       const ctx = c.getContext('2d');
       ctx.fillStyle = '#1a1a24'; ctx.fillRect(0,0,128,128);
-      // Трещины
       ctx.strokeStyle = '#5a5a6a'; ctx.lineWidth = 1;
       for (let i = 0; i < 5; i++) {
         ctx.beginPath();
@@ -378,7 +523,7 @@
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.4;
-    document.body.appendChild(renderer.domElement);
+    document.getElementById('game-container').appendChild(renderer.domElement);
 
     // ===================== СВЕТ =====================
     scene.add(new THREE.HemisphereLight(0x8899cc, 0x2a2a2a, 1.2));
@@ -464,14 +609,11 @@
 
     function buildCabin() {
       const g = new THREE.Group();
-
-      // Фундамент
       const foundation = new THREE.Mesh(new THREE.BoxGeometry(10.6, 0.5, 12.6), stoneMat);
       foundation.position.set(0, 0.25, -16);
       foundation.castShadow = true; foundation.receiveShadow = true;
       g.add(foundation);
 
-      // Стены
       function cabinWall(w, h, d, x, y, z) {
         const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), cabinWoodMat);
         m.position.set(x, y, z);
@@ -485,13 +627,11 @@
       cabinWall(3, 4.6, 0.3,  3.5, 2.8, -9.85);
       cabinWall(4, 1.2, 0.3, 0, 4.0, -9.85);
 
-      // Пол
       const floor = new THREE.Mesh(new THREE.BoxGeometry(9.7, 0.2, 12), cabinWoodMat);
       floor.position.set(0, 0.6, -16);
       floor.receiveShadow = true;
       g.add(floor);
 
-      // === КРЫША ===
       const roofAngle = 0.52;
       const roofLen = 6.1;
       const roofL = new THREE.Mesh(new THREE.BoxGeometry(roofLen, 0.25, 13.5), roofMat);
@@ -516,16 +656,13 @@
       chimney.castShadow = true;
       g.add(chimney);
 
-      // === ОКНА (Исправлены) ===
       function makeWindow(x, y, z, rotY = 0) {
         const winGroup = new THREE.Group();
-        // Стекло теперь имеет текстуру трещин
         const glass = new THREE.Mesh(
           new THREE.PlaneGeometry(0.7, 0.9),
           new THREE.MeshStandardMaterial({ map: glassTex, roughness: 0.2, metalness: 0.6 })
         );
         winGroup.add(glass);
-        // Рамы
         const fT = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.1, 0.12), darkWoodMat);
         fT.position.y = 0.5; winGroup.add(fT);
         const fB = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.1, 0.12), darkWoodMat);
@@ -536,7 +673,6 @@
         fR.position.x = 0.41; winGroup.add(fR);
         const cross = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.9, 0.12), darkWoodMat);
         winGroup.add(cross);
-        // Ставни
         const shL = new THREE.Mesh(new THREE.BoxGeometry(0.38, 1.05, 0.08), cabinWoodMat);
         shL.position.set(-0.66, 0, 0.06); winGroup.add(shL);
         const shR = new THREE.Mesh(new THREE.BoxGeometry(0.38, 1.05, 0.08), cabinWoodMat);
@@ -552,7 +688,6 @@
       makeWindow(-4.67, 3.0, -18, Math.PI/2);
       makeWindow( 4.67, 3.0, -18, -Math.PI/2);
 
-      // Дверь (приоткрыта)
       const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(2.0, 3.4, 0.18), darkWoodMat);
       doorFrame.position.set(0, 2.25, -9.8);
       doorFrame.castShadow = true;
@@ -570,14 +705,12 @@
       handle.position.set(0.9, 0, 0.08);
       doorPivot.add(handle);
 
-      // Крыльцо
       for (let i = 0; i < 3; i++) {
         const step = new THREE.Mesh(new THREE.BoxGeometry(4, 0.18, 0.55), cabinWoodMat);
         step.position.set(0, 0.5 - i*0.16, -9.3 + i*0.55);
         step.castShadow = true; step.receiveShadow = true;
         g.add(step);
       }
-      // Перила
       for (const x of [-1.9, 1.9]) {
         const post1 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.2, 0.12), darkWoodMat);
         post1.position.set(x, 0.6, -9.3); post1.castShadow = true; g.add(post1);
@@ -657,7 +790,6 @@
     ];
     treePositions.forEach(([x, z, s]) => outsideGroup.add(makeTree(x, z, s)));
 
-    // Тропинка
     const path = new THREE.Mesh(
       new THREE.PlaneGeometry(2.6, 5),
       new THREE.MeshStandardMaterial({ color: 0x201a14, roughness: 1 })
@@ -667,7 +799,6 @@
     path.receiveShadow = true;
     outsideGroup.add(path);
 
-    // Факелы
     function makeTorch(x, z) {
       const g = new THREE.Group();
       const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.3, 6), fenceWoodMat);
@@ -740,7 +871,6 @@
     passage.position.set(0, 1.25, -1.2);
     roomGroup.add(passage);
 
-    // Внутренний коридор
     const corrInnerFloor = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.7), wetMat);
     corrInnerFloor.rotation.x = -Math.PI / 2;
     corrInnerFloor.position.set(0, 0.01, 2.85);
@@ -753,7 +883,6 @@
     const corrInnerCeil = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.1, 2.7), wetMat);
     corrInnerCeil.position.set(0, 3, 2.85); roomGroup.add(corrInnerCeil);
 
-    // Сплошная стена (падает)
     const sealedWall = new THREE.Mesh(
       new THREE.BoxGeometry(2.4, 2.6, 0.2),
       new THREE.MeshStandardMaterial({ color: 0x3a2c1e, roughness: 0.95, map: makeWallTexture() })
@@ -773,7 +902,6 @@
       const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), corridorMat);
       m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; gameGroup.add(m); return m;
     }
-    // Ширина коридора 4, длина 16
     corrWall(0.2, 3, 16, -2.0, 1.5, 0);
     corrWall(0.2, 3, 16,  2.0, 1.5, 0);
     corrWall(4, 3, 0.2, 0, 1.5, -8);
@@ -786,14 +914,12 @@
     corrFloor.receiveShadow = true;
     gameGroup.add(corrFloor);
 
-    // === ДЕТАЛИ КОРИДОРА ===
     const carpetMat = new THREE.MeshStandardMaterial({ map: makeCarpetTexture(), roughness: 1 });
     const carpet = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 7), carpetMat);
     carpet.rotation.x = -Math.PI / 2;
     carpet.position.set(0, 0.02, -1);
     gameGroup.add(carpet);
 
-    // Коллизии для столов
     const obstacles = [];
 
     function makeTable(x, z) {
@@ -808,7 +934,6 @@
       }
       g.position.set(x, 0, z);
       gameGroup.add(g);
-      // Добавляем коллизию
       obstacles.push({ x: x, z: z, r: 0.6 });
       return g;
     }
@@ -828,7 +953,6 @@
     makeTable(-1.6, -2); makeVase(-1.6, 0.83, -2);
     makeTable(1.6, -5);  makeVase(1.6, 0.83, -5);
 
-    // Картины
     function addPainting(x, z, rotY) {
       const g = new THREE.Group();
       const frame = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.0, 0.05), darkWoodMat);
@@ -843,28 +967,24 @@
     addPainting( 1.9, -6, -Math.PI/2);
     addPainting(-1.9, 2, Math.PI/2);
 
-    // === ДВЕРИ В КОНЦЕ КОРИДОРА (Анимированные) ===
     const doorMat = new THREE.MeshStandardMaterial({ color: 0x2a2018, roughness: 0.85 });
     const doorPivotL = new THREE.Group();
     const doorPivotR = new THREE.Group();
     
-    // Левая створка
-    doorPivotL.position.set(-2.0, 1.5, -8); // Петли слева
+    doorPivotL.position.set(-2.0, 1.5, -8);
     const panelL = new THREE.Mesh(new THREE.BoxGeometry(2.0, 3, 0.15), doorMat);
-    panelL.position.set(1.0, 0, 0); // Смещение вправо от петли
+    panelL.position.set(1.0, 0, 0);
     panelL.castShadow = true; panelL.receiveShadow = true;
     doorPivotL.add(panelL);
     gameGroup.add(doorPivotL);
 
-    // Правая створка
-    doorPivotR.position.set(2.0, 1.5, -8); // Петли справа
+    doorPivotR.position.set(2.0, 1.5, -8);
     const panelR = new THREE.Mesh(new THREE.BoxGeometry(2.0, 3, 0.15), doorMat);
-    panelR.position.set(-1.0, 0, 0); // Смещение влево от петли
+    panelR.position.set(-1.0, 0, 0);
     panelR.castShadow = true; panelR.receiveShadow = true;
     doorPivotR.add(panelR);
     gameGroup.add(doorPivotR);
 
-    // Свет в коридоре
     gameGroup.add(new THREE.HemisphereLight(0x556677, 0x111111, 0.9));
     gameGroup.add(new THREE.AmbientLight(0x2a2a2a, 1.4));
     
@@ -884,26 +1004,13 @@
     const clock = new THREE.Clock();
     const playerState = { pos: new THREE.Vector3(0, 1.6, 5), yaw: 0, pitch: 0 };
 
-    let creakPlayed = false;
-    let screamCutPlayed = false;
-    let wallSlamPlayed = false;
-    let doorCreakPlayed = false;
-    let doorSlamPlayed = false;
-    let gameScreamPlayed = false;
-    let rustlePlayed = false;
-    let flashlightOn = true;
-    let crawlPlayed = false;
-    let thudPlayed = false;
-    let dragPlayed = false;
-    let growlPlayed = false;
     let lastFootstep = 0;
     let lastGameplayStep = -1;
     let eventTimer = 0;
     const prevGameplayPos = new THREE.Vector3();
 
-    // Анимация двери в конце коридора
     let doorOpenProgress = 0;
-    let doorState = 'closed'; // closed, opening, open
+    let doorState = 'closed';
     let nearDoor = false;
     const promptEl = document.getElementById('prompt');
 
@@ -918,16 +1025,52 @@
       p.position.z = Math.max(-22, Math.min(9, p.position.z));
     }
 
-    // ===================== СТАРТ =====================
-    const overlay = document.getElementById('overlay');
+    // ===================== UI ЭЛЕМЕНТЫ =====================
+    const menuScreen = document.getElementById('menu-screen');
+    const gameContainer = document.getElementById('game-container');
+    const enterBtn = document.getElementById('enter-btn');
     const fade = document.getElementById('fade');
     const flash = document.getElementById('flash');
     const vignette = document.getElementById('vignette');
-    const hint = document.getElementById('hint');
+    const hintGame = document.getElementById('hint-game');
 
-    overlay.addEventListener('click', () => {
+    // ===================== МЕНЮ ЛОГИКА =====================
+    const root = document.documentElement;
+    function updateRadius() {
+      const r = Math.min(window.innerWidth, window.innerHeight) * 0.32;
+      root.style.setProperty('--r', Math.max(140, Math.min(300, r)) + 'px');
+    }
+    updateRadius();
+    window.addEventListener('resize', updateRadius);
+
+    function moveLight(x, y) {
+      root.style.setProperty('--mx', x + 'px');
+      root.style.setProperty('--my', y + 'px');
+    }
+    moveLight(window.innerWidth / 2, window.innerHeight / 2);
+
+    document.addEventListener('mousemove', (e) => moveLight(e.clientX, e.clientY));
+    document.addEventListener('touchstart', (e) => {
+      const t = e.touches[0];
+      if (t) moveLight(t.clientX, t.clientY);
+    }, { passive: true });
+    document.addEventListener('touchmove', (e) => {
+      const t = e.touches[0];
+      if (t) moveLight(t.clientX, t.clientY);
+    }, { passive: true });
+
+    // ===================== СТАРТ ИГРЫ =====================
+    enterBtn.addEventListener('click', () => {
       initAudio();
-      overlay.style.display = 'none';
+      initSoundSystem();
+      
+      // Скрываем меню, показываем игру
+      menuScreen.classList.add('hidden');
+      setTimeout(() => {
+        menuScreen.style.display = 'none';
+      }, 1000);
+      
+      gameContainer.style.display = 'block';
       state = 'cutscene';
       cutsceneTime = 0;
       fade.style.opacity = 1;
@@ -937,6 +1080,7 @@
       vignette.style.opacity = 1;
       flashlight.visible = false;
       viewmodel.visible = false;
+      
       players.forEach((p, i) => {
         p.position.set(-2 + i * 2, 0, 0);
         p.rotation.x = 0; p.visible = true;
@@ -944,12 +1088,14 @@
       monster.visible = false;
       monster.position.set(2.5, 0.95, -9.5);
       sealedWall.position.set(0, 6, -1.15);
-      crawlPlayed = false; thudPlayed = false; dragPlayed = false; growlPlayed = false;
       lastFootstep = 0; lastGameplayStep = -1;
       eventTimer = 0;
       doorState = 'closed'; doorOpenProgress = 0;
       doorPivotL.rotation.y = 0; doorPivotR.rotation.y = 0;
       stopBreathing();
+      
+      playedEvents.cutscene.clear();
+      playedEvents.gameplay.clear();
     });
 
     // ===================== УПРАВЛЕНИЕ =====================
@@ -974,10 +1120,9 @@
         flashlight.visible = flashlightOn;
         flashLens.material.color.setHex(flashlightOn ? 0xfff2cc : 0x333333);
       }
-      // Взаимодействие с дверью
       if (e.code === 'KeyE' && state === 'playing' && nearDoor && doorState === 'closed') {
         doorState = 'opening';
-        playCreak();
+        playSoundEvent("sounds/creak.mp3", 1.0);
       }
     });
     document.addEventListener('keyup', (e) => keys[e.code] = false);
@@ -993,10 +1138,11 @@
       torch1.light.intensity = 3.0 * flick;
       torch2.light.intensity = 3.0 * flick;
 
+      processSoundEvents(t, 'cutscene');
+
       if (t < 2) {
         fade.style.opacity = 1;
         grainEl.style.opacity = 0;
-        if (!creakPlayed && t > 0.25) { playCreak(); creakPlayed = true; }
         return;
       }
       if (t < 2.25) {
@@ -1008,7 +1154,6 @@
       flash.style.opacity = 0;
       grainEl.style.opacity = 0.5;
 
-      // ==== ХОДЬБА ====
       if (t < 7) {
         camera.position.set(0, 2.5, 6);
         camera.lookAt(0, 1.6, -10);
@@ -1025,7 +1170,6 @@
         return;
       }
 
-      // ==== ЗАХВАТ + ЗАТАСКИВАНИЕ ====
       if (t < 10) {
         camera.position.set(0, 2.0, -4);
         camera.lookAt(0, 0.8, -10.5);
@@ -1043,7 +1187,6 @@
           monster.visible = true;
           const appearT = Math.min((t - 7.3) / 0.4, 1);
           monster.position.set(2.5 - appearT * 2.5, 0.95, -9.5);
-          if (!growlPlayed) { playGrowl(); growlPlayed = true; }
         }
         if (t > 7.7) {
           const dragT = Math.min((t - 7.7) / 2.2, 1);
@@ -1055,7 +1198,6 @@
           monster.position.set(0, 0.95, baseZ);
           players[1].position.x = 0;
           players[1].position.z = baseZ - 1.2 + jerk;
-          if (!dragPlayed && lieT > 0.8) { playDrag(); dragPlayed = true; }
 
           if (t > 7.9 && t < 8.7) {
             const crawlT = (t - 7.9) / 0.8;
@@ -1063,8 +1205,10 @@
             players[0].rotation.x = crawlT * Math.PI / 2;
             players[2].position.set(2 + crawlT * 1.2, crawlT * 0.3, -9.5 + crawlT * 1.5);
             players[2].rotation.x = crawlT * Math.PI / 2;
-            if (!crawlPlayed && crawlT > 0.1) { playCrawl(); crawlPlayed = true; }
-            if (!thudPlayed && crawlT > 0.05) { playThud(); thudPlayed = true; }
+            if (!playedEvents.cutscene.has('thud')) {
+              playSoundEvent("sounds/thud.mp3", 0.7);
+              playedEvents.cutscene.add('thud');
+            }
           }
           if (t >= 8.7) {
             const runT = Math.min((t - 8.7) / 1.0, 1);
@@ -1078,12 +1222,10 @@
             if (t - lastFootstep > 0.5) { playFootstep(); lastFootstep = t; }
             if (runT > 0.85) { players[0].visible = false; players[2].visible = false; }
           }
-          if (!screamCutPlayed && t > 8.0) { playScreamCut(1); screamCutPlayed = true; }
         }
         return;
       }
 
-      // ==== КОМНАТА + ПЕРЕЕЗД КАМЕРЫ НАРУЖУ + СТЕНА ====
       if (t < 12) {
         monster.visible = false;
         players[1].visible = false;
@@ -1115,12 +1257,6 @@
         const outK = Math.min((t - 10.6) / 1.4, 1);
         camera.position.set(0, 3.2 + outK * 0.4, -5 + outK * 3);
         camera.lookAt(0, 1.5, -12);
-
-        if (t > 10.6) {
-          const dropT = Math.min((t - 10.6) / 0.4, 1);
-          sealedWall.position.y = 6 + (1.3 - 6) * dropT;
-          if (!wallSlamPlayed) { playSlam(); wallSlamPlayed = true; }
-        }
         return;
       }
       fade.style.opacity = Math.min((t - 12) / 0.6, 1);
@@ -1146,27 +1282,22 @@
       eventTimer = 0;
       startBreathing();
       setTimeout(() => { fade.style.opacity = 0; }, 100);
-      hint.style.opacity = 1;
+      hintGame.style.opacity = 1;
     }
 
     // ===================== ГЕЙМПЛЕЙ =====================
     function updateGameplay(dt) {
       gameplayTime += dt;
 
-      if (gameplayTime > 0.3 && !doorCreakPlayed) { playCreak(); doorCreakPlayed = true; }
-      if (gameplayTime > 1.1 && !doorSlamPlayed) { playSlam(); doorSlamPlayed = true; }
-      if (gameplayTime > 1.5 && !gameScreamPlayed) { playScreamCut(3.5); gameScreamPlayed = true; }
-      if (gameplayTime > 3 && !rustlePlayed) { playRustle(); rustlePlayed = true; }
+      processSoundEvents(gameplayTime, 'gameplay');
 
-      // Случайные звуки
       eventTimer += dt;
       if (eventTimer > 6 + Math.random() * 6) {
-        if (Math.random() < 0.5) playCreak();
-        else playScreamCut(4 + Math.random() * 3);
+        if (Math.random() < 0.5) playSoundEvent("sounds/creak.mp3", 0.8);
+        else playSoundEvent("sounds/cry.mp3", 0.5);
         eventTimer = 0;
       }
 
-      // Мигание ламп
       for (const fl of flickerLights) {
         const flicker = Math.sin(gameplayTime * 7 + fl.z) * 0.2 + (Math.random() - 0.5) * 0.3;
         fl.light.intensity = Math.max(0.1, fl.base + flicker);
@@ -1178,7 +1309,6 @@
 
       prevGameplayPos.copy(playerState.pos);
 
-      // Движение
       const speed = 2.6 * dt;
       const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
       const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
@@ -1187,17 +1317,14 @@
       if (keys['KeyA']) playerState.pos.addScaledVector(right, -speed);
       if (keys['KeyD']) playerState.pos.addScaledVector(right, speed);
 
-      // Коллизии со стенами
       playerState.pos.x = Math.max(-1.6, Math.min(1.6, playerState.pos.x));
       playerState.pos.z = Math.max(-7.6, Math.min(7.5, playerState.pos.z));
 
-      // Коллизии с мебелью (круглые препятствия)
       for (const obs of obstacles) {
         const dx = playerState.pos.x - obs.x;
         const dz = playerState.pos.z - obs.z;
         const dist = Math.sqrt(dx*dx + dz*dz);
         if (dist < obs.r) {
-          // Выталкиваем игрока
           const push = (obs.r - dist) / dist;
           playerState.pos.x += dx * push;
           playerState.pos.z += dz * push;
@@ -1206,11 +1333,9 @@
 
       playerState.pos.y = 1.6;
 
-      // Проверка близости к двери
       nearDoor = playerState.pos.z < -6.5 && Math.abs(playerState.pos.x) < 1.5;
       promptEl.style.opacity = (nearDoor && doorState === 'closed') ? 1 : 0;
 
-      // Анимация открытия двери
       if (doorState === 'opening') {
         doorOpenProgress += dt * 1.5;
         if (doorOpenProgress >= 1) {
