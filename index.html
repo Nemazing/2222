@@ -39,6 +39,7 @@
       flex-direction: column;
       overflow-y: auto;
       transition: opacity 1.5s ease;
+      cursor: none;
     }
     #menu-screen.hidden {
       opacity: 0;
@@ -143,7 +144,7 @@
       background: var(--accent);
       color: #000;
       border: none;
-      cursor: pointer;
+      cursor: none;
       text-transform: uppercase;
       letter-spacing: 2px;
       box-shadow: 0 0 0 rgba(193, 73, 22, 0);
@@ -226,25 +227,25 @@
       pointer-events: none; z-index: 6; opacity: 0; transition: opacity 0.3s;
     }
 
-    /* ===== КУРСОР-ФОНАРИК ===== */
-    #flashlight-cursor {
+    /* ===== КУРСОР-ФОНАРИК (только меню) ===== */
+    #menu-flashlight {
       position: fixed;
       left: 0; top: 0;
       width: 48px; height: 48px;
       pointer-events: none;
-      z-index: 99999;
-      display: none;
-      font-size: 30px;
+      z-index: 100001;
+      font-size: 32px;
       line-height: 48px;
       text-align: center;
-      transform: translate(-50%, -50%);
+      transform: translate3d(50vw, 50vh, 0) translate(-50%, -50%);
       filter: drop-shadow(0 0 10px rgba(255, 220, 150, 0.9))
               drop-shadow(0 0 3px rgba(255, 180, 80, 1));
-      transition: filter 0.2s, opacity 0.2s;
       will-change: transform;
       user-select: none;
+      display: block;
+      transition: opacity 0.5s;
     }
-    #flashlight-cursor::before {
+    #menu-flashlight::before {
       content: "";
       position: absolute;
       inset: -16px;
@@ -257,14 +258,6 @@
       0%, 100% { opacity: 0.55; transform: scale(1); }
       50%      { opacity: 0.95; transform: scale(1.08); }
     }
-    #flashlight-cursor.off {
-      filter: grayscale(1) brightness(0.45);
-    }
-    #flashlight-cursor.off::before {
-      opacity: 0.08;
-      animation: none;
-    }
-    body.in-game { cursor: none; }
   </style>
 </head>
 <body>
@@ -301,7 +294,7 @@
   </div>
 
   <div id="game-container">
-    <div id="hint-game">WASD — ходьба. Мышь — фонарик. F — вкл/выкл. E — дверь.</div>
+    <div id="hint-game">WASD — ходьба. Клик — захват мыши. F — фонарик. Esc — отпустить.</div>
     <div id="prompt">Нажмите E, чтобы открыть дверь</div>
     
     <div id="grain"></div>
@@ -310,7 +303,7 @@
     <div id="flash"></div>
   </div>
 
-  <div id="flashlight-cursor">🔦</div>
+  <div id="menu-flashlight">🔦</div>
 
   <script type="importmap">
   { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
@@ -506,7 +499,7 @@
     // === ФОНАРИК В РУКЕ ===
     const flashlight = new THREE.SpotLight(0xfff2cc, 4.5, 22, Math.PI / 6.5, 0.45, 1.2);
     flashlight.position.set(0.18, -0.15, 0);
-    flashlight.target.position.set(0, 0, -6);
+    flashlight.target.position.set(0, 0, -5);
     flashlight.castShadow = false;
     camera.add(flashlight); camera.add(flashlight.target); flashlight.visible = false;
 
@@ -892,6 +885,7 @@
     const vignette = document.getElementById('vignette');
     const hintGame = document.getElementById('hint-game');
     const darknessEl = document.getElementById('darkness');
+    const menuFlashlight = document.getElementById('menu-flashlight');
 
     enterBtn.addEventListener('click', () => {
       initAudio();
@@ -899,6 +893,7 @@
       
       menuScreen.classList.add('hidden');
       darknessEl.style.display = 'none';
+      if (menuFlashlight) menuFlashlight.style.display = 'none';
       
       setTimeout(() => { menuScreen.style.display = 'none'; }, 1500);
       
@@ -923,33 +918,34 @@
     });
 
     // =======================================================
-    // === УПРАВЛЕНИЕ МЫШЬЮ (без Pointer Lock) ===
+    // === УПРАВЛЕНИЕ МЫШЬЮ ===
+    // === В игре — Pointer Lock (как в оригинале) ===
+    // === В меню — курсор-фонарик + пятно света ===
     // =======================================================
-    let yaw = 0, pitch = 0;
-    const mouse = { nx: 0, ny: 0, cx: innerWidth / 2, cy: innerHeight / 2 };
-    const flashlightCursor = document.getElementById('flashlight-cursor');
+    let yaw = 0, pitch = 0, isLocked = false;
 
-    function updateFlashlightCursorPos() {
-      flashlightCursor.style.transform =
-        `translate3d(${mouse.cx}px, ${mouse.cy}px, 0) translate(-50%, -50%)`;
+    document.body.addEventListener('click', () => {
+      if (state === 'playing' && !('ontouchstart' in window)) renderer.domElement.requestPointerLock();
+    });
+    document.addEventListener('pointerlockchange', () => {
+      isLocked = document.pointerLockElement === renderer.domElement;
+    });
+    document.addEventListener('mousemove', (e) => {
+      if (!isLocked || ('ontouchstart' in window)) return;
+      yaw -= e.movementX * 0.002; pitch -= e.movementY * 0.002;
+      pitch = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, pitch));
+    });
+
+    function updateMenuFlashlight(cx, cy) {
+      document.documentElement.style.setProperty('--mx', (cx / innerWidth * 100) + '%');
+      document.documentElement.style.setProperty('--my', (cy / innerHeight * 100) + '%');
+      if (menuFlashlight && state === 'menu') {
+        menuFlashlight.style.transform = `translate3d(${cx}px, ${cy}px, 0) translate(-50%, -50%)`;
+      }
     }
-
-    function setMouseFromEvent(clientX, clientY) {
-      mouse.cx = clientX;
-      mouse.cy = clientY;
-      mouse.nx = (clientX / innerWidth) * 2 - 1;
-      mouse.ny = -((clientY / innerHeight) * 2 - 1);
-
-      document.documentElement.style.setProperty('--mx', (clientX / innerWidth * 100) + '%');
-      document.documentElement.style.setProperty('--my', (clientY / innerHeight * 100) + '%');
-
-      if (state === 'playing') updateFlashlightCursorPos();
-    }
-
-    document.addEventListener('mousemove', (e) => setMouseFromEvent(e.clientX, e.clientY));
+    document.addEventListener('mousemove', (e) => updateMenuFlashlight(e.clientX, e.clientY));
     document.addEventListener('touchmove', (e) => {
-      const t = e.touches[0];
-      if (t) setMouseFromEvent(t.clientX, t.clientY);
+      const t = e.touches[0]; if (t) updateMenuFlashlight(t.clientX, t.clientY);
     }, { passive: true });
 
     const keys = {};
@@ -958,7 +954,6 @@
       if (e.code === 'KeyF' && state === 'playing') {
         flashlightOn = !flashlightOn; flashlight.visible = flashlightOn;
         flashLens.material.color.setHex(flashlightOn ? 0xfff2cc : 0x333333);
-        flashlightCursor.classList.toggle('off', !flashlightOn);
       }
       if (e.code === 'KeyE' && state === 'playing' && nearDoor && doorState === 'closed') {
         doorState = 'opening';
@@ -1078,12 +1073,6 @@
       flashlight.visible = flashlightOn; flashLens.material.color.setHex(flashlightOn ? 0xfff2cc : 0x333333);
       viewmodel.visible = true; lastGameplayStep = -1; prevGameplayPos.copy(playerState.pos);
       setTimeout(() => { fade.style.opacity = 0; }, 200); hintGame.style.opacity = 1;
-
-      // показать курсор-фонарик, скрыть системный курсор
-      document.body.classList.add('in-game');
-      flashlightCursor.style.display = 'block';
-      flashlightCursor.classList.toggle('off', !flashlightOn);
-      updateFlashlightCursorPos();
     }
 
     function updateGameplay(dt) {
@@ -1098,11 +1087,7 @@
         fl.light.intensity = Math.max(0.1, fl.base + flicker);
       }
 
-      // === КАМЕРА + ФОНАРИК ЗА МЫШЬЮ ===
-      camera.rotation.order = 'YXZ';
-      camera.rotation.y = yaw - mouse.nx * 0.12;   // лёгкий доворот камеры за мышкой
-      camera.rotation.x = pitch + mouse.ny * 0.08;
-      flashlight.target.position.set(mouse.nx * 5.0, mouse.ny * 4.0, -6.0);
+      camera.rotation.order = 'YXZ'; camera.rotation.y = yaw; camera.rotation.x = pitch;
 
       prevGameplayPos.copy(playerState.pos);
       const speed = 2.6 * dt;
