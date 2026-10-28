@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Хоррор‑Лагерь: Лагерь</title>
   <style>
     :root {
@@ -26,6 +26,7 @@
       overflow-x: hidden;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
+      touch-action: none; /* Отключаем скролл на мобильных */
     }
 
     #menu-screen {
@@ -221,6 +222,62 @@
       background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 5px;
       pointer-events: none; z-index: 6; opacity: 0; transition: opacity 0.3s;
     }
+
+    /* МОБИЛЬНОЕ УПРАВЛЕНИЕ */
+    #mobile-controls {
+      display: none;
+      position: fixed; inset: 0;
+      z-index: 50; pointer-events: none;
+    }
+    .joystick-zone {
+      position: absolute;
+      bottom: 20px;
+      width: 120px; height: 120px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+      border: 2px solid rgba(255,255,255,0.1);
+      pointer-events: auto;
+      touch-action: none;
+    }
+    #joystick-left { left: 20px; }
+    .joystick-knob {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 50px; height: 50px;
+      margin: -25px 0 0 -25px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.3);
+      pointer-events: none;
+    }
+    #btn-flash {
+      position: absolute;
+      bottom: 40px; right: 40px;
+      width: 70px; height: 70px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.1);
+      border: 2px solid rgba(255,255,255,0.3);
+      pointer-events: auto;
+      touch-action: none;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 12px;
+    }
+    #btn-interact {
+      position: absolute;
+      bottom: 130px; right: 40px;
+      width: 60px; height: 60px;
+      border-radius: 50%;
+      background: rgba(193, 73, 22, 0.3);
+      border: 2px solid var(--accent);
+      pointer-events: auto;
+      touch-action: none;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 12px; opacity: 0;
+    }
+    
+    @media (pointer: coarse) {
+      #mobile-controls { display: block; }
+      #hint-game { display: none; }
+    }
   </style>
 </head>
 <body>
@@ -264,6 +321,16 @@
   <div id="game-container">
     <div id="hint-game">WASD — ходьба. Клик — захват мыши. F — фонарик. Esc — отпустить.</div>
     <div id="prompt">Нажмите E, чтобы открыть дверь</div>
+    
+    <!-- Мобильное управление -->
+    <div id="mobile-controls">
+      <div id="joystick-left" class="joystick-zone">
+        <div id="knob-left" class="joystick-knob"></div>
+      </div>
+      <div id="btn-flash">СВЕТ</div>
+      <div id="btn-interact">E</div>
+    </div>
+
     <div id="grain"></div>
     <div id="vignette"></div>
     <div id="fade"></div>
@@ -672,7 +739,6 @@
       function makeWindow(x, y, z, rotY = 0) {
         const winGroup = new THREE.Group();
         
-        // Стекло (внутри рамы)
         const glass = new THREE.Mesh(
           new THREE.PlaneGeometry(0.7, 0.9),
           new THREE.MeshStandardMaterial({ 
@@ -684,10 +750,9 @@
             opacity: 0.9
           })
         );
-        glass.position.z = -0.01; // Утоплено в стену
+        glass.position.z = -0.01;
         winGroup.add(glass);
         
-        // Рама (снаружи)
         const fT = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.1, 0.15), darkWoodMat);
         fT.position.set(0, 0.5, 0.05); winGroup.add(fT);
         const fB = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.1, 0.15), darkWoodMat);
@@ -699,7 +764,6 @@
         const cross = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.9, 0.15), darkWoodMat);
         cross.position.z = 0.05; winGroup.add(cross);
         
-        // Ставни
         const shL = new THREE.Mesh(new THREE.BoxGeometry(0.38, 1.05, 0.08), cabinWoodMat);
         shL.position.set(-0.66, 0, 0.08); winGroup.add(shL);
         const shR = new THREE.Mesh(new THREE.BoxGeometry(0.38, 1.05, 0.08), cabinWoodMat);
@@ -848,22 +912,65 @@
     const torch2 = makeTorch( 2.4, -9.4);
 
     // ============ ИГРОКИ ============
-    function createPlayer(color) {
-      const g = new THREE.Group();
-      const body = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.3, 1.2, 4, 8),
-        new THREE.MeshStandardMaterial({ color, roughness: 0.9 })
-      );
-      body.position.y = 0.9; body.castShadow = true; g.add(body);
-      return g;
-    }
     
-    // Игрок 1 (обычный)
-    const p1 = createPlayer(0x4a6a4a);
+    // Игрок 1 (Светло-серый спортивный костюм с капюшоном)
+    function createP1() {
+      const g = new THREE.Group();
+      const suitMat = new THREE.MeshStandardMaterial({ color: 0xd0d4d8, roughness: 0.9 });
+      const darkMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9 });
+      const skinMatLocal = new THREE.MeshStandardMaterial({ color: 0xd4b4a4, roughness: 0.9 });
+
+      // Ноги
+      const legGeo = new THREE.BoxGeometry(0.22, 0.8, 0.22);
+      const legL = new THREE.Mesh(legGeo, suitMat); legL.position.set(-0.15, 0.4, 0);
+      const legR = new THREE.Mesh(legGeo, suitMat); legR.position.set(0.15, 0.4, 0);
+      g.add(legL, legR);
+
+      // Торс (кофта)
+      const torsoGeo = new THREE.BoxGeometry(0.65, 0.75, 0.35);
+      const torso = new THREE.Mesh(torsoGeo, suitMat); torso.position.y = 1.15; g.add(torso);
+
+      // Рукава
+      const armGeo = new THREE.BoxGeometry(0.2, 0.6, 0.2);
+      const armL = new THREE.Mesh(armGeo, suitMat); armL.position.set(-0.45, 1.15, 0);
+      const armR = new THREE.Mesh(armGeo, suitMat); armR.position.set(0.45, 1.15, 0);
+      g.add(armL, armR);
+
+      // Руки
+      const handGeo = new THREE.SphereGeometry(0.08, 8, 8);
+      const handL = new THREE.Mesh(handGeo, skinMatLocal); handL.position.set(-0.45, 0.8, 0);
+      const handR = new THREE.Mesh(handGeo, skinMatLocal); handR.position.set(0.45, 0.8, 0);
+      g.add(handL, handR);
+
+      // Голова
+      const headGeo = new THREE.SphereGeometry(0.16, 12, 12);
+      const head = new THREE.Mesh(headGeo, skinMatLocal); head.position.y = 1.65; g.add(head);
+
+      // Волосы (тёмные, длинные)
+      const hairGeo = new THREE.CylinderGeometry(0.17, 0.2, 0.6, 8);
+      const hairMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 1 });
+      const hair = new THREE.Mesh(hairGeo, hairMat); hair.position.set(0, 1.45, -0.05); g.add(hair);
+
+      // Капюшон (надет)
+      const hoodGeo = new THREE.SphereGeometry(0.22, 8, 8);
+      const hood = new THREE.Mesh(hoodGeo, suitMat); 
+      hood.scale.set(1, 1.2, 1);
+      hood.position.set(0, 1.65, -0.05); 
+      g.add(hood);
+      
+      // Лицо (чтобы было видно, что капюшон надет)
+      const faceGeo = new THREE.CircleGeometry(0.12, 12);
+      const face = new THREE.Mesh(faceGeo, skinMatLocal); face.position.set(0, 1.65, 0.15); g.add(face);
+
+      const wrapper = new THREE.Group(); wrapper.add(g);
+      wrapper.traverse(c => { if(c.isMesh) c.castShadow = true; });
+      return wrapper;
+    }
+    const p1 = createP1();
     p1.position.set(-2, 0, 0);
     outsideGroup.add(p1);
 
-    // === ИГРОК 2 (ЖЕРТВА - ХУДИ С ДРАКОНОМ) ===
+    // Игрок 2 (ЖЕРТВА - ХУДИ С ДРАКОНОМ)
     function createVictim() {
       const g = new THREE.Group();
       const legGeo = new THREE.BoxGeometry(0.2, 0.8, 0.2);
@@ -909,50 +1016,43 @@
       return wrapper;
     }
     const p2 = createVictim();
-    p2.position.set(0, 0, 0); // По центру
+    p2.position.set(0, 0, 0);
     outsideGroup.add(p2);
 
-    // === ИГРОК 3 (СВЕТЛО-СЕРЫЕ ШТАНЫ, ЧЕРНЫЙ СВИТШОТ, ТЕМНЫЕ ВОЛОСЫ) ===
+    // Игрок 3 (СВЕТЛО-СЕРЫЕ ШТАНЫ, ЧЕРНЫЙ СВИТШОТ, ТЕМНЫЕ ВОЛОСЫ)
     function createThirdPlayer() {
       const g = new THREE.Group();
       
-      // Светло-серые штаны
       const legGeo = new THREE.BoxGeometry(0.22, 0.8, 0.22);
-      const legMat = new THREE.MeshStandardMaterial({ color: 0xa0a4a8, roughness: 0.9 }); // Светло-серый
+      const legMat = new THREE.MeshStandardMaterial({ color: 0xa0a4a8, roughness: 0.9 });
       const legL = new THREE.Mesh(legGeo, legMat); legL.position.set(-0.15, 0.4, 0);
       const legR = new THREE.Mesh(legGeo, legMat); legR.position.set(0.15, 0.4, 0);
       g.add(legL, legR);
 
-      // Кроссовки (белые)
       const shoeGeo = new THREE.BoxGeometry(0.22, 0.1, 0.3);
       const shoeMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.8 });
       const shoeL = new THREE.Mesh(shoeGeo, shoeMat); shoeL.position.set(-0.15, 0.05, 0.05);
       const shoeR = new THREE.Mesh(shoeGeo, shoeMat); shoeR.position.set(0.15, 0.05, 0.05);
       g.add(shoeL, shoeR);
 
-      // Черный свитшот (оверсайз)
       const torsoGeo = new THREE.BoxGeometry(0.7, 0.75, 0.35);
       const torsoMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.9 });
       const torso = new THREE.Mesh(torsoGeo, torsoMat); torso.position.y = 1.15; g.add(torso);
 
-      // Рукава
       const armGeo = new THREE.BoxGeometry(0.22, 0.6, 0.22);
       const armL = new THREE.Mesh(armGeo, torsoMat); armL.position.set(-0.46, 1.15, 0);
       const armR = new THREE.Mesh(armGeo, torsoMat); armR.position.set(0.46, 1.15, 0);
       g.add(armL, armR);
 
-      // Руки
       const handGeo = new THREE.SphereGeometry(0.08, 8, 8);
       const skinMatLocal = new THREE.MeshStandardMaterial({ color: 0xd4b4a4, roughness: 0.9 });
       const handL = new THREE.Mesh(handGeo, skinMatLocal); handL.position.set(-0.46, 0.8, 0);
       const handR = new THREE.Mesh(handGeo, skinMatLocal); handR.position.set(0.46, 0.8, 0);
       g.add(handL, handR);
 
-      // Голова
       const headGeo = new THREE.SphereGeometry(0.16, 12, 12);
       const head = new THREE.Mesh(headGeo, skinMatLocal); head.position.y = 1.65; g.add(head);
 
-      // Темные волосы (хвост)
       const hairGeo = new THREE.SphereGeometry(0.18, 12, 12);
       const hairMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 1 });
       const hair = new THREE.Mesh(hairGeo, hairMat);
@@ -960,14 +1060,12 @@
       hair.position.set(0, 1.68, 0.02); 
       g.add(hair);
       
-      // Хвостик сзади
       const ponytailGeo = new THREE.CylinderGeometry(0.06, 0.02, 0.3, 8);
       const ponytail = new THREE.Mesh(ponytailGeo, hairMat);
       ponytail.position.set(0, 1.55, -0.2);
       ponytail.rotation.x = 0.3;
       g.add(ponytail);
 
-      // Лицо
       const faceGeo = new THREE.CircleGeometry(0.14, 12);
       const face = new THREE.Mesh(faceGeo, skinMatLocal); face.position.set(0, 1.65, 0.17); g.add(face);
 
@@ -1181,6 +1279,8 @@
     const flash = document.getElementById('flash');
     const vignette = document.getElementById('vignette');
     const hintGame = document.getElementById('hint-game');
+    const btnFlash = document.getElementById('btn-flash');
+    const btnInteract = document.getElementById('btn-interact');
 
     // ===================== МЕНЮ ЛОГИКА =====================
     const root = document.documentElement;
@@ -1207,6 +1307,110 @@
       if (t) moveLight(t.clientX, t.clientY);
     }, { passive: true });
 
+    // ===================== МОБИЛЬНОЕ УПРАВЛЕНИЕ =====================
+    let joyX = 0, joyY = 0;
+    let touchLookId = null;
+    let lastTouchX = 0, lastTouchY = 0;
+    const joystickZone = document.getElementById('joystick-left');
+    const knob = document.getElementById('knob-left');
+    
+    if (joystickZone) {
+      joystickZone.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const touch = e.changedTouches[0];
+        const rect = joystickZone.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const dx = touch.clientX - centerX;
+        const dy = touch.clientY - centerY;
+        const dist = Math.min(Math.sqrt(dx*dx + dy*dy), 40);
+        const angle = Math.atan2(dy, dx);
+        joyX = Math.cos(angle) * (dist / 40);
+        joyY = Math.sin(angle) * (dist / 40);
+        knob.style.transform = `translate(${joyX * 40}px, ${joyY * 40}px)`;
+      }, { passive: false });
+
+      joystickZone.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        const touch = e.changedTouches[0];
+        const rect = joystickZone.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const dx = touch.clientX - centerX;
+        const dy = touch.clientY - centerY;
+        const dist = Math.min(Math.sqrt(dx*dx + dy*dy), 40);
+        const angle = Math.atan2(dy, dx);
+        joyX = Math.cos(angle) * (dist / 40);
+        joyY = Math.sin(angle) * (dist / 40);
+        knob.style.transform = `translate(${joyX * 40}px, ${joyY * 40}px)`;
+      }, { passive: false });
+
+      const resetJoy = () => {
+        joyX = 0; joyY = 0;
+        knob.style.transform = `translate(0px, 0px)`;
+      };
+      joystickZone.addEventListener('touchend', resetJoy);
+      joystickZone.addEventListener('touchcancel', resetJoy);
+    }
+
+    // Свайп для камеры (правая часть экрана)
+    document.addEventListener('touchstart', (e) => {
+      if (state !== 'playing') return;
+      if (e.target.closest('#joystick-left') || e.target.closest('#btn-flash') || e.target.closest('#btn-interact')) return;
+      
+      const touch = e.changedTouches[0];
+      if (touchLookId === null) {
+        touchLookId = touch.identifier;
+        lastTouchX = touch.clientX;
+        lastTouchY = touch.clientY;
+      }
+    }, { passive: false });
+
+    document.addEventListener('touchmove', (e) => {
+      if (state !== 'playing' || touchLookId === null) return;
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i];
+        if (touch.identifier === touchLookId) {
+          const dx = touch.clientX - lastTouchX;
+          const dy = touch.clientY - lastTouchY;
+          yaw -= dx * 0.005;
+          pitch -= dy * 0.005;
+          pitch = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, pitch));
+          lastTouchX = touch.clientX;
+          lastTouchY = touch.clientY;
+        }
+      }
+    }, { passive: false });
+
+    document.addEventListener('touchend', (e) => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === touchLookId) {
+          touchLookId = null;
+        }
+      }
+    });
+
+    // Кнопки
+    if (btnFlash) {
+      btnFlash.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (state === 'playing') {
+          flashlightOn = !flashlightOn;
+          flashlight.visible = flashlightOn;
+          flashLens.material.color.setHex(flashlightOn ? 0xfff2cc : 0x333333);
+        }
+      }, { passive: false });
+    }
+    if (btnInteract) {
+      btnInteract.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (state === 'playing' && nearDoor && doorState === 'closed') {
+          doorState = 'opening';
+          playSoundEvent("sounds/creak.mp3", 1.0);
+        }
+      }, { passive: false });
+    }
+
     // ===================== СТАРТ ИГРЫ =====================
     enterBtn.addEventListener('click', () => {
       initAudio();
@@ -1228,11 +1432,10 @@
       flashlight.visible = false;
       viewmodel.visible = false;
       
-      // Сброс позиций игроков
       players.forEach((p, i) => {
         if (i === 0) p.position.set(-2, 0, 0);
-        if (i === 1) { p.position.set(0, 0, 0); p.rotation.set(0,0,0); } // Жертва
-        if (i === 2) p.position.set(2, 0, 0); // Третий игрок
+        if (i === 1) { p.position.set(0, 0, 0); p.rotation.set(0,0,0); }
+        if (i === 2) p.position.set(2, 0, 0);
         p.visible = true;
       });
       
@@ -1249,16 +1452,16 @@
       playedEvents.gameplay.clear();
     });
 
-    // ===================== УПРАВЛЕНИЕ =====================
+    // ===================== УПРАВЛЕНИЕ (PC) =====================
     let yaw = 0, pitch = 0, isLocked = false;
     document.body.addEventListener('click', () => {
-      if (state === 'playing') renderer.domElement.requestPointerLock();
+      if (state === 'playing' && !('ontouchstart' in window)) renderer.domElement.requestPointerLock();
     });
     document.addEventListener('pointerlockchange', () => {
       isLocked = document.pointerLockElement === renderer.domElement;
     });
     document.addEventListener('mousemove', (e) => {
-      if (!isLocked) return;
+      if (!isLocked || ('ontouchstart' in window)) return;
       yaw -= e.movementX * 0.002;
       pitch -= e.movementY * 0.002;
       pitch = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, pitch));
@@ -1470,10 +1673,17 @@
       const speed = 2.6 * dt;
       const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
       const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
-      if (keys['KeyW']) playerState.pos.addScaledVector(forward, speed);
-      if (keys['KeyS']) playerState.pos.addScaledVector(forward, -speed);
-      if (keys['KeyA']) playerState.pos.addScaledVector(right, -speed);
-      if (keys['KeyD']) playerState.pos.addScaledVector(right, speed);
+      
+      // Мобильный джойстик или клавиатура
+      if (joyX !== 0 || joyY !== 0) {
+        playerState.pos.addScaledVector(forward, -joyY * speed);
+        playerState.pos.addScaledVector(right, joyX * speed);
+      } else {
+        if (keys['KeyW']) playerState.pos.addScaledVector(forward, speed);
+        if (keys['KeyS']) playerState.pos.addScaledVector(forward, -speed);
+        if (keys['KeyA']) playerState.pos.addScaledVector(right, -speed);
+        if (keys['KeyD']) playerState.pos.addScaledVector(right, speed);
+      }
 
       playerState.pos.x = Math.max(-1.6, Math.min(1.6, playerState.pos.x));
       playerState.pos.z = Math.max(-7.6, Math.min(7.5, playerState.pos.z));
@@ -1493,6 +1703,7 @@
 
       nearDoor = playerState.pos.z < -6.5 && Math.abs(playerState.pos.x) < 1.5;
       promptEl.style.opacity = (nearDoor && doorState === 'closed') ? 1 : 0;
+      if (btnInteract) btnInteract.style.opacity = (nearDoor && doorState === 'closed') ? 1 : 0;
 
       if (doorState === 'opening') {
         doorOpenProgress += dt * 1.5;
