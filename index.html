@@ -28,7 +28,6 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    /* ===== МЕНЮ ===== */
     #menu-screen {
       position: fixed;
       inset: 0;
@@ -44,7 +43,6 @@
       pointer-events: none;
     }
 
-    /* Слой тьмы */
     #darkness {
       position: fixed;
       inset: 0;
@@ -191,7 +189,6 @@
       50%      { opacity: 0.75; }
     }
 
-    /* ===== ИГРА ===== */
     #game-container {
       display: none;
       position: fixed;
@@ -228,7 +225,6 @@
 </head>
 <body>
 
-  <!-- МЕНЮ -->
   <div id="menu-screen">
     <div id="darkness"></div>
     <header>
@@ -265,7 +261,6 @@
     <div id="hint-menu2">СОЗДАЛ - Ainazik</div>
   </div>
 
-  <!-- ИГРА -->
   <div id="game-container">
     <div id="hint-game">WASD — ходьба. Клик — захват мыши. F — фонарик. Esc — отпустить.</div>
     <div id="prompt">Нажмите E, чтобы открыть дверь</div>
@@ -283,16 +278,13 @@
     import * as THREE from 'three';
 
     // =======================================================
-    // === СИСТЕМА ЗВУКОВЫХ СОБЫТИЙ (Sound Events) ===
+    // === СИСТЕМА ЗВУКОВЫХ СОБЫТИЙ ===
     // =======================================================
     const SOUND_EVENTS = [
-      // --- РОЛИК ---
       { file: "sounds/creak.mp3",   time: 0.5,  volume: 1.0 },
       { file: "sounds/footsteps.mp3", time: 2.5,  volume: 0.6 },
       { file: "sounds/scream.mp3",  time: 8.0,  volume: 1.0 },
       { file: "sounds/drag.mp3",    time: 7.8,  volume: 1.0 },
-      
-      // --- ГЕЙМПЛЕЙ (время относительно старта геймплея) ---
       { file: "sounds/door_slam.mp3", time: 1.2,  volume: 1.0 },
       { file: "sounds/cry.mp3",       time: 1.8,  volume: 0.8 },
       { file: "sounds/rustle.mp3",    time: 4.0,  volume: 0.5 }
@@ -318,7 +310,7 @@
             },
             undefined,
             (err) => {
-              console.warn(`⚠️ Не удалось загрузить звук: ${file} (проверь путь)`);
+              console.warn(`⚠️ Не удалось загрузить звук: ${file}`);
               loadedSounds[file] = null;
             }
           );
@@ -345,7 +337,7 @@
             playSoundEvent(ev.file, ev.volume);
             played.add(i);
           } else if (phase === 'gameplay' && ev.time <= 10) {
-            if (i >= 4) { // Вторая половина массива для геймплея
+            if (i >= 4) {
               playSoundEvent(ev.file, ev.volume);
               played.add(i);
             }
@@ -506,6 +498,34 @@
       }
       return new THREE.CanvasTexture(c);
     }
+    // Текстура для худи (спина)
+    function makeHoodieBackTexture() {
+      const c = document.createElement('canvas');
+      c.width = 256; c.height = 256;
+      const ctx = c.getContext('2d');
+      // Чёрный фон худи
+      ctx.fillStyle = '#111'; ctx.fillRect(0,0,256,256);
+      // Красный дракон/демон (стилизация)
+      ctx.fillStyle = '#c1121f';
+      ctx.beginPath();
+      ctx.arc(128, 128, 50, 0, Math.PI*2); // Тело
+      ctx.fill();
+      // Крылья/щупальца
+      for(let i=0; i<6; i++){
+        ctx.beginPath();
+        ctx.moveTo(128, 128);
+        ctx.quadraticCurveTo(128 + Math.cos(i)*100, 128 + Math.sin(i)*100, 128 + Math.cos(i)*80, 128 + Math.sin(i)*80);
+        ctx.lineWidth = 8;
+        ctx.strokeStyle = '#c1121f';
+        ctx.stroke();
+      }
+      // Белые глаза/детали
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(115, 115, 8, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(141, 115, 8, 0, Math.PI*2); ctx.fill();
+      
+      return new THREE.CanvasTexture(c);
+    }
 
     // ===================== СЦЕНА + КАЧЕСТВО =====================
     const scene = new THREE.Scene();
@@ -660,49 +680,52 @@
         const winGroup = new THREE.Group();
         const glass = new THREE.Mesh(
           new THREE.PlaneGeometry(0.7, 0.9),
-          new THREE.MeshStandardMaterial({ map: glassTex, roughness: 0.2, metalness: 0.6 })
+          new THREE.MeshStandardMaterial({ map: glassTex, roughness: 0.2, metalness: 0.6, side: THREE.DoubleSide })
         );
         winGroup.add(glass);
-        const fT = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.1, 0.12), darkWoodMat);
-        fT.position.y = 0.5; winGroup.add(fT);
-        const fB = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.1, 0.12), darkWoodMat);
-        fB.position.y = -0.5; winGroup.add(fB);
-        const fL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.0, 0.12), darkWoodMat);
-        fL.position.x = -0.41; winGroup.add(fL);
-        const fR = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.0, 0.12), darkWoodMat);
-        fR.position.x = 0.41; winGroup.add(fR);
-        const cross = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.9, 0.12), darkWoodMat);
-        winGroup.add(cross);
+        const fT = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.1, 0.1), darkWoodMat);
+        fT.position.set(0, 0.5, 0.05); winGroup.add(fT);
+        const fB = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.1, 0.1), darkWoodMat);
+        fB.position.set(0, -0.5, 0.05); winGroup.add(fB);
+        const fL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.0, 0.1), darkWoodMat);
+        fL.position.set(-0.41, 0, 0.05); winGroup.add(fL);
+        const fR = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.0, 0.1), darkWoodMat);
+        fR.position.set(0.41, 0, 0.05); winGroup.add(fR);
+        const cross = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.9, 0.1), darkWoodMat);
+        cross.position.z = 0.05; winGroup.add(cross);
         const shL = new THREE.Mesh(new THREE.BoxGeometry(0.38, 1.05, 0.08), cabinWoodMat);
-        shL.position.set(-0.66, 0, 0.06); winGroup.add(shL);
+        shL.position.set(-0.66, 0, 0.08); winGroup.add(shL);
         const shR = new THREE.Mesh(new THREE.BoxGeometry(0.38, 1.05, 0.08), cabinWoodMat);
-        shR.position.set(0.66, 0, 0.06); winGroup.add(shR);
+        shR.position.set(0.66, 0, 0.08); winGroup.add(shR);
+        
         winGroup.position.set(x, y, z);
         winGroup.rotation.y = rotY;
         g.add(winGroup);
       }
-      makeWindow(-3.5, 3.0, -9.67);
-      makeWindow( 3.5, 3.0, -9.67);
-      makeWindow(-4.67, 3.0, -14, Math.PI/2);
-      makeWindow( 4.67, 3.0, -14, -Math.PI/2);
-      makeWindow(-4.67, 3.0, -18, Math.PI/2);
-      makeWindow( 4.67, 3.0, -18, -Math.PI/2);
+      makeWindow(-3.5, 3.0, -9.6);
+      makeWindow( 3.5, 3.0, -9.6);
+      makeWindow(-4.6, 3.0, -14, Math.PI/2);
+      makeWindow( 4.6, 3.0, -14, -Math.PI/2);
+      makeWindow(-4.6, 3.0, -18, Math.PI/2);
+      makeWindow( 4.6, 3.0, -18, -Math.PI/2);
 
-      const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(2.0, 3.4, 0.18), darkWoodMat);
-      doorFrame.position.set(0, 2.25, -9.8);
+      const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(2.0, 3.4, 0.15), darkWoodMat);
+      doorFrame.position.set(0, 2.25, -9.85);
       doorFrame.castShadow = true;
       g.add(doorFrame);
+      
       const doorPivot = new THREE.Group();
-      doorPivot.position.set(-0.95, 2.25, -9.7);
-      const doorPanel = new THREE.Mesh(new THREE.BoxGeometry(1.8, 3.2, 0.1), cabinWoodMat);
-      doorPanel.position.set(0.9, 0, 0);
+      doorPivot.position.set(-0.95, 2.25, -9.75);
+      const doorPanel = new THREE.Mesh(new THREE.BoxGeometry(1.85, 3.2, 0.08), cabinWoodMat);
+      doorPanel.position.set(0.925, 0, 0);
       doorPanel.castShadow = true;
       doorPivot.add(doorPanel);
-      doorPivot.rotation.y = 0.55;
+      doorPivot.rotation.y = 0.5;
       g.add(doorPivot);
+      
       const handle = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8),
         new THREE.MeshStandardMaterial({ color: 0x6a5a40, metalness: 0.9, roughness: 0.25 }));
-      handle.position.set(0.9, 0, 0.08);
+      handle.position.set(0.85, 0, 0.08);
       doorPivot.add(handle);
 
       for (let i = 0; i < 3; i++) {
@@ -827,11 +850,105 @@
       body.position.y = 0.9; body.castShadow = true; g.add(body);
       return g;
     }
-    const players = [0, 1, 2].map(i => {
-      const p = createPlayer(0x4a6a4a);
-      p.position.set(-2 + i * 2, 0, 0);
-      outsideGroup.add(p); return p;
-    });
+    
+    // Игрок 1 (обычный)
+    const p1 = createPlayer(0x4a6a4a);
+    p1.position.set(-2, 0, 0);
+    outsideGroup.add(p1);
+
+    // Игрок 3 (обычный)
+    const p3 = createPlayer(0x4a6a4a);
+    p3.position.set(2, 0, 0);
+    outsideGroup.add(p3);
+
+    // === ИГРОК 2 (СПЕЦИАЛЬНЫЙ - ЖЕРТВА) ===
+    function createCustomPlayer() {
+      const g = new THREE.Group();
+      
+      // Ноги (широкие темные штаны)
+      const legGeo = new THREE.BoxGeometry(0.2, 0.8, 0.2);
+      const legMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 });
+      const legL = new THREE.Mesh(legGeo, legMat);
+      legL.position.set(-0.15, 0.4, 0);
+      const legR = new THREE.Mesh(legGeo, legMat);
+      legR.position.set(0.15, 0.4, 0);
+      g.add(legL, legR);
+
+      // Торс (черное худи)
+      const torsoGeo = new THREE.BoxGeometry(0.65, 0.75, 0.35);
+      const torsoMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 });
+      const torso = new THREE.Mesh(torsoGeo, torsoMat);
+      torso.position.y = 1.15;
+      g.add(torso);
+
+      // Рукава (оверсайз)
+      const armGeo = new THREE.BoxGeometry(0.2, 0.6, 0.2);
+      const armL = new THREE.Mesh(armGeo, torsoMat);
+      armL.position.set(-0.45, 1.15, 0);
+      const armR = new THREE.Mesh(armGeo, torsoMat);
+      armR.position.set(0.45, 1.15, 0);
+      g.add(armL, armR);
+
+      // Кисти рук
+      const handGeo = new THREE.SphereGeometry(0.08, 8, 8);
+      const skinMat = new THREE.MeshStandardMaterial({ color: 0xd4b4a4, roughness: 0.9 });
+      const handL = new THREE.Mesh(handGeo, skinMat);
+      handL.position.set(-0.45, 0.8, 0);
+      const handR = new THREE.Mesh(handGeo, skinMat);
+      handR.position.set(0.45, 0.8, 0);
+      g.add(handL, handR);
+
+      // Капюшон (сзади)
+      const hoodGeo = new THREE.SphereGeometry(0.25, 8, 8);
+      const hood = new THREE.Mesh(hoodGeo, torsoMat);
+      hood.position.set(0, 1.4, -0.15);
+      g.add(hood);
+
+      // Принт на спине
+      const printGeo = new THREE.PlaneGeometry(0.5, 0.5);
+      const printMat = new THREE.MeshStandardMaterial({ map: makeHoodieBackTexture(), roughness: 0.8 });
+      const print = new THREE.Mesh(printGeo, printMat);
+      print.position.set(0, 1.15, -0.18);
+      print.rotation.y = Math.PI; // Смотрит назад
+      g.add(print);
+
+      // Голова
+      const headGeo = new THREE.SphereGeometry(0.16, 12, 12);
+      const head = new THREE.Mesh(headGeo, skinMat);
+      head.position.y = 1.65;
+      g.add(head);
+
+      // Волосы (светлые, каскадом)
+      const hairGeo = new THREE.SphereGeometry(0.18, 12, 12);
+      const hairMat = new THREE.MeshStandardMaterial({ color: 0xc0b0a0, roughness: 1 });
+      const hair = new THREE.Mesh(hairGeo, hairMat);
+      hair.scale.set(1, 1.2, 1);
+      hair.position.set(0, 1.68, 0.02);
+      // Срезаем переднюю часть, чтобы было лицо
+      hair.scale.z = 1.1;
+      g.add(hair);
+      
+      // Лицо (просто телесный круг спереди)
+      const faceGeo = new THREE.CircleGeometry(0.14, 12);
+      const face = new THREE.Mesh(faceGeo, skinMat);
+      face.position.set(0, 1.65, 0.17);
+      g.add(face);
+
+      // Всё в контейнер
+      const wrapper = new THREE.Group();
+      wrapper.add(g);
+      
+      // Включаем тени
+      wrapper.traverse(c => { if(c.isMesh) c.castShadow = true; });
+      
+      return wrapper;
+    }
+    
+    const p2 = createCustomPlayer();
+    p2.position.set(0, 0, 0); // По центру
+    outsideGroup.add(p2);
+    
+    const players = [p1, p2, p3];
 
     // ============ МОНСТР ============
     const monster = new THREE.Mesh(
@@ -1064,7 +1181,6 @@
       initAudio();
       initSoundSystem();
       
-      // Скрываем меню, показываем игру
       menuScreen.classList.add('hidden');
       setTimeout(() => {
         menuScreen.style.display = 'none';
@@ -1081,10 +1197,14 @@
       flashlight.visible = false;
       viewmodel.visible = false;
       
+      // Сброс позиций игроков
       players.forEach((p, i) => {
-        p.position.set(-2 + i * 2, 0, 0);
-        p.rotation.x = 0; p.visible = true;
+        if (i === 0) p.position.set(-2, 0, 0);
+        if (i === 1) { p.position.set(0, 0, 0); p.rotation.set(0,0,0); } // Жертва
+        if (i === 2) p.position.set(2, 0, 0);
+        p.visible = true;
       });
+      
       monster.visible = false;
       monster.position.set(2.5, 0.95, -9.5);
       sealedWall.position.set(0, 6, -1.15);
@@ -1158,11 +1278,14 @@
         camera.position.set(0, 2.5, 6);
         camera.lookAt(0, 1.6, -10);
         const walkT = Math.min((t - 2.25) / 4, 1);
-        players.forEach((p, i) => {
-          p.position.z = -walkT * 9.5;
-          p.position.x = -2 + i * 2 + Math.sin(t * 4 + i) * 0.05;
-          clampCutscenePlayer(p);
-        });
+        
+        // Движение группы
+        p1.position.z = -walkT * 9.5; p1.position.x = -2 + Math.sin(t * 4) * 0.05;
+        p2.position.z = -walkT * 9.5; p2.position.x = 0 + Math.sin(t * 4 + 1) * 0.05;
+        p3.position.z = -walkT * 9.5; p3.position.x = 2 + Math.sin(t * 4 + 2) * 0.05;
+        
+        clampCutscenePlayer(p1); clampCutscenePlayer(p2); clampCutscenePlayer(p3);
+        
         if (walkT > 0.05 && walkT < 0.98 && t - lastFootstep > 0.6) {
           playFootstep(); lastFootstep = t;
         }
@@ -1174,53 +1297,64 @@
         camera.position.set(0, 2.0, -4);
         camera.lookAt(0, 0.8, -10.5);
 
-        players[1].visible = true;
+        p2.visible = true;
         if (t <= 7.7) {
-          players[1].position.set(0, 0, -9.5);
-          players[1].rotation.x = 0;
+          p2.position.set(0, 0, -9.5);
+          p2.rotation.x = 0;
         }
         if (t <= 7.9) {
-          players[0].position.set(-2, 0, -9.5); players[0].rotation.x = 0;
-          players[2].position.set(2, 0, -9.5);  players[2].rotation.x = 0;
+          p1.position.set(-2, 0, -9.5); p1.rotation.x = 0;
+          p3.position.set(2, 0, -9.5);  p3.rotation.x = 0;
         }
+        
+        // Монстр выныривает
         if (t > 7.3) {
           monster.visible = true;
           const appearT = Math.min((t - 7.3) / 0.4, 1);
           monster.position.set(2.5 - appearT * 2.5, 0.95, -9.5);
         }
+        
+        // ЗАТАСКИВАНИЕ ЗА НОГИ
         if (t > 7.7) {
           const dragT = Math.min((t - 7.7) / 2.2, 1);
           const lieT = Math.min((t - 7.7) / 0.3, 1);
-          players[1].rotation.x = lieT * Math.PI / 2;
-          players[1].position.y = lieT * 0.3;
+          
+          // Жертва падает на спину (поворот 90 градусов вокруг X)
+          p2.rotation.x = lieT * Math.PI / 2;
+          p2.position.y = lieT * 0.3; // Приподнимаем, чтобы не провалилась
+          
           const jerk = Math.sin(dragT * 25) * 0.1;
           const baseZ = -9.5 - dragT * 5;
+          
           monster.position.set(0, 0.95, baseZ);
-          players[1].position.x = 0;
-          players[1].position.z = baseZ - 1.2 + jerk;
+          p2.position.x = 0;
+          p2.position.z = baseZ - 1.2 + jerk;
 
+          // Остальные отползают
           if (t > 7.9 && t < 8.7) {
             const crawlT = (t - 7.9) / 0.8;
-            players[0].position.set(-2 - crawlT * 1.2, crawlT * 0.3, -9.5 + crawlT * 1.5);
-            players[0].rotation.x = crawlT * Math.PI / 2;
-            players[2].position.set(2 + crawlT * 1.2, crawlT * 0.3, -9.5 + crawlT * 1.5);
-            players[2].rotation.x = crawlT * Math.PI / 2;
+            p1.position.set(-2 - crawlT * 1.2, crawlT * 0.3, -9.5 + crawlT * 1.5);
+            p1.rotation.x = crawlT * Math.PI / 2;
+            p3.position.set(2 + crawlT * 1.2, crawlT * 0.3, -9.5 + crawlT * 1.5);
+            p3.rotation.x = crawlT * Math.PI / 2;
             if (!playedEvents.cutscene.has('thud')) {
               playSoundEvent("sounds/thud.mp3", 0.7);
               playedEvents.cutscene.add('thud');
             }
           }
+          
+          // Убегают
           if (t >= 8.7) {
             const runT = Math.min((t - 8.7) / 1.0, 1);
             const standT = Math.min(runT * 3, 1);
             const yOff = (1 - standT) * 0.3;
             const rotX = (1 - standT) * Math.PI / 2;
-            players[0].position.set(-3.2 + runT * 3, yOff, -8 + runT * 6);
-            players[0].rotation.x = rotX;
-            players[2].position.set(3.2 - runT * 3, yOff, -8 + runT * 6);
-            players[2].rotation.x = rotX;
+            p1.position.set(-3.2 + runT * 3, yOff, -8 + runT * 6);
+            p1.rotation.x = rotX;
+            p3.position.set(3.2 - runT * 3, yOff, -8 + runT * 6);
+            p3.rotation.x = rotX;
             if (t - lastFootstep > 0.5) { playFootstep(); lastFootstep = t; }
-            if (runT > 0.85) { players[0].visible = false; players[2].visible = false; }
+            if (runT > 0.85) { p1.visible = false; p3.visible = false; }
           }
         }
         return;
@@ -1228,7 +1362,7 @@
 
       if (t < 12) {
         monster.visible = false;
-        players[1].visible = false;
+        p2.visible = false; // Жертва утащена
         outsideGroup.visible = true;
         roomGroup.visible = true;
 
