@@ -26,6 +26,7 @@
       overflow-x: hidden;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
+      touch-action: none;
     }
 
     #menu-screen {
@@ -284,8 +285,8 @@
     const SOUND_EVENTS = [
       { file: "sounds/creak.mp3",   time: 0.5,  volume: 1.0 },
       { file: "sounds/footsteps.mp3", time: 2.5,  volume: 0.6 },
-      { file: "sounds/scream.mp3",  time: 9.5, volume: 1.0 },
-      { file: "sounds/drag.mp3",    time: 8.0,  volume: 1.0 },
+      { file: "sounds/scream.mp3",  time: 8.5,  volume: 1.0 },
+      { file: "sounds/drag.mp3",    time: 7.8,  volume: 1.0 },
       { file: "sounds/door_slam.mp3", time: 1.2,  volume: 1.0 },
       { file: "sounds/cry.mp3",       time: 1.8,  volume: 0.8 },
       { file: "sounds/rustle.mp3",    time: 4.0,  volume: 0.5 }
@@ -1299,12 +1300,12 @@
       flashlight.visible = false;
       viewmodel.visible = false;
       
-      // Сброс: все смотрят вправо (-X)
+      // СБРОС: Они появляются в глубине леса (z = -15) и идут на нас к камере (z = 0)
       players.forEach((p, i) => {
-        if (i === 0) p.position.set(-2, 0, 0);
-        if (i === 1) { p.position.set(0, 0, 0); p.rotation.set(0,-Math.PI/2,0); }
-        if (i === 2) p.position.set(2, 0, 0);
-        p.rotation.set(0, -Math.PI/2, 0);
+        if (i === 0) p.position.set(-2, 0, -15);
+        if (i === 1) { p.position.set(0, 0, -15); p.rotation.set(0,Math.PI,0); } // Смотрят на камеру (+Z)
+        if (i === 2) p.position.set(2, 0, -15);
+        p.rotation.set(0, Math.PI, 0);
         p.visible = true;
       });
       
@@ -1394,18 +1395,19 @@
       flash.style.opacity = 0;
       grainEl.style.opacity = 0.5;
 
-      // ФАЗА 1: Идут по прямой из леса прямо к дому (без разворотов)
+      // ФАЗА 1: Идут из леса ПРЯМО НА КАМЕРУ, доходят до крыльца.
       if (t < 7) {
         camera.position.set(0, 2.5, 6);
         camera.lookAt(0, 1.6, -10);
         const walkT = Math.min((t - 2.25) / 4.75, 1);
         
-        p1.position.z = -10 + walkT * 9.5; p1.position.x = -2;
-        p2.position.z = -10 + walkT * 9.5; p2.position.x = 0;
-        p3.position.z = -10 + walkT * 9.5; p3.position.x = 2;
+        // От z = -15 (глубина) к z = -4 (перед камерой)
+        p1.position.z = -15 + walkT * 11; p1.position.x = -2;
+        p2.position.z = -15 + walkT * 11; p2.position.x = 0;
+        p3.position.z = -15 + walkT * 11; p3.position.x = 2;
         
-        // ВСЕ СМОТРЯТ В СТОРОНУ ДОМА (по -Z)
-        p1.rotation.y = 0; p2.rotation.y = 0; p3.rotation.y = 0;
+        // Они идут вперед, значит смотрят на +Z (лицом к нам)
+        p1.rotation.y = Math.PI; p2.rotation.y = Math.PI; p3.rotation.y = Math.PI;
         
         animateWalk(p1, t, 0.8);
         animateWalk(p2, t, 0.8);
@@ -1416,7 +1418,7 @@
         return;
       }
 
-      // ФАЗА 2: Захват (замедлен)
+      // ФАЗА 2: Захват
       if (t < 12.5) {
         let shakeX = 0, shakeY = 0, shakeZ = 0;
         if (t > 7.0 && t < 12.5) {
@@ -1431,18 +1433,18 @@
 
         p2.visible = true;
         if (t <= 7.7) {
-          p2.position.set(0, 0, -9.5);
+          p2.position.set(0, 0, -4);
           p2.rotation.x = 0;
         }
         if (t <= 7.9) {
-          p1.position.set(-2, 0, -9.5); p1.rotation.x = 0;
-          p3.position.set(2, 0, -9.5);  p3.rotation.x = 0;
+          p1.position.set(-2, 0, -4); p1.rotation.x = 0;
+          p3.position.set(2, 0, -4);  p3.rotation.x = 0;
         }
         
         if (t > 7.0) {
           monster.visible = true;
           const appearT = Math.min((t - 7.0) / 1.0, 1);
-          monster.position.set(2.5 - appearT * 2.5, 0, -9.5);
+          monster.position.set(2.5 - appearT * 2.5, 0, -4);
           animateWalk(monster, t * 1.2, 1.0);
         }
         
@@ -1454,7 +1456,7 @@
           p2.position.y = lieT * 0.3;
           
           const jerk = Math.sin(dragT * 25) * 0.1;
-          const baseZ = -9.5 - dragT * 5;
+          const baseZ = -4 - dragT * 5;
           
           monster.position.set(0, 0, baseZ);
           p2.position.x = 0;
@@ -1462,9 +1464,9 @@
 
           if (t > 8.0 && t < 9.0) {
             const crawlT = (t - 8.0) / 1.0;
-            p1.position.set(-2 - crawlT * 1.2, crawlT * 0.3, -9.5 + crawlT * 1.5);
+            p1.position.set(-2 - crawlT * 1.2, crawlT * 0.3, -4 + crawlT * 1.5);
             p1.rotation.x = crawlT * Math.PI / 2;
-            p3.position.set(2 + crawlT * 1.2, crawlT * 0.3, -9.5 + crawlT * 1.5);
+            p3.position.set(2 + crawlT * 1.2, crawlT * 0.3, -4 + crawlT * 1.5);
             p3.rotation.x = crawlT * Math.PI / 2;
             if (!playedEvents.cutscene.has('thud')) {
               playSoundEvent("sounds/thud.mp3", 0.7);
@@ -1601,7 +1603,7 @@
       // === ПОДЪЕМ ПО СТУПЕНЬКАМ ===
       if (playerState.pos.z < -6.5) {
         const stepProgress = Math.min((-6.5 - playerState.pos.z) / 1.0, 1);
-        playerState.pos.y = 1.6 + stepProgress * 0.5; // Плавный подъем
+        playerState.pos.y = 1.6 + stepProgress * 0.5;
       } else {
         playerState.pos.y = 1.6;
       }
