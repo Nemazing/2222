@@ -26,7 +26,6 @@
       overflow-x: hidden;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
-      touch-action: none;
     }
 
     #menu-screen {
@@ -222,61 +221,6 @@
       background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 5px;
       pointer-events: none; z-index: 6; opacity: 0; transition: opacity 0.3s;
     }
-
-    #mobile-controls {
-      display: none;
-      position: fixed; inset: 0;
-      z-index: 50; pointer-events: none;
-    }
-    .joystick-zone {
-      position: absolute;
-      bottom: 20px;
-      width: 120px; height: 120px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.05);
-      border: 2px solid rgba(255,255,255,0.1);
-      pointer-events: auto;
-      touch-action: none;
-    }
-    #joystick-left { left: 20px; }
-    .joystick-knob {
-      position: absolute;
-      top: 50%; left: 50%;
-      width: 50px; height: 50px;
-      margin: -25px 0 0 -25px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.3);
-      pointer-events: none;
-    }
-    #btn-flash {
-      position: absolute;
-      bottom: 40px; right: 40px;
-      width: 70px; height: 70px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.1);
-      border: 2px solid rgba(255,255,255,0.3);
-      pointer-events: auto;
-      touch-action: none;
-      display: flex; align-items: center; justify-content: center;
-      color: white; font-size: 12px;
-    }
-    #btn-interact {
-      position: absolute;
-      bottom: 130px; right: 40px;
-      width: 60px; height: 60px;
-      border-radius: 50%;
-      background: rgba(193, 73, 22, 0.3);
-      border: 2px solid var(--accent);
-      pointer-events: auto;
-      touch-action: none;
-      display: flex; align-items: center; justify-content: center;
-      color: white; font-size: 12px; opacity: 0;
-    }
-    
-    @media (pointer: coarse) {
-      #mobile-controls { display: block; }
-      #hint-game { display: none; }
-    }
   </style>
 </head>
 <body>
@@ -321,14 +265,6 @@
     <div id="hint-game">WASD — ходьба. Клик — захват мыши. F — фонарик. Esc — отпустить.</div>
     <div id="prompt">Нажмите E, чтобы открыть дверь</div>
     
-    <div id="mobile-controls">
-      <div id="joystick-left" class="joystick-zone">
-        <div id="knob-left" class="joystick-knob"></div>
-      </div>
-      <div id="btn-flash">СВЕТ</div>
-      <div id="btn-interact">E</div>
-    </div>
-
     <div id="grain"></div>
     <div id="vignette"></div>
     <div id="fade"></div>
@@ -920,8 +856,9 @@
 
       // Ноги (голубые спортивки)
       const legGeo = new THREE.BoxGeometry(0.22, 0.8, 0.22);
-      const legL = new THREE.Mesh(legGeo, suitMat); legL.position.set(-0.15, 0.4, 0);
-      const legR = new THREE.Mesh(legGeo, suitMat); legR.position.set(0.15, 0.4, 0);
+      legGeo.translate(0, -0.4, 0); // Сдвигаем точку вращения наверх (к бедру)
+      const legL = new THREE.Mesh(legGeo, suitMat); legL.position.set(-0.15, 0.8, 0);
+      const legR = new THREE.Mesh(legGeo, suitMat); legR.position.set(0.15, 0.8, 0);
       g.add(legL, legR);
 
       // Кроссовки (белые)
@@ -930,14 +867,15 @@
       const shoeR = new THREE.Mesh(shoeGeo, shoeMat); shoeR.position.set(0.15, 0.06, 0.05);
       g.add(shoeL, shoeR);
 
-      // Торс (голубая кофта)
+      // Торс (голубая кофта) - привязан к центру
       const torsoGeo = new THREE.BoxGeometry(0.65, 0.75, 0.35);
       const torso = new THREE.Mesh(torsoGeo, suitMat); torso.position.y = 1.15; g.add(torso);
 
       // Рукава
       const armGeo = new THREE.BoxGeometry(0.2, 0.6, 0.2);
-      const armL = new THREE.Mesh(armGeo, suitMat); armL.position.set(-0.45, 1.15, 0);
-      const armR = new THREE.Mesh(armGeo, suitMat); armR.position.set(0.45, 1.15, 0);
+      armGeo.translate(0, -0.3, 0); // Точка вращения у плеча
+      const armL = new THREE.Mesh(armGeo, suitMat); armL.position.set(-0.45, 1.45, 0);
+      const armR = new THREE.Mesh(armGeo, suitMat); armR.position.set(0.45, 1.45, 0);
       g.add(armL, armR);
 
       // Руки
@@ -952,23 +890,15 @@
 
       // Длинные волосы (светло-русые)
       const hairMat = new THREE.MeshStandardMaterial({ color: 0xc0a080, roughness: 1 });
-      
-      // Шапка волос
       const hairTop = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), hairMat);
-      hairTop.scale.set(1, 1.1, 1);
-      hairTop.position.set(0, 1.7, -0.02); g.add(hairTop);
-      
-      // Свисающие пряди сзади
+      hairTop.scale.set(1, 1.1, 1); hairTop.position.set(0, 1.7, -0.02); g.add(hairTop);
       const hairBack = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.6, 0.1), hairMat);
       hairBack.position.set(0, 1.35, -0.16); g.add(hairBack);
-      
-      // Боковые пряди
       const hairSideL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.4, 0.1), hairMat);
       hairSideL.position.set(-0.16, 1.45, 0.05); g.add(hairSideL);
       const hairSideR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.4, 0.1), hairMat);
       hairSideR.position.set(0.16, 1.45, 0.05); g.add(hairSideR);
       
-      // Лицо
       const faceGeo = new THREE.CircleGeometry(0.12, 12);
       const face = new THREE.Mesh(faceGeo, skinMatLocal); face.position.set(0, 1.65, 0.16); g.add(face);
 
@@ -984,9 +914,10 @@
     function createVictim() {
       const g = new THREE.Group();
       const legGeo = new THREE.BoxGeometry(0.2, 0.8, 0.2);
+      legGeo.translate(0, -0.4, 0);
       const legMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 });
-      const legL = new THREE.Mesh(legGeo, legMat); legL.position.set(-0.15, 0.4, 0);
-      const legR = new THREE.Mesh(legGeo, legMat); legR.position.set(0.15, 0.4, 0);
+      const legL = new THREE.Mesh(legGeo, legMat); legL.position.set(-0.15, 0.8, 0);
+      const legR = new THREE.Mesh(legGeo, legMat); legR.position.set(0.15, 0.8, 0);
       g.add(legL, legR);
 
       const torsoGeo = new THREE.BoxGeometry(0.65, 0.75, 0.35);
@@ -994,8 +925,9 @@
       const torso = new THREE.Mesh(torsoGeo, torsoMat); torso.position.y = 1.15; g.add(torso);
 
       const armGeo = new THREE.BoxGeometry(0.2, 0.6, 0.2);
-      const armL = new THREE.Mesh(armGeo, torsoMat); armL.position.set(-0.45, 1.15, 0);
-      const armR = new THREE.Mesh(armGeo, torsoMat); armR.position.set(0.45, 1.15, 0);
+      armGeo.translate(0, -0.3, 0);
+      const armL = new THREE.Mesh(armGeo, torsoMat); armL.position.set(-0.45, 1.45, 0);
+      const armR = new THREE.Mesh(armGeo, torsoMat); armR.position.set(0.45, 1.45, 0);
       g.add(armL, armR);
 
       const handGeo = new THREE.SphereGeometry(0.08, 8, 8);
@@ -1014,7 +946,6 @@
       const headGeo = new THREE.SphereGeometry(0.16, 12, 12);
       const head = new THREE.Mesh(headGeo, skinMatLocal); head.position.y = 1.65; g.add(head);
 
-      // Светлые волосы
       const hairMat = new THREE.MeshStandardMaterial({ color: 0xc0b0a0, roughness: 1 });
       const hairTop = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), hairMat);
       hairTop.scale.set(1, 1.1, 1.1); hairTop.position.set(0, 1.7, 0); g.add(hairTop);
@@ -1037,9 +968,10 @@
       const g = new THREE.Group();
       
       const legGeo = new THREE.BoxGeometry(0.22, 0.8, 0.22);
+      legGeo.translate(0, -0.4, 0);
       const legMat = new THREE.MeshStandardMaterial({ color: 0xa0a4a8, roughness: 0.9 });
-      const legL = new THREE.Mesh(legGeo, legMat); legL.position.set(-0.15, 0.4, 0);
-      const legR = new THREE.Mesh(legGeo, legMat); legR.position.set(0.15, 0.4, 0);
+      const legL = new THREE.Mesh(legGeo, legMat); legL.position.set(-0.15, 0.8, 0);
+      const legR = new THREE.Mesh(legGeo, legMat); legR.position.set(0.15, 0.8, 0);
       g.add(legL, legR);
 
       const shoeGeo = new THREE.BoxGeometry(0.22, 0.1, 0.3);
@@ -1053,8 +985,9 @@
       const torso = new THREE.Mesh(torsoGeo, torsoMat); torso.position.y = 1.15; g.add(torso);
 
       const armGeo = new THREE.BoxGeometry(0.22, 0.6, 0.22);
-      const armL = new THREE.Mesh(armGeo, torsoMat); armL.position.set(-0.46, 1.15, 0);
-      const armR = new THREE.Mesh(armGeo, torsoMat); armR.position.set(0.46, 1.15, 0);
+      armGeo.translate(0, -0.3, 0);
+      const armL = new THREE.Mesh(armGeo, torsoMat); armL.position.set(-0.46, 1.45, 0);
+      const armR = new THREE.Mesh(armGeo, torsoMat); armR.position.set(0.46, 1.45, 0);
       g.add(armL, armR);
 
       const handGeo = new THREE.SphereGeometry(0.08, 8, 8);
@@ -1066,7 +999,6 @@
       const headGeo = new THREE.SphereGeometry(0.16, 12, 12);
       const head = new THREE.Mesh(headGeo, skinMatLocal); head.position.y = 1.65; g.add(head);
 
-      // Темные волосы (хвост)
       const hairMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 1 });
       const hairTop = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), hairMat);
       hairTop.scale.set(1, 1.1, 1); hairTop.position.set(0, 1.7, 0); g.add(hairTop);
@@ -1096,33 +1028,35 @@
     const mCloth = new THREE.MeshStandardMaterial({ color: 0x080808, roughness: 1 });
     const mHair = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 1 });
 
-    // Ноги
-    const mLegL = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.9, 0.22), mCloth); mLegL.position.set(-0.16, 0.45, 0);
-    const mLegR = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.9, 0.22), mCloth); mLegR.position.set(0.16, 0.45, 0);
+    // Ноги (точка вращения сверху)
+    const mLegGeo = new THREE.BoxGeometry(0.22, 0.9, 0.22);
+    mLegGeo.translate(0, -0.45, 0);
+    const mLegL = new THREE.Mesh(mLegGeo, mCloth); mLegL.position.set(-0.16, 0.9, 0);
+    const mLegR = new THREE.Mesh(mLegGeo, mCloth); mLegR.position.set(0.16, 0.9, 0);
     
-    // Торс (черная кофта)
+    // Торс
     const mTorso = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.8, 0.35), mCloth); mTorso.position.y = 1.3;
     
-    // Руки (вытянуты вперед для захвата)
-    const mArmL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.6, 0.2), mCloth); mArmL.position.set(-0.45, 1.3, 0.3); mArmL.rotation.x = -Math.PI/3;
-    const mArmR = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.6, 0.2), mCloth); mArmR.position.set(0.45, 1.3, 0.3); mArmR.rotation.x = -Math.PI/3;
+    // Руки (точка вращения сверху)
+    const mArmGeo = new THREE.BoxGeometry(0.2, 0.6, 0.2);
+    mArmGeo.translate(0, -0.3, 0);
+    const mArmL = new THREE.Mesh(mArmGeo, mCloth); mArmL.position.set(-0.45, 1.6, 0); mArmL.rotation.x = -Math.PI/3;
+    const mArmR = new THREE.Mesh(mArmGeo, mCloth); mArmR.position.set(0.45, 1.6, 0); mArmR.rotation.x = -Math.PI/3;
     
     // Кисти рук
-    const mHandL = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), mSkin); mHandL.position.set(-0.45, 1.1, 0.6);
-    const mHandR = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), mSkin); mHandR.position.set(0.45, 1.1, 0.6);
+    const mHandL = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), mSkin); mHandL.position.set(-0.45, 1.1, 0.5);
+    const mHandR = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), mSkin); mHandR.position.set(0.45, 1.1, 0.5);
 
     // Голова
     const mHead = new THREE.Mesh(new THREE.SphereGeometry(0.17, 12, 12), mSkin); mHead.position.y = 1.85;
     
     // Растрепанные волосы
     const mHairTop = new THREE.Mesh(new THREE.SphereGeometry(0.19, 8, 8), mHair);
-    mHairTop.scale.set(1.1, 1.2, 1.1);
-    mHairTop.position.set(0, 1.9, 0);
-    // Клок волос на лоб
+    mHairTop.scale.set(1.1, 1.2, 1.1); mHairTop.position.set(0, 1.9, 0);
     const mHairFringe = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.15, 0.1), mHair);
     mHairFringe.position.set(0, 1.85, 0.15);
 
-    // Лицо (скрыто в тени, просто темное пятно)
+    // Лицо (тень)
     const mFace = new THREE.Mesh(new THREE.CircleGeometry(0.13, 12), new THREE.MeshBasicMaterial({ color: 0x050505 }));
     mFace.position.set(0, 1.85, 0.16);
 
@@ -1132,7 +1066,7 @@
     monsterGroup.traverse(c => { if(c.isMesh) c.castShadow = true; });
     monsterGroup.visible = false;
     outsideGroup.add(monsterGroup);
-    const monster = monsterGroup; // Для совместимости
+    const monster = monsterGroup;
 
     // ============ КОМНАТА-ЛОВУШКА ============
     roomGroup.position.set(0, 0, -14);
@@ -1324,8 +1258,6 @@
     const flash = document.getElementById('flash');
     const vignette = document.getElementById('vignette');
     const hintGame = document.getElementById('hint-game');
-    const btnFlash = document.getElementById('btn-flash');
-    const btnInteract = document.getElementById('btn-interact');
 
     // ===================== МЕНЮ ЛОГИКА =====================
     const root = document.documentElement;
@@ -1352,108 +1284,6 @@
       if (t) moveLight(t.clientX, t.clientY);
     }, { passive: true });
 
-    // ===================== МОБИЛЬНОЕ УПРАВЛЕНИЕ =====================
-    let joyX = 0, joyY = 0;
-    let touchLookId = null;
-    let lastTouchX = 0, lastTouchY = 0;
-    const joystickZone = document.getElementById('joystick-left');
-    const knob = document.getElementById('knob-left');
-    
-    if (joystickZone) {
-      joystickZone.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        const touch = e.changedTouches[0];
-        const rect = joystickZone.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        const dx = touch.clientX - centerX;
-        const dy = touch.clientY - centerY;
-        const dist = Math.min(Math.sqrt(dx*dx + dy*dy), 40);
-        const angle = Math.atan2(dy, dx);
-        joyX = Math.cos(angle) * (dist / 40);
-        joyY = Math.sin(angle) * (dist / 40);
-        knob.style.transform = `translate(${joyX * 40}px, ${joyY * 40}px)`;
-      }, { passive: false });
-
-      joystickZone.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        const touch = e.changedTouches[0];
-        const rect = joystickZone.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        const dx = touch.clientX - centerX;
-        const dy = touch.clientY - centerY;
-        const dist = Math.min(Math.sqrt(dx*dx + dy*dy), 40);
-        const angle = Math.atan2(dy, dx);
-        joyX = Math.cos(angle) * (dist / 40);
-        joyY = Math.sin(angle) * (dist / 40);
-        knob.style.transform = `translate(${joyX * 40}px, ${joyY * 40}px)`;
-      }, { passive: false });
-
-      const resetJoy = () => {
-        joyX = 0; joyY = 0;
-        knob.style.transform = `translate(0px, 0px)`;
-      };
-      joystickZone.addEventListener('touchend', resetJoy);
-      joystickZone.addEventListener('touchcancel', resetJoy);
-    }
-
-    document.addEventListener('touchstart', (e) => {
-      if (state !== 'playing') return;
-      if (e.target.closest('#joystick-left') || e.target.closest('#btn-flash') || e.target.closest('#btn-interact')) return;
-      
-      const touch = e.changedTouches[0];
-      if (touchLookId === null) {
-        touchLookId = touch.identifier;
-        lastTouchX = touch.clientX;
-        lastTouchY = touch.clientY;
-      }
-    }, { passive: false });
-
-    document.addEventListener('touchmove', (e) => {
-      if (state !== 'playing' || touchLookId === null) return;
-      for (let i = 0; i < e.changedTouches.length; i++) {
-        const touch = e.changedTouches[i];
-        if (touch.identifier === touchLookId) {
-          const dx = touch.clientX - lastTouchX;
-          const dy = touch.clientY - lastTouchY;
-          yaw -= dx * 0.005;
-          pitch -= dy * 0.005;
-          pitch = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, pitch));
-          lastTouchX = touch.clientX;
-          lastTouchY = touch.clientY;
-        }
-      }
-    }, { passive: false });
-
-    document.addEventListener('touchend', (e) => {
-      for (let i = 0; i < e.changedTouches.length; i++) {
-        if (e.changedTouches[i].identifier === touchLookId) {
-          touchLookId = null;
-        }
-      }
-    });
-
-    if (btnFlash) {
-      btnFlash.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        if (state === 'playing') {
-          flashlightOn = !flashlightOn;
-          flashlight.visible = flashlightOn;
-          flashLens.material.color.setHex(flashlightOn ? 0xfff2cc : 0x333333);
-        }
-      }, { passive: false });
-    }
-    if (btnInteract) {
-      btnInteract.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        if (state === 'playing' && nearDoor && doorState === 'closed') {
-          doorState = 'opening';
-          playSoundEvent("sounds/creak.mp3", 1.0);
-        }
-      }, { passive: false });
-    }
-
     // ===================== СТАРТ ИГРЫ =====================
     enterBtn.addEventListener('click', () => {
       initAudio();
@@ -1475,10 +1305,12 @@
       flashlight.visible = false;
       viewmodel.visible = false;
       
+      // Сброс: все смотрят на лагерь (-Z)
       players.forEach((p, i) => {
         if (i === 0) p.position.set(-2, 0, 0);
         if (i === 1) { p.position.set(0, 0, 0); p.rotation.set(0,0,0); }
         if (i === 2) p.position.set(2, 0, 0);
+        p.rotation.set(0, 0, 0);
         p.visible = true;
       });
       
@@ -1529,21 +1361,17 @@
       if (p.children.length === 0) return;
       const inner = p.children[0];
       if (!inner) return;
-      // Ищем ноги (первые два элемента)
       const legL = inner.children[0];
       const legR = inner.children[1];
-      // Ищем руки (если есть)
-      let armL = null, armR = null;
-      if (inner.children.length > 3) {
-        armL = inner.children[3];
-        armR = inner.children[4];
-      }
+      const armL = inner.children[3];
+      const armR = inner.children[4];
       
-      const swing = Math.sin(time * 10 * speedMult) * 0.4;
+      // Медленная и тяжелая анимация
+      const swing = Math.sin(time * 5 * speedMult) * 0.35;
       if (legL) legL.rotation.x = swing;
       if (legR) legR.rotation.x = -swing;
-      if (armL) armL.rotation.x = -swing;
-      if (armR) armR.rotation.x = swing;
+      if (armL) armL.rotation.x = -swing * 0.6;
+      if (armR) armR.rotation.x = swing * 0.6;
     }
 
     // ===================== РОЛИК =====================
@@ -1573,29 +1401,73 @@
       flash.style.opacity = 0;
       grainEl.style.opacity = 0.5;
 
-      if (t < 7) {
+      // ФАЗА 1: Идут по лесу прямо
+      if (t < 5) {
         camera.position.set(0, 2.5, 6);
         camera.lookAt(0, 1.6, -10);
-        const walkT = Math.min((t - 2.25) / 4, 1);
+        const walkT = Math.min((t - 2.25) / 2.75, 1);
         
-        p1.position.z = -walkT * 9.5; p1.position.x = -2 + Math.sin(t * 4) * 0.05;
-        p2.position.z = -walkT * 9.5; p2.position.x = 0 + Math.sin(t * 4 + 1) * 0.05;
-        p3.position.z = -walkT * 9.5; p3.position.x = 2 + Math.sin(t * 4 + 2) * 0.05;
+        // Идут по лесу прямо по X
+        p1.position.z = -3 + walkT * 3; p1.position.x = -2;
+        p2.position.z = -3 + walkT * 3; p2.position.x = 0;
+        p3.position.z = -3 + walkT * 3; p3.position.x = 2;
         
-        // Включаем анимацию ходьбы
-        animateWalk(p1, t, 1.0);
-        animateWalk(p2, t, 1.0);
-        animateWalk(p3, t, 1.0);
+        // Повернуты вправо (по направлению движения)
+        p1.rotation.y = -Math.PI/2; p2.rotation.y = -Math.PI/2; p3.rotation.y = -Math.PI/2;
         
-        clampCutscenePlayer(p1); clampCutscenePlayer(p2); clampCutscenePlayer(p3);
+        animateWalk(p1, t, 0.8);
+        animateWalk(p2, t, 0.8);
+        animateWalk(p3, t, 0.8);
         
-        if (walkT > 0.05 && walkT < 0.98 && t - lastFootstep > 0.6) {
-          playFootstep(); lastFootstep = t;
-        }
+        if (t - lastFootstep > 0.7) { playFootstep(); lastFootstep = t; }
         monster.visible = false;
         return;
       }
 
+      // ФАЗА 2: Остановились и повернулись к лагерю
+      if (t < 6.5) {
+        camera.position.set(0, 2.5, 6);
+        camera.lookAt(0, 1.6, -10);
+        const turnT = Math.min((t - 5) / 1.0, 1);
+        
+        p1.position.z = 0; p1.position.x = -2;
+        p2.position.z = 0; p2.position.x = 0;
+        p3.position.z = 0; p3.position.x = 2;
+        
+        // Плавный поворот от -90 (лес) до 0 (лагерь)
+        const currentRot = -Math.PI/2 + turnT * (Math.PI/2);
+        p1.rotation.y = currentRot; p2.rotation.y = currentRot; p3.rotation.y = currentRot;
+        
+        // Ноги не двигаются, только стоят
+        if (turnT >= 1) {
+          animateWalk(p1, t, 0); animateWalk(p2, t, 0); animateWalk(p3, t, 0);
+        } else {
+          animateWalk(p1, t, 0.5); animateWalk(p2, t, 0.5); animateWalk(p3, t, 0.5);
+        }
+        return;
+      }
+
+      // ФАЗА 3: Медленно идут к лагерю
+      if (t < 7.5) {
+        camera.position.set(0, 2.5, 6);
+        camera.lookAt(0, 1.6, -10);
+        const walkT = Math.min((t - 6.5) / 1.0, 1);
+        
+        p1.position.z = 0 - walkT * 9.5; p1.position.x = -2;
+        p2.position.z = 0 - walkT * 9.5; p2.position.x = 0;
+        p3.position.z = 0 - walkT * 9.5; p3.position.x = 2;
+        
+        p1.rotation.y = 0; p2.rotation.y = 0; p3.rotation.y = 0;
+        
+        animateWalk(p1, t, 0.6); // Еще медленнее
+        animateWalk(p2, t, 0.6);
+        animateWalk(p3, t, 0.6);
+        
+        if (t - lastFootstep > 0.8) { playFootstep(); lastFootstep = t; }
+        return;
+      }
+
+      // ФАЗА 4: Захват
       if (t < 10) {
         camera.position.set(0, 2.0, -4);
         camera.lookAt(0, 0.8, -10.5);
@@ -1613,9 +1485,7 @@
         if (t > 7.3) {
           monster.visible = true;
           const appearT = Math.min((t - 7.3) / 0.4, 1);
-          // Монстр выбегает сбоку
           monster.position.set(2.5 - appearT * 2.5, 0, -9.5);
-          // Анимация бега монстра
           animateWalk(monster, t * 1.5, 1.5);
         }
         
@@ -1653,7 +1523,6 @@
             p1.rotation.x = rotX;
             p3.position.set(3.2 - runT * 3, yOff, -8 + runT * 6);
             p3.rotation.x = rotX;
-            // Анимация бега
             if (runT < 0.9) {
               animateWalk(p1, t * 1.5, 1.5);
               animateWalk(p3, t * 1.5, 1.5);
@@ -1752,19 +1621,16 @@
       const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
       const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
       
-      if (joyX !== 0 || joyY !== 0) {
-        playerState.pos.addScaledVector(forward, -joyY * speed);
-        playerState.pos.addScaledVector(right, joyX * speed);
-      } else {
-        if (keys['KeyW']) playerState.pos.addScaledVector(forward, speed);
-        if (keys['KeyS']) playerState.pos.addScaledVector(forward, -speed);
-        if (keys['KeyA']) playerState.pos.addScaledVector(right, -speed);
-        if (keys['KeyD']) playerState.pos.addScaledVector(right, speed);
-      }
+      if (keys['KeyW']) playerState.pos.addScaledVector(forward, speed);
+      if (keys['KeyS']) playerState.pos.addScaledVector(forward, -speed);
+      if (keys['KeyA']) playerState.pos.addScaledVector(right, -speed);
+      if (keys['KeyD']) playerState.pos.addScaledVector(right, speed);
 
+      // Коллизии со стенами коридора
       playerState.pos.x = Math.max(-1.6, Math.min(1.6, playerState.pos.x));
       playerState.pos.z = Math.max(-7.6, Math.min(7.5, playerState.pos.z));
 
+      // Коллизии с мебелью
       for (const obs of obstacles) {
         const dx = playerState.pos.x - obs.x;
         const dz = playerState.pos.z - obs.z;
@@ -1776,11 +1642,18 @@
         }
       }
 
-      playerState.pos.y = 1.6;
+      // === КОЛЛИЗИЯ И ПОДЪЕМ ПО СТУПЕНЬКАМ ===
+      // Если игрок близко к двери (z < -6.5), он поднимается по ступеням
+      if (playerState.pos.z < -6.5) {
+        // Плавный подъем по ступенькам (от 1.6 до 2.1)
+        const stepProgress = Math.min((-6.5 - playerState.pos.z) / 1.0, 1);
+        playerState.pos.y = 1.6 + stepProgress * 0.5;
+      } else {
+        playerState.pos.y = 1.6;
+      }
 
       nearDoor = playerState.pos.z < -6.5 && Math.abs(playerState.pos.x) < 1.5;
       promptEl.style.opacity = (nearDoor && doorState === 'closed') ? 1 : 0;
-      if (btnInteract) btnInteract.style.opacity = (nearDoor && doorState === 'closed') ? 1 : 0;
 
       if (doorState === 'opening') {
         doorOpenProgress += dt * 1.5;
