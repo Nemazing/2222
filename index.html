@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Хоррор‑Лагерь: Лагерь</title>
+  <title>Хоррор: Лагерь</title>
   <style>
     :root {
       --bg-dark: #000;
@@ -29,6 +29,7 @@
       touch-action: none;
     }
 
+    /* ===== МЕНЮ ===== */
     #menu-screen {
       position: fixed;
       inset: 0;
@@ -37,7 +38,7 @@
       display: flex;
       flex-direction: column;
       overflow-y: auto;
-      transition: opacity 1s ease;
+      transition: opacity 1.5s ease;
     }
     #menu-screen.hidden {
       opacity: 0;
@@ -157,10 +158,10 @@
       transform: scale(0.97);
     }
 
-    #hint-menu {
+    #hint {
       position: fixed;
       left: 50%;
-      bottom: 14px;
+      bottom: 35px;
       transform: translateX(-50%);
       z-index: 10000;
       font-size: 0.75rem;
@@ -171,10 +172,10 @@
       animation: hint-pulse 3.5s ease-in-out infinite;
     }
     
-    #hint-menu2 {
+    #hint2 {
       position: fixed;
       left: 50%;
-      bottom: 36px;
+      bottom: 14px;
       transform: translateX(-50%);
       z-index: 10000;
       font-size: 0.75rem;
@@ -190,11 +191,13 @@
       50%      { opacity: 0.75; }
     }
 
+    /* ===== ИГРА ===== */
     #game-container {
       display: none;
       position: fixed;
       inset: 0;
       z-index: 1;
+      background: #000;
     }
     canvas { display: block; }
     #hint-game {
@@ -226,8 +229,10 @@
 </head>
 <body>
 
+  <!-- ================= МЕНЮ ================= -->
   <div id="menu-screen">
     <div id="darkness"></div>
+
     <header>
       <h1>Лагерь: Вход запрещён</h1>
       <p class="subtitle">Хоррор‑Лагерь. Ты не захочешь заходить внутрь.</p>
@@ -235,33 +240,34 @@
 
     <main>
       <section class="story-block">
-        <span class="sound-cue">[Мы не обязываем вас играть в эту игру…]</span>
+        <span class="sound-cue">Мы не обязываем вас играть в эту игру…</span>
         Участвуйте только если хочется! 😄
       </section>
 
       <section class="story-block">
-        <span class="sound-cue">[Резкий шорох сбоку…]</span>
+        <span class="sound-cue">Присутствуют резкие шорохи сбоку…</span>
         Из темноты выныривает фигура и хватает одного из игроков за ногу. Крик обрывается, будто его проглотила тишина. Проход исчезает — на его месте теперь сплошная стена.
       </section>
 
       <section class="story-block">
-        <span class="sound-cue">[Глухой удар, скрип петель…]</span>
+        <span class="sound-cue">Глухой удар, скрип петель…</span>
         Двери лагеря захлопываются сами по себе. Слышен короткий, отчаянный крик напарника — того самого, которого утянули. И где‑то вдалеке — тихий шорох.
       </section>
 
       <section style="text-align:center; margin-top:40px;">
-        <button id="enter-btn">Подтверждаю вход</button>
+        <button id="enter-btn">Начать игру</button>
       </section>
     </main>
 
     <footer>
       <span class="warning">⚠</span> Не рекомендуется людям с повышенной чувствительностью к скримерам.
-    </footer>
+    </footer> 
 
-    <div id="hint-menu">СТРОГО 18+</div>
-    <div id="hint-menu2">СОЗДАЛ - Ainazik</div>
+    <div id="hint">СТРОГО 18+</div>
+    <div id="hint2">⚠ Создано - Ainazik ⚠</div>
   </div>
 
+  <!-- ================= ИГРА ================= -->
   <div id="game-container">
     <div id="hint-game">WASD — ходьба. Клик — захват мыши. F — фонарик. Esc — отпустить.</div>
     <div id="prompt">Нажмите E, чтобы открыть дверь</div>
@@ -279,9 +285,32 @@
   <script type="module">
     import * as THREE from 'three';
 
-    // =======================================================
+    // === МЕНЮ ЛОГИКА (ФОНАРИК) ===
+    const root = document.documentElement;
+    function updateRadius() {
+      const r = Math.min(window.innerWidth, window.innerHeight) * 0.32;
+      root.style.setProperty('--r', Math.max(140, Math.min(300, r)) + 'px');
+    }
+    updateRadius();
+    window.addEventListener('resize', updateRadius);
+
+    function moveLight(x, y) {
+      root.style.setProperty('--mx', x + 'px');
+      root.style.setProperty('--my', y + 'px');
+    }
+    moveLight(window.innerWidth / 2, window.innerHeight / 2);
+
+    document.addEventListener('mousemove', (e) => moveLight(e.clientX, e.clientY));
+    document.addEventListener('touchstart', (e) => {
+      const t = e.touches[0];
+      if (t) moveLight(t.clientX, t.clientY);
+    }, { passive: true });
+    document.addEventListener('touchmove', (e) => {
+      const t = e.touches[0];
+      if (t) moveLight(t.clientX, t.clientY);
+    }, { passive: true });
+
     // === СИСТЕМА ЗВУКОВЫХ СОБЫТИЙ ===
-    // =======================================================
     const SOUND_EVENTS = [
       { file: "sounds/creak.mp3",   time: 0.5,  volume: 1.0 },
       { file: "sounds/footsteps.mp3", time: 2.5,  volume: 0.6 },
@@ -348,9 +377,7 @@
       }
     }
 
-    // =======================================================
     // === ЗВУКИ-СИНТЕЗАТОРЫ ===
-    // =======================================================
     let audioCtx = null;
     let breathingNodes = null;
 
@@ -398,7 +425,7 @@
       src.start(t);
     }
 
-    // ===================== ЗЕРНО =====================
+    // === ЗЕРНО ===
     const grainEl = document.getElementById('grain');
     (function makeGrain() {
       const c = document.createElement('canvas');
@@ -414,7 +441,7 @@
       grainEl.style.backgroundImage = `url(${c.toDataURL()})`;
     })();
 
-    // ===================== ТЕКСТУРЫ =====================
+    // === ТЕКСТУРЫ ===
     function makeWoodTexture(baseColor = [85, 62, 42]) {
       const c = document.createElement('canvas');
       c.width = 256; c.height = 256;
@@ -522,7 +549,7 @@
       return new THREE.CanvasTexture(c);
     }
 
-    // ===================== СЦЕНА + КАЧЕСТВО =====================
+    // === СЦЕНА + КАЧЕСТВО ===
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0a0d12);
     scene.fog = new THREE.Fog(0x0a0d12, 12, 60);
@@ -531,7 +558,6 @@
     camera.position.set(0, 2.5, 6);
     scene.add(camera);
 
-    // НОРМАЛЬНОЕ КАЧЕСТВО
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     renderer.setSize(innerWidth, innerHeight);
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -539,9 +565,11 @@
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.4;
+    
+    // ВАЖНО: Добавляем Canvas в игровой контейнер, а не в body
     document.getElementById('game-container').appendChild(renderer.domElement);
 
-    // ===================== СВЕТ =====================
+    // === СВЕТ ===
     scene.add(new THREE.HemisphereLight(0x8899cc, 0x2a2a2a, 1.2));
     scene.add(new THREE.AmbientLight(0x445566, 1.2));
     const moonLight = new THREE.DirectionalLight(0xaabbdd, 1.5);
@@ -557,7 +585,7 @@
     moonLight.shadow.bias = -0.0005;
     scene.add(moonLight);
 
-    // ===================== ФОНАРИК =====================
+    // === ФОНАРИК ===
     const flashlight = new THREE.SpotLight(0xfff2cc, 4.5, 22, Math.PI / 6.5, 0.45, 1.2);
     flashlight.position.set(0.18, -0.15, 0);
     flashlight.target.position.set(0, 0, -5);
@@ -566,7 +594,7 @@
     camera.add(flashlight.target);
     flashlight.visible = false;
 
-    // ===================== РУКИ =====================
+    // === РУКИ ===
     const viewmodel = new THREE.Group();
     camera.add(viewmodel);
     viewmodel.visible = false;
@@ -599,13 +627,13 @@
     );
     flashLens.position.set(0.13, -0.18, -0.61); viewmodel.add(flashLens);
 
-    // ===================== ГРУППЫ =====================
+    // === ГРУППЫ ===
     const outsideGroup = new THREE.Group();
     const roomGroup = new THREE.Group();
     const gameGroup = new THREE.Group();
     scene.add(outsideGroup, roomGroup, gameGroup);
 
-    // ============ ЗЕМЛЯ ============
+    // === ЗЕМЛЯ ===
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(80, 80),
       new THREE.MeshStandardMaterial({ color: 0x1a1612, roughness: 1 })
@@ -614,7 +642,7 @@
     ground.receiveShadow = true;
     outsideGroup.add(ground);
 
-    // ============ ЗДАНИЕ ЛАГЕРЯ ============
+    // === ЗДАНИЕ ЛАГЕРЯ ===
     const woodTex = makeWoodTexture([85, 62, 42]);
     const stoneTex = makeStoneTexture();
     const glassTex = makeGlassTexture();
@@ -763,7 +791,7 @@
     }
     outsideGroup.add(buildCabin());
 
-    // ============ ЗАБОР ============
+    // === ЗАБОР ===
     const fenceWoodMat = new THREE.MeshStandardMaterial({ color: 0x5a4230, roughness: 0.95, map: woodTex });
     function fenceSegment(x1, x2, z) {
       const g = new THREE.Group();
@@ -793,7 +821,7 @@
       outsideGroup.add(post);
     }
 
-    // ============ ДЕРЕВЬЯ ============
+    // === ДЕРЕВЬЯ ===
     const trunkMat = new THREE.MeshStandardMaterial({ color: 0x2a1c12, roughness: 1 });
     const leavesMat = new THREE.MeshStandardMaterial({ color: 0x1a2a1a, roughness: 1 });
     function makeTree(x, z, scale = 1) {
@@ -847,17 +875,15 @@
     const torch1 = makeTorch(-2.4, -9.4);
     const torch2 = makeTorch( 2.4, -9.4);
 
-    // ============ ИГРОКИ ============
-    
-    // Игрок 1 (Голубая кофта, голубые штаны, белые кроссы, длинные волосы)
+    // === ИГРОКИ ===
     function createP1() {
       const g = new THREE.Group();
-      const suitMat = new THREE.MeshStandardMaterial({ color: 0x5a9bd4, roughness: 0.9 }); // Голубой
-      const shoeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 }); // Белый
+      const suitMat = new THREE.MeshStandardMaterial({ color: 0x5a9bd4, roughness: 0.9 });
+      const shoeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 });
       const skinMatLocal = new THREE.MeshStandardMaterial({ color: 0xd4b4a4, roughness: 0.9 });
 
       const legGeo = new THREE.BoxGeometry(0.22, 0.8, 0.22);
-      legGeo.translate(0, -0.4, 0); // Точка вращения наверху
+      legGeo.translate(0, -0.4, 0);
       const legL = new THREE.Mesh(legGeo, suitMat); legL.position.set(-0.15, 0.8, 0);
       const legR = new THREE.Mesh(legGeo, suitMat); legR.position.set(0.15, 0.8, 0);
       g.add(legL, legR);
@@ -905,7 +931,6 @@
     p1.position.set(-2, 0, 0);
     outsideGroup.add(p1);
 
-    // Игрок 2 (ЖЕРТВА - ХУДИ С ДРАКОНОМ)
     function createVictim() {
       const g = new THREE.Group();
       const legGeo = new THREE.BoxGeometry(0.2, 0.8, 0.2);
@@ -964,7 +989,6 @@
     p2.position.set(0, 0, 0);
     outsideGroup.add(p2);
 
-    // Игрок 3 (СВЕТЛО-СЕРЫЕ ШТАНЫ, ЧЕРНЫЙ СВИТШОТ, ТЕМНЫЕ ВОЛОСЫ)
     function createThirdPlayer() {
       const g = new THREE.Group();
       
@@ -1023,7 +1047,7 @@
 
     const players = [p1, p2, p3];
 
-    // ============ МОНСТР ============
+    // === МОНСТР ===
     const monsterGroup = new THREE.Group();
     const mSkin = new THREE.MeshStandardMaterial({ color: 0xd4b4a4, roughness: 0.9 });
     const mCloth = new THREE.MeshStandardMaterial({ color: 0x080808, roughness: 1 });
@@ -1063,7 +1087,7 @@
     outsideGroup.add(monsterGroup);
     const monster = monsterGroup;
 
-    // ============ КОМНАТА-ЛОВУШКА ============
+    // === КОМНАТА-ЛОВУШКА ===
     roomGroup.position.set(0, 0, -14);
     const wetMat = new THREE.MeshStandardMaterial({
       color: 0x3a2e26, roughness: 0.5, metalness: 0.15
@@ -1116,7 +1140,7 @@
     roomGroup.add(roomLight);
     roomGroup.visible = false;
 
-    // ============ КОРИДОР (ГЕЙМПЛЕЙ) ============
+    // === КОРИДОР ===
     const corridorMat = new THREE.MeshStandardMaterial({ color: 0x3a3228, roughness: 0.9 });
     function corrWall(w, h, d, x, y, z) {
       const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), corridorMat);
@@ -1217,7 +1241,7 @@
     }
     gameGroup.visible = false;
 
-    // ===================== СОСТОЯНИЕ =====================
+    // === СОСТОЯНИЕ ===
     let state = 'menu';
     let cutsceneTime = 0;
     let gameplayTime = 0;
@@ -1245,7 +1269,7 @@
       p.position.z = Math.max(-22, Math.min(9, p.position.z));
     }
 
-    // ===================== UI ЭЛЕМЕНТЫ =====================
+    // === UI ЭЛЕМЕНТЫ ===
     const menuScreen = document.getElementById('menu-screen');
     const gameContainer = document.getElementById('game-container');
     const enterBtn = document.getElementById('enter-btn');
@@ -1254,40 +1278,16 @@
     const vignette = document.getElementById('vignette');
     const hintGame = document.getElementById('hint-game');
 
-    // ===================== МЕНЮ ЛОГИКА =====================
-    const root = document.documentElement;
-    function updateRadius() {
-      const r = Math.min(window.innerWidth, window.innerHeight) * 0.32;
-      root.style.setProperty('--r', Math.max(140, Math.min(300, r)) + 'px');
-    }
-    updateRadius();
-    window.addEventListener('resize', updateRadius);
-
-    function moveLight(x, y) {
-      root.style.setProperty('--mx', x + 'px');
-      root.style.setProperty('--my', y + 'px');
-    }
-    moveLight(window.innerWidth / 2, window.innerHeight / 2);
-
-    document.addEventListener('mousemove', (e) => moveLight(e.clientX, e.clientY));
-    document.addEventListener('touchstart', (e) => {
-      const t = e.touches[0];
-      if (t) moveLight(t.clientX, t.clientY);
-    }, { passive: true });
-    document.addEventListener('touchmove', (e) => {
-      const t = e.touches[0];
-      if (t) moveLight(t.clientX, t.clientY);
-    }, { passive: true });
-
-    // ===================== СТАРТ ИГРЫ =====================
+    // === СТАРТ ИГРЫ ===
     enterBtn.addEventListener('click', () => {
+      // Запускаем звук и убираем меню
       initAudio();
       initSoundSystem();
       
       menuScreen.classList.add('hidden');
       setTimeout(() => {
         menuScreen.style.display = 'none';
-      }, 1000);
+      }, 1500);
       
       gameContainer.style.display = 'block';
       state = 'cutscene';
@@ -1300,12 +1300,11 @@
       flashlight.visible = false;
       viewmodel.visible = false;
       
-      // Сброс: они появляются сзади камеры (z = 6) и идут вглубь (к дому z = -10)
       players.forEach((p, i) => {
         if (i === 0) p.position.set(-2, 0, 6);
         if (i === 1) { p.position.set(0, 0, 6); p.rotation.set(0,0,0); }
         if (i === 2) p.position.set(2, 0, 6);
-        p.rotation.set(0, 0, 0); // Смотрят в -Z (в спину)
+        p.rotation.set(0, 0, 0);
         p.visible = true;
       });
       
@@ -1322,7 +1321,7 @@
       playedEvents.gameplay.clear();
     });
 
-    // ===================== УПРАВЛЕНИЕ (PC) =====================
+    // === УПРАВЛЕНИЕ (PC) ===
     let yaw = 0, pitch = 0, isLocked = false;
     document.body.addEventListener('click', () => {
       if (state === 'playing' && !('ontouchstart' in window)) renderer.domElement.requestPointerLock();
@@ -1351,7 +1350,7 @@
     });
     document.addEventListener('keyup', (e) => keys[e.code] = false);
 
-    // ===================== АНИМАЦИЯ ХОДЬБЫ =====================
+    // === АНИМАЦИЯ ХОДЬБЫ ===
     function animateWalk(p, time, speedMult = 1) {
       if (p.children.length === 0) return;
       const inner = p.children[0];
@@ -1368,7 +1367,7 @@
       if (armR) armR.rotation.x = swing * 0.6;
     }
 
-    // ===================== РОЛИК =====================
+    // === РОЛИК ===
     function updateCutscene(t, dt) {
       grainEl.style.backgroundPosition =
         `${Math.random() * 256 | 0}px ${Math.random() * 256 | 0}px`;
@@ -1397,18 +1396,15 @@
 
       // ФАЗА 1: Идут из леса вглубь, к дому
       if (t < 7) {
-        // Камера стоит ПОЗАДИ игроков и смотрит им в спины
         camera.position.set(0, 2.5, 10);
         camera.lookAt(0, 1.6, -10);
         
         const walkT = Math.min((t - 2.25) / 4.75, 1);
         
-        // Идут от нас (z = 6) вглубь к дому (z = -4)
         p1.position.z = 6 - walkT * 10; p1.position.x = -2;
         p2.position.z = 6 - walkT * 10; p2.position.x = 0;
         p3.position.z = 6 - walkT * 10; p3.position.x = 2;
         
-        // Повернуты спиной к нам (лицом к дому)
         p1.rotation.y = 0; p2.rotation.y = 0; p3.rotation.y = 0;
         
         animateWalk(p1, t, 0.8);
@@ -1430,14 +1426,13 @@
           shakeZ = (Math.random() - 0.5) * shakeIntensity;
         }
 
-        // Камера теперь сбоку для захвата
         camera.position.set(4.5 + shakeX, 2.0 + shakeY, -4 + shakeZ);
         camera.lookAt(0, 0.8, -10.5);
 
         p2.visible = true;
         if (t <= 7.7) {
           p2.position.set(0, 0, -4);
-          p2.rotation.set(0,0,0); // Стоит ровно
+          p2.rotation.set(0,0,0);
         }
         if (t <= 7.9) {
           p1.position.set(-2, 0, -4); p1.rotation.x = 0;
@@ -1455,25 +1450,19 @@
           const dragT = Math.min((t - 7.7) / 3.8, 1); 
           const lieT = Math.min((t - 7.7) / 0.3, 1);
           
-          // ЖЕРТВА ПАДАЕТ ЛИЦОМ ВНИЗ И РАЗВОРАЧИВАЕТСЯ ГОЛОВОЙ К ДОМУ
-          p2.rotation.y = Math.PI; // Развернули на 180 (головой в -Z)
-          p2.rotation.x = lieT * Math.PI / 2; // Падает лицом вниз
-          
+          p2.rotation.y = Math.PI;
+          p2.rotation.x = lieT * Math.PI / 2; 
           p2.position.y = lieT * 0.6; 
           
           const jerk = Math.sin(dragT * 25) * 0.1;
           const baseZ = -4 - dragT * 5;
           
-          // МОНСТР ДЕРЖИТ ЖЕРТВУ ЗА НОГИ И ТЯНЕТ НА СЕБЯ (двигается спиной вперед)
-          // МОНСТР БЛИЖЕ К НАМ (Z больше), ЖЕРТВА ДАЛЬШЕ (Z меньше)
           monster.position.set(0, 0, baseZ + 1.5); 
-          monster.rotation.y = 0; // Монстр смотрит вглубь
+          monster.rotation.y = 0; 
           
           p2.position.x = 0;
-          // ЖЕРТВА ВОЛОЧИТСЯ ВПЕРЕДИ МОНСТРА (дальше по оси Z)
           p2.position.z = baseZ + 1.5 - 1.6 + jerk;
 
-          // ТЕ ДВОЕ (p1 и p3) ОТПОЛЗАЮТ В СТОРОНЫ (В КАДР)
           if (t > 8.0 && t < 9.0) {
             const crawlT = (t - 8.0) / 1.0;
             p1.position.set(-2 - crawlT * 2, crawlT * 0.3, -4 + crawlT * 2);
@@ -1485,15 +1474,12 @@
               playedEvents.cutscene.add('thud');
             }
           }
-          
-          // ТЕ ДВОЕ ВСКАКИВАЮТ И УБЕГАЮТ ВБОК
           if (t >= 9.0) {
             const runT = Math.min((t - 9.0) / 1.5, 1);
             const standT = Math.min(runT * 3, 1);
             const yOff = (1 - standT) * 0.3;
             const rotX = (1 - standT) * Math.PI / 2;
             
-            // Бегут в стороны от монстра (X) и чуть к нам (Z)
             p1.position.set(-4 - runT * 5, yOff, -2 + runT * 6);
             p1.rotation.x = rotX;
             p3.position.set(4 + runT * 5, yOff, -2 + runT * 6);
@@ -1545,7 +1531,6 @@
         return;
       }
       
-      // ПЛАВНОЕ ЗАТЕМНЕНИЕ В КОНЦЕ
       fade.style.opacity = Math.min((t - 15.0) / 2.0, 1);
       if (t > 17.0) startGameplay();
     }
@@ -1572,7 +1557,7 @@
       hintGame.style.opacity = 1;
     }
 
-    // ===================== ГЕЙМПЛЕЙ =====================
+    // === ГЕЙМПЛЕЙ ===
     function updateGameplay(dt) {
       gameplayTime += dt;
 
@@ -1619,7 +1604,6 @@
         }
       }
 
-      // === ПОДЪЕМ ПО СТУПЕНЬКАМ ===
       if (playerState.pos.z < -6.5) {
         const stepProgress = Math.min((-6.5 - playerState.pos.z) / 1.0, 1);
         playerState.pos.y = 1.6 + stepProgress * 0.5;
@@ -1650,7 +1634,7 @@
       camera.position.copy(playerState.pos);
     }
 
-    // ===================== ЦИКЛ =====================
+    // === ЦИКЛ ===
     function animate() {
       requestAnimationFrame(animate);
       const dt = Math.min(clock.getDelta(), 0.1);
