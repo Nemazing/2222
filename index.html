@@ -195,10 +195,7 @@
       inset: 0;
       z-index: 1;
     }
-    canvas { 
-      display: block; 
-      image-rendering: pixelated; /* Делаем пиксели крупными и четкими */
-    }
+    canvas { display: block; }
     #hint-game {
       position: fixed; bottom: 10px; left: 10px;
       color: #aaa; font-family: monospace; font-size: 13px;
@@ -212,7 +209,6 @@
       position: fixed; inset: 0; opacity: 0;
       pointer-events: none; z-index: 8; mix-blend-mode: overlay;
       background-repeat: repeat;
-      image-rendering: pixelated;
     }
     #vignette {
       position: fixed; inset: 0; pointer-events: none; z-index: 7;
@@ -288,8 +284,8 @@
     const SOUND_EVENTS = [
       { file: "sounds/creak.mp3",   time: 0.5,  volume: 1.0 },
       { file: "sounds/footsteps.mp3", time: 2.5,  volume: 0.6 },
-      { file: "sounds/scream.mp3",  time: 10.5, volume: 1.0 },
-      { file: "sounds/drag.mp3",    time: 8.7,  volume: 1.0 },
+      { file: "sounds/scream.mp3",  time: 9.5, volume: 1.0 },
+      { file: "sounds/drag.mp3",    time: 8.0,  volume: 1.0 },
       { file: "sounds/door_slam.mp3", time: 1.2,  volume: 1.0 },
       { file: "sounds/cry.mp3",       time: 1.8,  volume: 0.8 },
       { file: "sounds/rustle.mp3",    time: 4.0,  volume: 0.5 }
@@ -525,7 +521,7 @@
       return new THREE.CanvasTexture(c);
     }
 
-    // ===================== СЦЕНА + ПИКСЕЛЬНОЕ КАЧЕСТВО (360p) =====================
+    // ===================== СЦЕНА + КАЧЕСТВО =====================
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0a0d12);
     scene.fog = new THREE.Fog(0x0a0d12, 12, 60);
@@ -534,12 +530,14 @@
     camera.position.set(0, 2.5, 6);
     scene.add(camera);
 
-    // ОТКЛЮЧАЕМ СГЛАЖИВАНИЕ И СТАВИМ НИЗКОЕ РАЗРЕШЕНИЕ
-    const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
+    // НОРМАЛЬНОЕ КАЧЕСТВО
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     renderer.setSize(innerWidth, innerHeight);
-    renderer.setPixelRatio(0.25); // 0.25 делает картинку зернистой/пиксельной (360p-эффект)
-    renderer.shadowMap.enabled = false; // Отключаем тени для ретро-эффекта
-    // Убираем ACESFilmicToneMapping, чтобы цвета были "плоскими"
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.4;
     document.getElementById('game-container').appendChild(renderer.domElement);
 
     // ===================== СВЕТ =====================
@@ -547,6 +545,15 @@
     scene.add(new THREE.AmbientLight(0x445566, 1.2));
     const moonLight = new THREE.DirectionalLight(0xaabbdd, 1.5);
     moonLight.position.set(-8, 14, 6);
+    moonLight.castShadow = true;
+    moonLight.shadow.mapSize.set(2048, 2048);
+    moonLight.shadow.camera.left = -22;
+    moonLight.shadow.camera.right = 22;
+    moonLight.shadow.camera.top = 22;
+    moonLight.shadow.camera.bottom = -22;
+    moonLight.shadow.camera.near = 0.5;
+    moonLight.shadow.camera.far = 60;
+    moonLight.shadow.bias = -0.0005;
     scene.add(moonLight);
 
     // ===================== ФОНАРИК =====================
@@ -619,11 +626,13 @@
       const g = new THREE.Group();
       const foundation = new THREE.Mesh(new THREE.BoxGeometry(10.6, 0.5, 12.6), stoneMat);
       foundation.position.set(0, 0.25, -16);
-      outsideGroup.add(foundation);
+      foundation.castShadow = true; foundation.receiveShadow = true;
+      g.add(foundation);
 
       function cabinWall(w, h, d, x, y, z) {
         const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), cabinWoodMat);
         m.position.set(x, y, z);
+        m.castShadow = true; m.receiveShadow = true;
         g.add(m); return m;
       }
       cabinWall(0.3, 4.6, 12, -4.85, 2.8, -16);
@@ -635,6 +644,7 @@
 
       const floor = new THREE.Mesh(new THREE.BoxGeometry(9.7, 0.2, 12), cabinWoodMat);
       floor.position.set(0, 0.6, -16);
+      floor.receiveShadow = true;
       g.add(floor);
 
       const roofAngle = 0.52;
@@ -642,23 +652,28 @@
       const roofL = new THREE.Mesh(new THREE.BoxGeometry(roofLen, 0.25, 13.5), roofMat);
       roofL.position.set(-(roofLen/2)*Math.cos(roofAngle), 5.1 + (roofLen/2)*Math.sin(roofAngle), -16);
       roofL.rotation.z = roofAngle;
+      roofL.castShadow = true; roofL.receiveShadow = true;
       g.add(roofL);
       
       const roofR = new THREE.Mesh(new THREE.BoxGeometry(roofLen, 0.25, 13.5), roofMat);
       roofR.position.set((roofLen/2)*Math.cos(roofAngle), 5.1 + (roofLen/2)*Math.sin(roofAngle), -16);
       roofR.rotation.z = -roofAngle;
+      roofR.castShadow = true; roofR.receiveShadow = true;
       g.add(roofR);
       
       const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 13.5), darkWoodMat);
       ridge.position.set(0, 5.1 + roofLen*Math.sin(roofAngle), -16);
+      ridge.castShadow = true;
       g.add(ridge);
       
       const chimney = new THREE.Mesh(new THREE.BoxGeometry(0.9, 3.0, 0.9), stoneMat);
       chimney.position.set(-2, 7.0, -18);
+      chimney.castShadow = true;
       g.add(chimney);
 
       function makeWindow(x, y, z, rotY = 0) {
         const winGroup = new THREE.Group();
+        
         const glass = new THREE.Mesh(
           new THREE.PlaneGeometry(0.7, 0.9),
           new THREE.MeshStandardMaterial({ 
@@ -702,12 +717,14 @@
 
       const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(2.0, 3.4, 0.15), darkWoodMat);
       doorFrame.position.set(0, 2.25, -9.85);
+      doorFrame.castShadow = true;
       g.add(doorFrame);
       
       const doorPivot = new THREE.Group();
       doorPivot.position.set(-0.95, 2.25, -9.75);
       const doorPanel = new THREE.Mesh(new THREE.BoxGeometry(1.85, 3.2, 0.08), cabinWoodMat);
       doorPanel.position.set(0.925, 0, 0);
+      doorPanel.castShadow = true;
       doorPivot.add(doorPanel);
       doorPivot.rotation.y = 0.5;
       g.add(doorPivot);
@@ -720,19 +737,21 @@
       for (let i = 0; i < 3; i++) {
         const step = new THREE.Mesh(new THREE.BoxGeometry(4, 0.18, 0.55), cabinWoodMat);
         step.position.set(0, 0.5 - i*0.16, -9.3 + i*0.55);
+        step.castShadow = true; step.receiveShadow = true;
         g.add(step);
       }
       for (const x of [-1.9, 1.9]) {
         const post1 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.2, 0.12), darkWoodMat);
-        post1.position.set(x, 0.6, -9.3); g.add(post1);
+        post1.position.set(x, 0.6, -9.3); post1.castShadow = true; g.add(post1);
         const post2 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.0, 0.12), darkWoodMat);
-        post2.position.set(x, 0.55, -8.2); g.add(post2);
+        post2.position.set(x, 0.55, -8.2); post2.castShadow = true; g.add(post2);
         const rail = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 1.15), darkWoodMat);
         rail.position.set(x, 1.15, -8.75); g.add(rail);
       }
       const broken = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.06, 0.28), darkWoodMat);
       broken.position.set(1.05, 0.58, -9.3);
       broken.rotation.z = 0.42; broken.rotation.y = 0.25;
+      broken.castShadow = true;
       g.add(broken);
 
       const entryLight = new THREE.PointLight(0xaa8844, 0.8, 6);
@@ -752,11 +771,13 @@
         const post = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.5, 0.14), fenceWoodMat);
         post.position.set(x, 0.75, z);
         post.rotation.z = (Math.random() - 0.5) * 0.06;
+        post.castShadow = true;
         g.add(post);
       }
       for (const y of [0.45, 1.15]) {
         const rail = new THREE.Mesh(new THREE.BoxGeometry(len, 0.09, 0.07), fenceWoodMat);
         rail.position.set((x1 + x2) / 2, y, z);
+        rail.castShadow = true;
         g.add(rail);
       }
       outsideGroup.add(g);
@@ -767,6 +788,7 @@
     for (const x of [-2, 2]) {
       const post = new THREE.Mesh(new THREE.BoxGeometry(0.24, 2.3, 0.24), fenceWoodMat);
       post.position.set(x, 1.15, -5);
+      post.castShadow = true;
       outsideGroup.add(post);
     }
 
@@ -776,13 +798,13 @@
     function makeTree(x, z, scale = 1) {
       const g = new THREE.Group();
       const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.28, 2.6, 6), trunkMat);
-      trunk.position.y = 1.3; g.add(trunk);
+      trunk.position.y = 1.3; trunk.castShadow = true; g.add(trunk);
       const leaf1 = new THREE.Mesh(new THREE.ConeGeometry(1.4, 2.4, 7), leavesMat);
-      leaf1.position.y = 2.8; g.add(leaf1);
+      leaf1.position.y = 2.8; leaf1.castShadow = true; g.add(leaf1);
       const leaf2 = new THREE.Mesh(new THREE.ConeGeometry(1.1, 1.9, 7), leavesMat);
-      leaf2.position.y = 3.9; g.add(leaf2);
+      leaf2.position.y = 3.9; leaf2.castShadow = true; g.add(leaf2);
       const leaf3 = new THREE.Mesh(new THREE.ConeGeometry(0.75, 1.4, 7), leavesMat);
-      leaf3.position.y = 4.8; g.add(leaf3);
+      leaf3.position.y = 4.8; leaf3.castShadow = true; g.add(leaf3);
       g.position.set(x, 0, z);
       g.scale.setScalar(scale);
       g.rotation.y = Math.random() * Math.PI * 2;
@@ -803,12 +825,13 @@
     );
     path.rotation.x = -Math.PI / 2;
     path.position.set(0, 0.02, -7.5);
+    path.receiveShadow = true;
     outsideGroup.add(path);
 
     function makeTorch(x, z) {
       const g = new THREE.Group();
       const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.3, 6), fenceWoodMat);
-      stick.position.y = 0.65; g.add(stick);
+      stick.position.y = 0.65; stick.castShadow = true; g.add(stick);
       const fire = new THREE.Mesh(
         new THREE.SphereGeometry(0.2, 10, 10),
         new THREE.MeshBasicMaterial({ color: 0xff9944 })
@@ -874,6 +897,7 @@
       const face = new THREE.Mesh(faceGeo, skinMatLocal); face.position.set(0, 1.65, 0.16); g.add(face);
 
       const wrapper = new THREE.Group(); wrapper.add(g);
+      wrapper.traverse(c => { if(c.isMesh) c.castShadow = true; });
       return wrapper;
     }
     const p1 = createP1();
@@ -932,6 +956,7 @@
       const face = new THREE.Mesh(faceGeo, skinMatLocal); face.position.set(0, 1.65, 0.16); g.add(face);
 
       const wrapper = new THREE.Group(); wrapper.add(g);
+      wrapper.traverse(c => { if(c.isMesh) c.castShadow = true; });
       return wrapper;
     }
     const p2 = createVictim();
@@ -988,6 +1013,7 @@
       const face = new THREE.Mesh(faceGeo, skinMatLocal); face.position.set(0, 1.65, 0.16); g.add(face);
 
       const wrapper = new THREE.Group(); wrapper.add(g);
+      wrapper.traverse(c => { if(c.isMesh) c.castShadow = true; });
       return wrapper;
     }
     const p3 = createThirdPlayer();
@@ -1031,6 +1057,7 @@
     monsterGroup.add(mLegL, mLegR, mTorso, mArmL, mArmR, mHead, mHairTop, mHairFringe, mFace);
     
     monsterGroup.position.set(2.5, 0, -9.5);
+    monsterGroup.traverse(c => { if(c.isMesh) c.castShadow = true; });
     monsterGroup.visible = false;
     outsideGroup.add(monsterGroup);
     const monster = monsterGroup;
@@ -1043,6 +1070,7 @@
     function wetWall(w, h, d, x, y, z) {
       const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wetMat);
       m.position.set(x, y, z);
+      m.castShadow = true; m.receiveShadow = true;
       roomGroup.add(m);
     }
     wetWall(0.1, 2.5, 3, -1.2, 1.25, 0.15);
@@ -1052,6 +1080,7 @@
     const roomFloor = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 3), wetMat);
     roomFloor.rotation.x = -Math.PI / 2;
     roomFloor.position.z = 0.15;
+    roomFloor.receiveShadow = true;
     roomGroup.add(roomFloor);
 
     const passage = new THREE.Mesh(
@@ -1064,10 +1093,11 @@
     const corrInnerFloor = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.7), wetMat);
     corrInnerFloor.rotation.x = -Math.PI / 2;
     corrInnerFloor.position.set(0, 0.01, 2.85);
+    corrInnerFloor.receiveShadow = true;
     roomGroup.add(corrInnerFloor);
     for (const x of [-1.2, 1.2]) {
       const w = new THREE.Mesh(new THREE.BoxGeometry(0.1, 3, 2.7), wetMat);
-      w.position.set(x, 1.5, 2.85); roomGroup.add(w);
+      w.position.set(x, 1.5, 2.85); w.receiveShadow = true; roomGroup.add(w);
     }
     const corrInnerCeil = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.1, 2.7), wetMat);
     corrInnerCeil.position.set(0, 3, 2.85); roomGroup.add(corrInnerCeil);
@@ -1077,6 +1107,7 @@
       new THREE.MeshStandardMaterial({ color: 0x3a2c1e, roughness: 0.95, map: makeWallTexture() })
     );
     sealedWall.position.set(0, 6, -1.15);
+    sealedWall.castShadow = true; sealedWall.receiveShadow = true;
     roomGroup.add(sealedWall);
 
     const roomLight = new THREE.PointLight(0x6688bb, 2.5, 10);
@@ -1088,7 +1119,7 @@
     const corridorMat = new THREE.MeshStandardMaterial({ color: 0x3a3228, roughness: 0.9 });
     function corrWall(w, h, d, x, y, z) {
       const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), corridorMat);
-      m.position.set(x, y, z); gameGroup.add(m); return m;
+      m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; gameGroup.add(m); return m;
     }
     corrWall(0.2, 3, 16, -2.0, 1.5, 0);
     corrWall(0.2, 3, 16,  2.0, 1.5, 0);
@@ -1099,6 +1130,7 @@
       new THREE.MeshStandardMaterial({ color: 0x2a221a, roughness: 1 })
     );
     corrFloor.rotation.x = -Math.PI / 2;
+    corrFloor.receiveShadow = true;
     gameGroup.add(corrFloor);
 
     const carpetMat = new THREE.MeshStandardMaterial({ map: makeCarpetTexture(), roughness: 1 });
@@ -1112,7 +1144,7 @@
     function makeTable(x, z) {
       const g = new THREE.Group();
       const top = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.06, 0.6), darkWoodMat);
-      top.position.y = 0.8;
+      top.position.y = 0.8; top.castShadow = true; top.receiveShadow = true;
       g.add(top);
       for (const dx of [-0.4, 0.4]) for (const dz of [-0.25, 0.25]) {
         const leg = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.8, 0.06), darkWoodMat);
@@ -1134,6 +1166,7 @@
       const geo = new THREE.LatheGeometry(pts, 8);
       const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color: 0x6a5a4a, roughness: 0.6}));
       mesh.position.set(x, y, z);
+      mesh.castShadow = true;
       gameGroup.add(mesh);
     }
     makeTable(-1.6, -2); makeVase(-1.6, 0.83, -2);
@@ -1160,12 +1193,14 @@
     doorPivotL.position.set(-2.0, 1.5, -8);
     const panelL = new THREE.Mesh(new THREE.BoxGeometry(2.0, 3, 0.15), doorMat);
     panelL.position.set(1.0, 0, 0);
+    panelL.castShadow = true; panelL.receiveShadow = true;
     doorPivotL.add(panelL);
     gameGroup.add(doorPivotL);
 
     doorPivotR.position.set(2.0, 1.5, -8);
     const panelR = new THREE.Mesh(new THREE.BoxGeometry(2.0, 3, 0.15), doorMat);
     panelR.position.set(-1.0, 0, 0);
+    panelR.castShadow = true; panelR.receiveShadow = true;
     doorPivotR.add(panelR);
     gameGroup.add(doorPivotR);
 
@@ -1264,11 +1299,12 @@
       flashlight.visible = false;
       viewmodel.visible = false;
       
+      // Сброс: все смотрят вправо (-X)
       players.forEach((p, i) => {
-        if (i === 0) p.position.set(-2, 0, -10);
-        if (i === 1) { p.position.set(0, 0, -10); p.rotation.set(0,Math.PI,0); }
-        if (i === 2) p.position.set(2, 0, -10);
-        p.rotation.set(0, Math.PI, 0);
+        if (i === 0) p.position.set(-2, 0, 0);
+        if (i === 1) { p.position.set(0, 0, 0); p.rotation.set(0,-Math.PI/2,0); }
+        if (i === 2) p.position.set(2, 0, 0);
+        p.rotation.set(0, -Math.PI/2, 0);
         p.visible = true;
       });
       
@@ -1358,17 +1394,18 @@
       flash.style.opacity = 0;
       grainEl.style.opacity = 0.5;
 
-      // ФАЗА 1: Идут из леса (издалека) к поляне
-      if (t < 5.5) {
+      // ФАЗА 1: Идут по прямой из леса прямо к дому (без разворотов)
+      if (t < 7) {
         camera.position.set(0, 2.5, 6);
         camera.lookAt(0, 1.6, -10);
-        const walkT = Math.min((t - 2.25) / 3.25, 1);
+        const walkT = Math.min((t - 2.25) / 4.75, 1);
         
-        p1.position.z = -10 + walkT * 8; p1.position.x = -2;
-        p2.position.z = -10 + walkT * 8; p2.position.x = 0;
-        p3.position.z = -10 + walkT * 8; p3.position.x = 2;
+        p1.position.z = -10 + walkT * 9.5; p1.position.x = -2;
+        p2.position.z = -10 + walkT * 9.5; p2.position.x = 0;
+        p3.position.z = -10 + walkT * 9.5; p3.position.x = 2;
         
-        p1.rotation.y = Math.PI; p2.rotation.y = Math.PI; p3.rotation.y = Math.PI;
+        // ВСЕ СМОТРЯТ В СТОРОНУ ДОМА (по -Z)
+        p1.rotation.y = 0; p2.rotation.y = 0; p3.rotation.y = 0;
         
         animateWalk(p1, t, 0.8);
         animateWalk(p2, t, 0.8);
@@ -1379,53 +1416,11 @@
         return;
       }
 
-      // ФАЗА 2: Остановились и повернулись к лагерю (лицом к -Z)
-      if (t < 7.0) {
-        camera.position.set(0, 2.5, 6);
-        camera.lookAt(0, 1.6, -10);
-        const turnT = Math.min((t - 5.5) / 1.5, 1);
-        
-        p1.position.z = -2; p1.position.x = -2;
-        p2.position.z = -2; p2.position.x = 0;
-        p3.position.z = -2; p3.position.x = 2;
-        
-        const currentRot = Math.PI - turnT * Math.PI;
-        p1.rotation.y = currentRot; p2.rotation.y = currentRot; p3.rotation.y = currentRot;
-        
-        if (turnT >= 1) {
-          animateWalk(p1, t, 0); animateWalk(p2, t, 0); animateWalk(p3, t, 0);
-        } else {
-          animateWalk(p1, t, 0.5); animateWalk(p2, t, 0.5); animateWalk(p3, t, 0.5);
-        }
-        return;
-      }
-
-      // ФАЗА 3: Медленно идут к лагерю
-      if (t < 8.5) {
-        camera.position.set(0, 2.5, 6);
-        camera.lookAt(0, 1.6, -10);
-        const walkT = Math.min((t - 7.0) / 1.5, 1);
-        
-        p1.position.z = -2 - walkT * 7.5; p1.position.x = -2;
-        p2.position.z = -2 - walkT * 7.5; p2.position.x = 0;
-        p3.position.z = -2 - walkT * 7.5; p3.position.x = 2;
-        
-        p1.rotation.y = 0; p2.rotation.y = 0; p3.rotation.y = 0;
-        
-        animateWalk(p1, t, 0.6);
-        animateWalk(p2, t, 0.6);
-        animateWalk(p3, t, 0.6);
-        
-        if (t - lastFootstep > 0.8) { playFootstep(); lastFootstep = t; }
-        return;
-      }
-
-      // ФАЗА 4: Захват (замедлен)
-      if (t < 13) {
-        // ДОБАВЛЯЕМ ТРЯСКУ КАМЕРЫ В МОМЕНТ ЗАХВАТА
+      // ФАЗА 2: Захват (замедлен)
+      if (t < 12.5) {
         let shakeX = 0, shakeY = 0, shakeZ = 0;
-        if (t > 8.5 && t < 13) {
-          const shakeIntensity = (t < 9.5) ? 0.05 : 0.15; 
+        if (t > 7.0 && t < 12.5) {
+          const shakeIntensity = (t < 8.0) ? 0.05 : 0.15; 
           shakeX = (Math.random() - 0.5) * shakeIntensity;
           shakeY = (Math.random() - 0.5) * shakeIntensity;
           shakeZ = (Math.random() - 0.5) * shakeIntensity;
@@ -1435,26 +1430,25 @@
         camera.lookAt(0, 0.8, -10.5);
 
         p2.visible = true;
-        if (t <= 9.0) {
+        if (t <= 7.7) {
           p2.position.set(0, 0, -9.5);
           p2.rotation.x = 0;
         }
-        if (t <= 9.2) {
+        if (t <= 7.9) {
           p1.position.set(-2, 0, -9.5); p1.rotation.x = 0;
           p3.position.set(2, 0, -9.5);  p3.rotation.x = 0;
         }
         
-        if (t > 8.5) {
+        if (t > 7.0) {
           monster.visible = true;
-          const appearT = Math.min((t - 8.5) / 1.0, 1);
+          const appearT = Math.min((t - 7.0) / 1.0, 1);
           monster.position.set(2.5 - appearT * 2.5, 0, -9.5);
           animateWalk(monster, t * 1.2, 1.0);
         }
         
-        // Затаскивание
-        if (t > 9.2) {
-          const dragT = Math.min((t - 9.2) / 3.8, 1); 
-          const lieT = Math.min((t - 9.2) / 0.3, 1);
+        if (t > 7.7) {
+          const dragT = Math.min((t - 7.7) / 3.8, 1); 
+          const lieT = Math.min((t - 7.7) / 0.3, 1);
           
           p2.rotation.x = lieT * Math.PI / 2;
           p2.position.y = lieT * 0.3;
@@ -1466,8 +1460,8 @@
           p2.position.x = 0;
           p2.position.z = baseZ - 1.2 + jerk;
 
-          if (t > 9.5 && t < 10.5) {
-            const crawlT = (t - 9.5) / 1.0;
+          if (t > 8.0 && t < 9.0) {
+            const crawlT = (t - 8.0) / 1.0;
             p1.position.set(-2 - crawlT * 1.2, crawlT * 0.3, -9.5 + crawlT * 1.5);
             p1.rotation.x = crawlT * Math.PI / 2;
             p3.position.set(2 + crawlT * 1.2, crawlT * 0.3, -9.5 + crawlT * 1.5);
@@ -1477,8 +1471,8 @@
               playedEvents.cutscene.add('thud');
             }
           }
-          if (t >= 10.5) {
-            const runT = Math.min((t - 10.5) / 1.5, 1);
+          if (t >= 9.0) {
+            const runT = Math.min((t - 9.0) / 1.5, 1);
             const standT = Math.min(runT * 3, 1);
             const yOff = (1 - standT) * 0.3;
             const rotX = (1 - standT) * Math.PI / 2;
@@ -1497,15 +1491,15 @@
         return;
       }
 
-      // ФАЗА 5: Комната-ловушка
-      if (t < 15.5) {
+      // ФАЗА 3: Комната-ловушка
+      if (t < 15.0) {
         monster.visible = false;
         p2.visible = false;
         outsideGroup.visible = true;
         roomGroup.visible = true;
 
-        if (t < 13.0) {
-          const panK = (t - 12.5) / 1.0;
+        if (t < 12.5) {
+          const panK = (t - 12.0) / 1.0;
           camera.position.set(
             0.1 + Math.sin(panK * 1.2) * 0.15,
             1.6 + (Math.random() - 0.5) * 0.02,
@@ -1514,8 +1508,8 @@
           camera.lookAt(-0.5 - panK * 0.4, 1.4, -15.2);
           return;
         }
-        if (t < 13.6) {
-          const k = (t - 13.0) / 0.6;
+        if (t < 13.1) {
+          const k = (t - 12.5) / 0.6;
           const ease = k * k * (3 - 2 * k);
           const fromPos = new THREE.Vector3(0.1, 1.6, -13.4);
           const toPos   = new THREE.Vector3(0, 3.2, -5);
@@ -1526,13 +1520,13 @@
           camera.lookAt(lookAt);
           return;
         }
-        const outK = Math.min((t - 13.6) / 1.4, 1);
+        const outK = Math.min((t - 13.1) / 1.4, 1);
         camera.position.set(0, 3.2 + outK * 0.4, -5 + outK * 3);
         camera.lookAt(0, 1.5, -12);
         return;
       }
-      fade.style.opacity = Math.min((t - 15.5) / 0.6, 1);
-      if (t > 16.1) startGameplay();
+      fade.style.opacity = Math.min((t - 15.0) / 0.6, 1);
+      if (t > 15.6) startGameplay();
     }
 
     function startGameplay() {
