@@ -488,42 +488,35 @@
       const c = document.createElement('canvas');
       c.width = 128; c.height = 128;
       const ctx = c.getContext('2d');
-      ctx.fillStyle = '#1a1a24'; ctx.fillRect(0,0,128,128);
-      ctx.strokeStyle = '#5a5a6a'; ctx.lineWidth = 1;
-      for (let i = 0; i < 5; i++) {
+      ctx.fillStyle = 'rgba(20, 25, 35, 0.8)'; 
+      ctx.fillRect(0,0,128,128);
+      ctx.fillStyle = 'rgba(100, 150, 200, 0.2)';
+      ctx.beginPath();
+      ctx.moveTo(10, 10); ctx.lineTo(60, 10); ctx.lineTo(10, 60); ctx.fill();
+      ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+      for (let i = 0; i < 6; i++) {
         ctx.beginPath();
         ctx.moveTo(64, 64);
-        ctx.lineTo(64 + Math.random()*60-30, 64 + Math.random()*60-30);
+        ctx.lineTo(64 + Math.random()*80-40, 64 + Math.random()*80-40);
         ctx.stroke();
       }
       return new THREE.CanvasTexture(c);
     }
-    // Текстура для худи (спина)
     function makeHoodieBackTexture() {
       const c = document.createElement('canvas');
       c.width = 256; c.height = 256;
       const ctx = c.getContext('2d');
-      // Чёрный фон худи
       ctx.fillStyle = '#111'; ctx.fillRect(0,0,256,256);
-      // Красный дракон/демон (стилизация)
       ctx.fillStyle = '#c1121f';
-      ctx.beginPath();
-      ctx.arc(128, 128, 50, 0, Math.PI*2); // Тело
-      ctx.fill();
-      // Крылья/щупальца
+      ctx.beginPath(); ctx.arc(128, 128, 50, 0, Math.PI*2); ctx.fill();
       for(let i=0; i<6; i++){
-        ctx.beginPath();
-        ctx.moveTo(128, 128);
+        ctx.beginPath(); ctx.moveTo(128, 128);
         ctx.quadraticCurveTo(128 + Math.cos(i)*100, 128 + Math.sin(i)*100, 128 + Math.cos(i)*80, 128 + Math.sin(i)*80);
-        ctx.lineWidth = 8;
-        ctx.strokeStyle = '#c1121f';
-        ctx.stroke();
+        ctx.lineWidth = 8; ctx.strokeStyle = '#c1121f'; ctx.stroke();
       }
-      // Белые глаза/детали
       ctx.fillStyle = '#fff';
       ctx.beginPath(); ctx.arc(115, 115, 8, 0, Math.PI*2); ctx.fill();
       ctx.beginPath(); ctx.arc(141, 115, 8, 0, Math.PI*2); ctx.fill();
-      
       return new THREE.CanvasTexture(c);
     }
 
@@ -623,7 +616,7 @@
     const stoneTex = makeStoneTexture();
     const glassTex = makeGlassTexture();
     const cabinWoodMat = new THREE.MeshStandardMaterial({ color: 0xb09880, roughness: 0.85, map: woodTex });
-    const darkWoodMat = new THREE.MeshStandardMaterial({ color: 0x4a3420, roughness: 0.95 });
+    const darkWoodMat = new THREE.MeshStandardMaterial({ color: 0x2a1a10, roughness: 0.95 });
     const stoneMat = new THREE.MeshStandardMaterial({ color: 0x707070, roughness: 1, map: stoneTex });
     const roofMat = new THREE.MeshStandardMaterial({ color: 0x2a2018, roughness: 0.95 });
 
@@ -678,21 +671,35 @@
 
       function makeWindow(x, y, z, rotY = 0) {
         const winGroup = new THREE.Group();
+        
+        // Стекло (внутри рамы)
         const glass = new THREE.Mesh(
           new THREE.PlaneGeometry(0.7, 0.9),
-          new THREE.MeshStandardMaterial({ map: glassTex, roughness: 0.2, metalness: 0.6, side: THREE.DoubleSide })
+          new THREE.MeshStandardMaterial({ 
+            map: glassTex, 
+            roughness: 0.1, 
+            metalness: 0.9, 
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.9
+          })
         );
+        glass.position.z = -0.01; // Утоплено в стену
         winGroup.add(glass);
-        const fT = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.1, 0.1), darkWoodMat);
+        
+        // Рама (снаружи)
+        const fT = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.1, 0.15), darkWoodMat);
         fT.position.set(0, 0.5, 0.05); winGroup.add(fT);
-        const fB = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.1, 0.1), darkWoodMat);
+        const fB = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.1, 0.15), darkWoodMat);
         fB.position.set(0, -0.5, 0.05); winGroup.add(fB);
-        const fL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.0, 0.1), darkWoodMat);
+        const fL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.0, 0.15), darkWoodMat);
         fL.position.set(-0.41, 0, 0.05); winGroup.add(fL);
-        const fR = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.0, 0.1), darkWoodMat);
+        const fR = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.0, 0.15), darkWoodMat);
         fR.position.set(0.41, 0, 0.05); winGroup.add(fR);
-        const cross = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.9, 0.1), darkWoodMat);
+        const cross = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.9, 0.15), darkWoodMat);
         cross.position.z = 0.05; winGroup.add(cross);
+        
+        // Ставни
         const shL = new THREE.Mesh(new THREE.BoxGeometry(0.38, 1.05, 0.08), cabinWoodMat);
         shL.position.set(-0.66, 0, 0.08); winGroup.add(shL);
         const shR = new THREE.Mesh(new THREE.BoxGeometry(0.38, 1.05, 0.08), cabinWoodMat);
@@ -702,12 +709,12 @@
         winGroup.rotation.y = rotY;
         g.add(winGroup);
       }
-      makeWindow(-3.5, 3.0, -9.6);
-      makeWindow( 3.5, 3.0, -9.6);
-      makeWindow(-4.6, 3.0, -14, Math.PI/2);
-      makeWindow( 4.6, 3.0, -14, -Math.PI/2);
-      makeWindow(-4.6, 3.0, -18, Math.PI/2);
-      makeWindow( 4.6, 3.0, -18, -Math.PI/2);
+      makeWindow(-3.5, 3.0, -9.7);
+      makeWindow( 3.5, 3.0, -9.7);
+      makeWindow(-4.7, 3.0, -14, Math.PI/2);
+      makeWindow( 4.7, 3.0, -14, -Math.PI/2);
+      makeWindow(-4.7, 3.0, -18, Math.PI/2);
+      makeWindow( 4.7, 3.0, -18, -Math.PI/2);
 
       const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(2.0, 3.4, 0.15), darkWoodMat);
       doorFrame.position.set(0, 2.25, -9.85);
@@ -856,98 +863,122 @@
     p1.position.set(-2, 0, 0);
     outsideGroup.add(p1);
 
-    // Игрок 3 (обычный)
-    const p3 = createPlayer(0x4a6a4a);
-    p3.position.set(2, 0, 0);
-    outsideGroup.add(p3);
-
-    // === ИГРОК 2 (СПЕЦИАЛЬНЫЙ - ЖЕРТВА) ===
-    function createCustomPlayer() {
+    // === ИГРОК 2 (ЖЕРТВА - ХУДИ С ДРАКОНОМ) ===
+    function createVictim() {
       const g = new THREE.Group();
-      
-      // Ноги (широкие темные штаны)
       const legGeo = new THREE.BoxGeometry(0.2, 0.8, 0.2);
       const legMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 });
-      const legL = new THREE.Mesh(legGeo, legMat);
-      legL.position.set(-0.15, 0.4, 0);
-      const legR = new THREE.Mesh(legGeo, legMat);
-      legR.position.set(0.15, 0.4, 0);
+      const legL = new THREE.Mesh(legGeo, legMat); legL.position.set(-0.15, 0.4, 0);
+      const legR = new THREE.Mesh(legGeo, legMat); legR.position.set(0.15, 0.4, 0);
       g.add(legL, legR);
 
-      // Торс (черное худи)
       const torsoGeo = new THREE.BoxGeometry(0.65, 0.75, 0.35);
       const torsoMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 });
-      const torso = new THREE.Mesh(torsoGeo, torsoMat);
-      torso.position.y = 1.15;
-      g.add(torso);
+      const torso = new THREE.Mesh(torsoGeo, torsoMat); torso.position.y = 1.15; g.add(torso);
 
-      // Рукава (оверсайз)
       const armGeo = new THREE.BoxGeometry(0.2, 0.6, 0.2);
-      const armL = new THREE.Mesh(armGeo, torsoMat);
-      armL.position.set(-0.45, 1.15, 0);
-      const armR = new THREE.Mesh(armGeo, torsoMat);
-      armR.position.set(0.45, 1.15, 0);
+      const armL = new THREE.Mesh(armGeo, torsoMat); armL.position.set(-0.45, 1.15, 0);
+      const armR = new THREE.Mesh(armGeo, torsoMat); armR.position.set(0.45, 1.15, 0);
       g.add(armL, armR);
 
-      // Кисти рук
       const handGeo = new THREE.SphereGeometry(0.08, 8, 8);
-      const skinMat = new THREE.MeshStandardMaterial({ color: 0xd4b4a4, roughness: 0.9 });
-      const handL = new THREE.Mesh(handGeo, skinMat);
-      handL.position.set(-0.45, 0.8, 0);
-      const handR = new THREE.Mesh(handGeo, skinMat);
-      handR.position.set(0.45, 0.8, 0);
+      const skinMatLocal = new THREE.MeshStandardMaterial({ color: 0xd4b4a4, roughness: 0.9 });
+      const handL = new THREE.Mesh(handGeo, skinMatLocal); handL.position.set(-0.45, 0.8, 0);
+      const handR = new THREE.Mesh(handGeo, skinMatLocal); handR.position.set(0.45, 0.8, 0);
       g.add(handL, handR);
 
-      // Капюшон (сзади)
       const hoodGeo = new THREE.SphereGeometry(0.25, 8, 8);
-      const hood = new THREE.Mesh(hoodGeo, torsoMat);
-      hood.position.set(0, 1.4, -0.15);
-      g.add(hood);
+      const hood = new THREE.Mesh(hoodGeo, torsoMat); hood.position.set(0, 1.4, -0.15); g.add(hood);
 
-      // Принт на спине
       const printGeo = new THREE.PlaneGeometry(0.5, 0.5);
       const printMat = new THREE.MeshStandardMaterial({ map: makeHoodieBackTexture(), roughness: 0.8 });
-      const print = new THREE.Mesh(printGeo, printMat);
-      print.position.set(0, 1.15, -0.18);
-      print.rotation.y = Math.PI; // Смотрит назад
-      g.add(print);
+      const print = new THREE.Mesh(printGeo, printMat); print.position.set(0, 1.15, -0.18); print.rotation.y = Math.PI; g.add(print);
+
+      const headGeo = new THREE.SphereGeometry(0.16, 12, 12);
+      const head = new THREE.Mesh(headGeo, skinMatLocal); head.position.y = 1.65; g.add(head);
+
+      const hairGeo = new THREE.SphereGeometry(0.18, 12, 12);
+      const hairMat = new THREE.MeshStandardMaterial({ color: 0xc0b0a0, roughness: 1 });
+      const hair = new THREE.Mesh(hairGeo, hairMat); hair.scale.set(1, 1.2, 1.1); hair.position.set(0, 1.68, 0.02); g.add(hair);
+      
+      const faceGeo = new THREE.CircleGeometry(0.14, 12);
+      const face = new THREE.Mesh(faceGeo, skinMatLocal); face.position.set(0, 1.65, 0.17); g.add(face);
+
+      const wrapper = new THREE.Group(); wrapper.add(g);
+      wrapper.traverse(c => { if(c.isMesh) c.castShadow = true; });
+      return wrapper;
+    }
+    const p2 = createVictim();
+    p2.position.set(0, 0, 0); // По центру
+    outsideGroup.add(p2);
+
+    // === ИГРОК 3 (СВЕТЛО-СЕРЫЕ ШТАНЫ, ЧЕРНЫЙ СВИТШОТ, ТЕМНЫЕ ВОЛОСЫ) ===
+    function createThirdPlayer() {
+      const g = new THREE.Group();
+      
+      // Светло-серые штаны
+      const legGeo = new THREE.BoxGeometry(0.22, 0.8, 0.22);
+      const legMat = new THREE.MeshStandardMaterial({ color: 0xa0a4a8, roughness: 0.9 }); // Светло-серый
+      const legL = new THREE.Mesh(legGeo, legMat); legL.position.set(-0.15, 0.4, 0);
+      const legR = new THREE.Mesh(legGeo, legMat); legR.position.set(0.15, 0.4, 0);
+      g.add(legL, legR);
+
+      // Кроссовки (белые)
+      const shoeGeo = new THREE.BoxGeometry(0.22, 0.1, 0.3);
+      const shoeMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.8 });
+      const shoeL = new THREE.Mesh(shoeGeo, shoeMat); shoeL.position.set(-0.15, 0.05, 0.05);
+      const shoeR = new THREE.Mesh(shoeGeo, shoeMat); shoeR.position.set(0.15, 0.05, 0.05);
+      g.add(shoeL, shoeR);
+
+      // Черный свитшот (оверсайз)
+      const torsoGeo = new THREE.BoxGeometry(0.7, 0.75, 0.35);
+      const torsoMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.9 });
+      const torso = new THREE.Mesh(torsoGeo, torsoMat); torso.position.y = 1.15; g.add(torso);
+
+      // Рукава
+      const armGeo = new THREE.BoxGeometry(0.22, 0.6, 0.22);
+      const armL = new THREE.Mesh(armGeo, torsoMat); armL.position.set(-0.46, 1.15, 0);
+      const armR = new THREE.Mesh(armGeo, torsoMat); armR.position.set(0.46, 1.15, 0);
+      g.add(armL, armR);
+
+      // Руки
+      const handGeo = new THREE.SphereGeometry(0.08, 8, 8);
+      const skinMatLocal = new THREE.MeshStandardMaterial({ color: 0xd4b4a4, roughness: 0.9 });
+      const handL = new THREE.Mesh(handGeo, skinMatLocal); handL.position.set(-0.46, 0.8, 0);
+      const handR = new THREE.Mesh(handGeo, skinMatLocal); handR.position.set(0.46, 0.8, 0);
+      g.add(handL, handR);
 
       // Голова
       const headGeo = new THREE.SphereGeometry(0.16, 12, 12);
-      const head = new THREE.Mesh(headGeo, skinMat);
-      head.position.y = 1.65;
-      g.add(head);
+      const head = new THREE.Mesh(headGeo, skinMatLocal); head.position.y = 1.65; g.add(head);
 
-      // Волосы (светлые, каскадом)
+      // Темные волосы (хвост)
       const hairGeo = new THREE.SphereGeometry(0.18, 12, 12);
-      const hairMat = new THREE.MeshStandardMaterial({ color: 0xc0b0a0, roughness: 1 });
+      const hairMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 1 });
       const hair = new THREE.Mesh(hairGeo, hairMat);
-      hair.scale.set(1, 1.2, 1);
-      hair.position.set(0, 1.68, 0.02);
-      // Срезаем переднюю часть, чтобы было лицо
-      hair.scale.z = 1.1;
+      hair.scale.set(1, 1.1, 1);
+      hair.position.set(0, 1.68, 0.02); 
       g.add(hair);
       
-      // Лицо (просто телесный круг спереди)
-      const faceGeo = new THREE.CircleGeometry(0.14, 12);
-      const face = new THREE.Mesh(faceGeo, skinMat);
-      face.position.set(0, 1.65, 0.17);
-      g.add(face);
+      // Хвостик сзади
+      const ponytailGeo = new THREE.CylinderGeometry(0.06, 0.02, 0.3, 8);
+      const ponytail = new THREE.Mesh(ponytailGeo, hairMat);
+      ponytail.position.set(0, 1.55, -0.2);
+      ponytail.rotation.x = 0.3;
+      g.add(ponytail);
 
-      // Всё в контейнер
-      const wrapper = new THREE.Group();
-      wrapper.add(g);
-      
-      // Включаем тени
+      // Лицо
+      const faceGeo = new THREE.CircleGeometry(0.14, 12);
+      const face = new THREE.Mesh(faceGeo, skinMatLocal); face.position.set(0, 1.65, 0.17); g.add(face);
+
+      const wrapper = new THREE.Group(); wrapper.add(g);
       wrapper.traverse(c => { if(c.isMesh) c.castShadow = true; });
-      
       return wrapper;
     }
-    
-    const p2 = createCustomPlayer();
-    p2.position.set(0, 0, 0); // По центру
-    outsideGroup.add(p2);
-    
+    const p3 = createThirdPlayer();
+    p3.position.set(2, 0, 0);
+    outsideGroup.add(p3);
+
     const players = [p1, p2, p3];
 
     // ============ МОНСТР ============
@@ -1201,7 +1232,7 @@
       players.forEach((p, i) => {
         if (i === 0) p.position.set(-2, 0, 0);
         if (i === 1) { p.position.set(0, 0, 0); p.rotation.set(0,0,0); } // Жертва
-        if (i === 2) p.position.set(2, 0, 0);
+        if (i === 2) p.position.set(2, 0, 0); // Третий игрок
         p.visible = true;
       });
       
@@ -1279,7 +1310,6 @@
         camera.lookAt(0, 1.6, -10);
         const walkT = Math.min((t - 2.25) / 4, 1);
         
-        // Движение группы
         p1.position.z = -walkT * 9.5; p1.position.x = -2 + Math.sin(t * 4) * 0.05;
         p2.position.z = -walkT * 9.5; p2.position.x = 0 + Math.sin(t * 4 + 1) * 0.05;
         p3.position.z = -walkT * 9.5; p3.position.x = 2 + Math.sin(t * 4 + 2) * 0.05;
@@ -1307,21 +1337,18 @@
           p3.position.set(2, 0, -9.5);  p3.rotation.x = 0;
         }
         
-        // Монстр выныривает
         if (t > 7.3) {
           monster.visible = true;
           const appearT = Math.min((t - 7.3) / 0.4, 1);
           monster.position.set(2.5 - appearT * 2.5, 0.95, -9.5);
         }
         
-        // ЗАТАСКИВАНИЕ ЗА НОГИ
         if (t > 7.7) {
           const dragT = Math.min((t - 7.7) / 2.2, 1);
           const lieT = Math.min((t - 7.7) / 0.3, 1);
           
-          // Жертва падает на спину (поворот 90 градусов вокруг X)
           p2.rotation.x = lieT * Math.PI / 2;
-          p2.position.y = lieT * 0.3; // Приподнимаем, чтобы не провалилась
+          p2.position.y = lieT * 0.3;
           
           const jerk = Math.sin(dragT * 25) * 0.1;
           const baseZ = -9.5 - dragT * 5;
@@ -1330,7 +1357,6 @@
           p2.position.x = 0;
           p2.position.z = baseZ - 1.2 + jerk;
 
-          // Остальные отползают
           if (t > 7.9 && t < 8.7) {
             const crawlT = (t - 7.9) / 0.8;
             p1.position.set(-2 - crawlT * 1.2, crawlT * 0.3, -9.5 + crawlT * 1.5);
@@ -1342,8 +1368,6 @@
               playedEvents.cutscene.add('thud');
             }
           }
-          
-          // Убегают
           if (t >= 8.7) {
             const runT = Math.min((t - 8.7) / 1.0, 1);
             const standT = Math.min(runT * 3, 1);
@@ -1362,7 +1386,7 @@
 
       if (t < 12) {
         monster.visible = false;
-        p2.visible = false; // Жертва утащена
+        p2.visible = false;
         outsideGroup.visible = true;
         roomGroup.visible = true;
 
