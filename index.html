@@ -324,11 +324,8 @@
     };
 
     const SOUND_EVENTS = [
-  { file: "sounds/1.mp3", time: 8.3, volume: 2.0 },
-  { file: "sounds/2.mp3", time: 16.1, volume: 0.8 },
-  { file: "sounds/3.mp3", time: 3.1, volume: 1.0 },
-  { file: "sounds/4.mp3", time: 5.1, volume: 1.0 }
-];
+      { file: "sounds/creak1.mp3", time: 2.5, volume: 1.0 }
+    ];
 
     const audioLoader = new THREE.AudioLoader();
     const loadedSounds = {};
@@ -989,51 +986,58 @@
       if (t < 2.25) { fade.style.opacity = 0; flash.style.opacity = (2.25 - t) / 0.25; grainEl.style.opacity = 0.75; return; }
       flash.style.opacity = 0; grainEl.style.opacity = 0.5;
 
-      if (t < 7) {
+      // === ХОДЬБА: стоят до 5.5с, идут с 5.5 до 10.25с (было 7) ===
+      if (t < 10.25) {
         camera.position.set(0, 2.5, 10); camera.lookAt(0, 1.6, -10);
-        const walkT = Math.min((t - 2.25) / 4.75, 1);
+        const walkT = Math.max(0, Math.min((t - 5.5) / 4.75, 1));
         p1.position.z = 6 - walkT * 10; p1.position.x = -2;
         p2.position.z = 6 - walkT * 10; p2.position.x = 0;
         p3.position.z = 6 - walkT * 10; p3.position.x = 2;
         p1.rotation.y = Math.PI; p2.rotation.y = Math.PI; p3.rotation.y = Math.PI;
-        animateWalk(p1, t, 0.8); animateWalk(p2, t, 0.8); animateWalk(p3, t, 0.8);
-        if (t - lastFootstep > 0.7) { playFootstep(); lastFootstep = t; }
+        if (walkT > 0) {
+          animateWalk(p1, t, 0.8); animateWalk(p2, t, 0.8); animateWalk(p3, t, 0.8);
+          if (t - lastFootstep > 0.7) { playFootstep(); lastFootstep = t; }
+        }
         monster.visible = false; return;
       }
 
-      if (t < 12.5) {
+      // === МОНСТР (было 7..12.5 → стало 10.25..15.75) ===
+      if (t < 15.75) {
         let shakeX = 0, shakeY = 0, shakeZ = 0;
-        if (t > 7.0 && t < 12.5) {
-          const shakeIntensity = (t < 8.0) ? 0.05 : 0.15;
-          shakeX = (Math.random() - 0.5) * shakeIntensity; shakeY = (Math.random() - 0.5) * shakeIntensity; shakeZ = (Math.random() - 0.5) * shakeIntensity;
+        if (t > 10.25 && t < 15.75) {
+          const shakeIntensity = (t < 11.25) ? 0.05 : 0.15;
+          shakeX = (Math.random() - 0.5) * shakeIntensity;
+          shakeY = (Math.random() - 0.5) * shakeIntensity;
+          shakeZ = (Math.random() - 0.5) * shakeIntensity;
         }
         camera.position.set(4.5 + shakeX, 2.0 + shakeY, -4 + shakeZ); camera.lookAt(0, 0.8, -10.5);
 
         p2.visible = true;
-        if (t <= 7.7) { p2.position.set(0, 0, -4); p2.rotation.set(0, Math.PI, 0); }
-        if (t <= 7.9) { p1.position.set(-2, 0, -4); p1.rotation.set(0, Math.PI, 0); p3.position.set(2, 0, -4); p3.rotation.set(0, Math.PI, 0); }
-        
-        if (t > 7.0) {
+        if (t <= 10.95) { p2.position.set(0, 0, -4); p2.rotation.set(0, Math.PI, 0); }
+        if (t <= 11.15) { p1.position.set(-2, 0, -4); p1.rotation.set(0, Math.PI, 0); p3.position.set(2, 0, -4); p3.rotation.set(0, Math.PI, 0); }
+
+        if (t > 10.25) {
           monster.visible = true;
-          const appearT = Math.min((t - 7.0) / 1.0, 1);
+          const appearT = Math.min((t - 10.25) / 1.0, 1);
           monster.position.set(2.5 - appearT * 2.5, 0, -4);
           animateWalk(monster, t * 1.2, 1.0);
         }
-        
-        if (t > 7.7) {
-          const dragT = Math.min((t - 7.7) / 3.8, 1); const lieT = Math.min((t - 7.7) / 0.3, 1);
+
+        if (t > 10.95) {
+          const dragT = Math.min((t - 10.95) / 3.8, 1);
+          const lieT = Math.min((t - 10.95) / 0.3, 1);
           p2.rotation.set(lieT * Math.PI / 2, Math.PI, 0); p2.position.y = lieT * 0.6;
           const jerk = Math.sin(dragT * 25) * 0.1; const baseZ = -4 - dragT * 5;
           monster.position.set(0, 0, baseZ + 1.5); monster.rotation.y = Math.PI;
           p2.position.x = 0; p2.position.z = baseZ + 1.5 - 1.6 + jerk;
 
-          if (t > 8.0 && t < 9.0) {
-            const crawlT = (t - 8.0) / 1.0;
+          if (t > 11.25 && t < 12.25) {
+            const crawlT = (t - 11.25) / 1.0;
             p1.position.set(-2 - crawlT * 2, crawlT * 0.3, -4 + crawlT * 2); p1.rotation.set(crawlT * Math.PI / 2, Math.PI, 0);
             p3.position.set(2 + crawlT * 2, crawlT * 0.3, -4 + crawlT * 2); p3.rotation.set(crawlT * Math.PI / 2, Math.PI, 0);
           }
-          if (t >= 9.0) {
-            const runT = Math.min((t - 9.0) / 1.5, 1); const standT = Math.min(runT * 3, 1);
+          if (t >= 12.25) {
+            const runT = Math.min((t - 12.25) / 1.5, 1); const standT = Math.min(runT * 3, 1);
             const yOff = (1 - standT) * 0.3; const rotX = (1 - standT) * Math.PI / 2;
             p1.position.set(-4 - runT * 5, yOff, -2 + runT * 6); p1.rotation.set(rotX, 0, 0);
             p3.position.set(4 + runT * 5, yOff, -2 + runT * 6); p3.rotation.set(rotX, 0, 0);
@@ -1044,27 +1048,29 @@
         return;
       }
 
-      if (t < 15.0) {
+      // === КОМНАТА-ЛОВУШКА (было 12.5..15 → стало 15.75..18.25) ===
+      if (t < 18.25) {
         monster.visible = false; p2.visible = false;
         outsideGroup.visible = true; roomGroup.visible = true;
 
-        if (t < 12.5) {
-          const panK = (t - 12.0) / 1.0;
+        if (t < 15.75) {
+          const panK = (t - 15.25) / 1.0;
           camera.position.set(0.1 + Math.sin(panK * 1.2) * 0.15, 1.6 + (Math.random() - 0.5) * 0.02, -14 + 0.6 - panK * 0.2);
           camera.lookAt(-0.5 - panK * 0.4, 1.4, -15.2); return;
         }
-        if (t < 13.1) {
-          const k = (t - 12.5) / 0.6; const ease = k * k * (3 - 2 * k);
+        if (t < 16.35) {
+          const k = (t - 15.75) / 0.6; const ease = k * k * (3 - 2 * k);
           const fromPos = new THREE.Vector3(0.1, 1.6, -13.4); const toPos = new THREE.Vector3(0, 3.2, -5);
           const fromLook = new THREE.Vector3(-0.5, 1.4, -15.2); const toLook = new THREE.Vector3(0, 1.5, -12);
-          camera.position.lerpVectors(fromPos, toPos, ease); camera.lookAt(new THREE.Vector3().lerpVectors(fromLook, toLook, ease)); return;
+          camera.position.lerpVectors(fromPos, toPos, ease);
+          camera.lookAt(new THREE.Vector3().lerpVectors(fromLook, toLook, ease)); return;
         }
-        const outK = Math.min((t - 13.1) / 1.4, 1);
+        const outK = Math.min((t - 16.35) / 1.4, 1);
         camera.position.set(0, 3.2 + outK * 0.4, -5 + outK * 3); camera.lookAt(0, 1.5, -12); return;
       }
-      
-      fade.style.opacity = Math.min((t - 15.0) / 2.0, 1);
-      if (t > 17.0) startGameplay();
+
+      fade.style.opacity = Math.min((t - 18.25) / 2.0, 1);
+      if (t > 20.25) startGameplay();
     }
 
     function startGameplay() {
