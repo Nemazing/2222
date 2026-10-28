@@ -29,6 +29,7 @@
       touch-action: none;
     }
 
+    /* ===== МЕНЮ ===== */
     #menu-screen {
       position: fixed;
       inset: 0;
@@ -190,6 +191,7 @@
       50%      { opacity: 0.75; }
     }
 
+    /* ===== ИГРА ===== */
     #game-container {
       display: none;
       position: fixed;
@@ -307,15 +309,15 @@
     }, { passive: true });
 
     // === СИСТЕМА ЗВУКОВ ===
-    // ВАЖНО: Здесь мы прописали ТОЛЬКО твой файл sounds1.mp3
+    // Используем ТОЛЬКО твой файл creak.mp3
     const SOUND_EVENTS = [
-      { file: "sounds/sounds1.mp3", time: 0.5, volume: 1.0 },
-      { file: "sounds/sounds1.mp3", time: 2.5, volume: 0.6 },
-      { file: "sounds/sounds1.mp3", time: 8.5, volume: 1.0 },
-      { file: "sounds/sounds1.mp3", time: 7.8, volume: 1.0 },
-      { file: "sounds/sounds1.mp3", time: 1.2, volume: 1.0 },
-      { file: "sounds/sounds1.mp3", time: 1.8, volume: 0.8 },
-      { file: "sounds/sounds1.mp3", time: 4.0, volume: 0.5 }
+      { file: "sounds/creak.mp3", time: 0.5, volume: 1.0 },
+      { file: "sounds/creak.mp3", time: 2.5, volume: 0.6 },
+      { file: "sounds/creak.mp3", time: 8.5, volume: 1.0 },
+      { file: "sounds/creak.mp3", time: 7.8, volume: 1.0 },
+      { file: "sounds/creak.mp3", time: 1.2, volume: 1.0 },
+      { file: "sounds/creak.mp3", time: 1.8, volume: 0.8 },
+      { file: "sounds/creak.mp3", time: 4.0, volume: 0.5 }
     ];
 
     const audioLoader = new THREE.AudioLoader();
@@ -338,7 +340,7 @@
             },
             undefined,
             (err) => {
-              console.error(`❌ ОШИБКА ЗАГРУЗКИ: ${file}`, err);
+              console.error(`❌ ОШИБКА ЗАГРУЗКИ: ${file} (Возможно, вы открыли файл локально, а не через GitHub Pages)`, err);
               loadedSounds[file] = null;
             }
           );
@@ -349,10 +351,7 @@
     function playSoundEvent(file, volume = 1.0) {
       if (!audioListener) return;
       const buffer = loadedSounds[file];
-      if (!buffer) {
-        console.warn(`⚠️ Нет буфера для: ${file}`);
-        return;
-      }
+      if (!buffer) return;
       const sound = new THREE.Audio(audioListener);
       sound.setBuffer(buffer);
       sound.setVolume(volume);
@@ -1289,15 +1288,6 @@
       initAudio();
       initSoundSystem();
       
-      // ПРИНУДИТЕЛЬНЫЙ ТЕСТ ЗВУКА (Если файл есть, ты его услышишь прямо сейчас)
-      const testAudio = new Audio('sounds/sounds1.mp3');
-      testAudio.volume = 0.5;
-      testAudio.play().then(() => {
-        console.log("🔊 Тест звука удался! Файл на месте.");
-      }).catch(e => {
-        console.error("❌ Ошибка теста звука. Файл не найден или браузер блокирует.", e);
-      });
-      
       menuScreen.classList.add('hidden');
       setTimeout(() => {
         menuScreen.style.display = 'none';
@@ -1359,7 +1349,7 @@
       }
       if (e.code === 'KeyE' && state === 'playing' && nearDoor && doorState === 'closed') {
         doorState = 'opening';
-        playSoundEvent("sounds/sounds1.mp3", 1.0);
+        playSoundEvent("sounds/creak.mp3", 1.0);
       }
     });
     document.addEventListener('keyup', (e) => keys[e.code] = false);
@@ -1482,7 +1472,7 @@
             p3.position.set(2 + crawlT * 2, crawlT * 0.3, -4 + crawlT * 2);
             p3.rotation.x = crawlT * Math.PI / 2;
             if (!playedEvents.cutscene.has('thud')) {
-              playSoundEvent("sounds/sounds1.mp3", 0.7);
+              playSoundEvent("sounds/creak.mp3", 0.7);
               playedEvents.cutscene.add('thud');
             }
           }
@@ -1577,8 +1567,8 @@
 
       eventTimer += dt;
       if (eventTimer > 6 + Math.random() * 6) {
-        if (Math.random() < 0.5) playSoundEvent("sounds/sounds1.mp3", 0.8);
-        else playSoundEvent("sounds/sounds1.mp3", 0.5);
+        if (Math.random() < 0.5) playSoundEvent("sounds/creak.mp3", 0.8);
+        else playSoundEvent("sounds/creak.mp3", 0.5);
         eventTimer = 0;
       }
 
