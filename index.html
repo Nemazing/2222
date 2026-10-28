@@ -306,15 +306,16 @@
       if (t) moveLight(t.clientX, t.clientY);
     }, { passive: true });
 
-   // === СИСТЕМА ЗВУКОВЫХ СОБЫТИЙ ===
+    // === СИСТЕМА ЗВУКОВ ===
+    // ВАЖНО: Здесь мы прописали ТОЛЬКО твой файл sounds1.mp3
     const SOUND_EVENTS = [
-      { file: "sounds/creak.mp3",   time: 0.5,  volume: 1.0 },
-      { file: "sounds/footsteps.mp3", time: 2.5,  volume: 0.6 },
-      { file: "sounds/scream.mp3",  time: 8.5,  volume: 1.0 },
-      { file: "sounds/drag.mp3",    time: 7.8,  volume: 1.0 },
-      { file: "sounds/door_slam.mp3", time: 1.2,  volume: 1.0 },
-      { file: "sounds/cry.mp3",       time: 1.8,  volume: 0.8 },
-      { file: "sounds/rustle.mp3",    time: 4.0,  volume: 0.5 }
+      { file: "sounds/sounds1.mp3", time: 0.5, volume: 1.0 },
+      { file: "sounds/sounds1.mp3", time: 2.5, volume: 0.6 },
+      { file: "sounds/sounds1.mp3", time: 8.5, volume: 1.0 },
+      { file: "sounds/sounds1.mp3", time: 7.8, volume: 1.0 },
+      { file: "sounds/sounds1.mp3", time: 1.2, volume: 1.0 },
+      { file: "sounds/sounds1.mp3", time: 1.8, volume: 0.8 },
+      { file: "sounds/sounds1.mp3", time: 4.0, volume: 0.5 }
     ];
 
     const audioLoader = new THREE.AudioLoader();
@@ -334,11 +335,6 @@
             (buffer) => {
               loadedSounds[file] = buffer;
               console.log(`✅ ЗВУК ЗАГРУЖЕН: ${file}`);
-              // ТЕСТ: Проигрываем звук сразу, как только он загрузился
-              const testSound = new THREE.Audio(audioListener);
-              testSound.setBuffer(buffer);
-              testSound.setVolume(0.5);
-              testSound.play();
             },
             undefined,
             (err) => {
@@ -353,11 +349,15 @@
     function playSoundEvent(file, volume = 1.0) {
       if (!audioListener) return;
       const buffer = loadedSounds[file];
-      if (!buffer) return;
+      if (!buffer) {
+        console.warn(`⚠️ Нет буфера для: ${file}`);
+        return;
+      }
       const sound = new THREE.Audio(audioListener);
       sound.setBuffer(buffer);
       sound.setVolume(volume);
       sound.play();
+      console.log(`🔊 Играет: ${file}`);
     }
 
     function processSoundEvents(currentTime, phase) {
@@ -1289,6 +1289,15 @@
       initAudio();
       initSoundSystem();
       
+      // ПРИНУДИТЕЛЬНЫЙ ТЕСТ ЗВУКА (Если файл есть, ты его услышишь прямо сейчас)
+      const testAudio = new Audio('sounds/sounds1.mp3');
+      testAudio.volume = 0.5;
+      testAudio.play().then(() => {
+        console.log("🔊 Тест звука удался! Файл на месте.");
+      }).catch(e => {
+        console.error("❌ Ошибка теста звука. Файл не найден или браузер блокирует.", e);
+      });
+      
       menuScreen.classList.add('hidden');
       setTimeout(() => {
         menuScreen.style.display = 'none';
@@ -1409,7 +1418,6 @@
         p2.position.z = 6 - walkT * 10; p2.position.x = 0;
         p3.position.z = 6 - walkT * 10; p3.position.x = 2;
         
-        // Принудительно смотрят в точку назначения
         p1.lookAt(0, 0, -4); p2.lookAt(0, 0, -4); p3.lookAt(0, 0, -4);
         
         animateWalk(p1, t, 0.8);
@@ -1437,7 +1445,7 @@
         p2.visible = true;
         if (t <= 7.7) {
           p2.position.set(0, 0, -4);
-          p2.lookAt(0, 0, -10); 
+          p2.lookAt(0, 0, -10);
         }
         if (t <= 7.9) {
           p1.position.set(-2, 0, -4); p1.lookAt(0, 0, -10);
@@ -1455,14 +1463,12 @@
           const dragT = Math.min((t - 7.7) / 3.8, 1); 
           const lieT = Math.min((t - 7.7) / 0.3, 1);
           
-          // Жертва лежит лицом вниз, головой вглубь
           p2.rotation.set(lieT * Math.PI / 2, Math.PI, 0);
           p2.position.y = lieT * 0.6; 
           
           const jerk = Math.sin(dragT * 25) * 0.1;
           const baseZ = -4 - dragT * 5;
           
-          // Монстр тащит её на себя
           monster.position.set(0, 0, baseZ + 1.5); 
           monster.lookAt(0, 0, -10);
           
@@ -1486,7 +1492,6 @@
             const yOff = (1 - standT) * 0.3;
             const rotX = (1 - standT) * Math.PI / 2;
             
-            // Убегают лицом к нам
             p1.position.set(-4 - runT * 5, yOff, -2 + runT * 6);
             p1.rotation.set(rotX, 0, 0); 
             p3.position.set(4 + runT * 5, yOff, -2 + runT * 6);
