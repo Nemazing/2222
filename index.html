@@ -311,7 +311,7 @@
       { file: "sounds/sounds1.mp3",   time: 1.5,  volume: 1.0 },
       { file: "sounds/footsteps.mp3", time: 2.5,  volume: 0.6 },
       { file: "sounds/scream.mp3",  time: 8.5,  volume: 1.0 },
-      { file: "sounds/drag.mp3",    time: 7.8,  volume: 1.0 },
+      { file: "sounds/drag.mp3",    time: 7.8,  volume: 1.0 },	
       { file: "sounds/door_slam.mp3", time: 1.2,  volume: 1.0 },
       { file: "sounds/cry.mp3",       time: 1.8,  volume: 0.8 },
       { file: "sounds/rustle.mp3",    time: 4.0,  volume: 0.5 }
@@ -330,7 +330,6 @@
       const uniqueFiles = [...new Set(SOUND_EVENTS.map(e => e.file))];
       uniqueFiles.forEach(file => {
         if (!loadedSounds[file]) {
-          // ВАЖНО: Проверка на загрузку
           audioLoader.load(file, 
             (buffer) => {
               loadedSounds[file] = buffer;
@@ -378,7 +377,7 @@
       }
     }
 
-    // === ЗВУКИ-СИНТЕЗАТОРЫ (Дыхание и шаги) ===
+    // === ЗВУКИ-СИНТЕЗАТОРЫ ===
     let audioCtx = null;
     let breathingNodes = null;
 
@@ -386,7 +385,6 @@
       if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       }
-      // Принудительное включение звука в браузере
       if (audioCtx.state === 'suspended') {
         audioCtx.resume().then(() => {
           console.log("🔊 AudioContext возобновлен");
@@ -1310,9 +1308,9 @@
       
       players.forEach((p, i) => {
         if (i === 0) p.position.set(-2, 0, 6);
-        if (i === 1) { p.position.set(0, 0, 6); p.rotation.set(0,0,0); }
+        if (i === 1) { p.position.set(0, 0, 6); p.rotation.set(0,Math.PI,0); }
         if (i === 2) p.position.set(2, 0, 6);
-        p.rotation.set(0, 0, 0);
+        p.rotation.set(0, Math.PI, 0); // Смотрят вглубь экрана
         p.visible = true;
       });
       
@@ -1402,16 +1400,19 @@
       flash.style.opacity = 0;
       grainEl.style.opacity = 0.5;
 
+      // ФАЗА 1: Идут из леса вглубь, к дому
       if (t < 7) {
         camera.position.set(0, 2.5, 10);
         camera.lookAt(0, 1.6, -10);
+        
         const walkT = Math.min((t - 2.25) / 4.75, 1);
         
         p1.position.z = 6 - walkT * 10; p1.position.x = -2;
         p2.position.z = 6 - walkT * 10; p2.position.x = 0;
         p3.position.z = 6 - walkT * 10; p3.position.x = 2;
         
-        p1.rotation.y = 0; p2.rotation.y = 0; p3.rotation.y = 0;
+        // Повернуты спиной к камере (лицом вглубь)
+        p1.rotation.y = Math.PI; p2.rotation.y = Math.PI; p3.rotation.y = Math.PI;
         
         animateWalk(p1, t, 0.8);
         animateWalk(p2, t, 0.8);
@@ -1422,6 +1423,7 @@
         return;
       }
 
+      // ФАЗА 2: Захват
       if (t < 12.5) {
         let shakeX = 0, shakeY = 0, shakeZ = 0;
         if (t > 7.0 && t < 12.5) {
@@ -1437,11 +1439,11 @@
         p2.visible = true;
         if (t <= 7.7) {
           p2.position.set(0, 0, -4);
-          p2.rotation.set(0,0,0);
+          p2.rotation.set(0, Math.PI, 0);
         }
         if (t <= 7.9) {
-          p1.position.set(-2, 0, -4); p1.rotation.x = 0;
-          p3.position.set(2, 0, -4);  p3.rotation.x = 0;
+          p1.position.set(-2, 0, -4); p1.rotation.set(0, Math.PI, 0);
+          p3.position.set(2, 0, -4);  p3.rotation.set(0, Math.PI, 0);
         }
         
         if (t > 7.0) {
@@ -1455,6 +1457,7 @@
           const dragT = Math.min((t - 7.7) / 3.8, 1); 
           const lieT = Math.min((t - 7.7) / 0.3, 1);
           
+          // Жертва лежит на спине, головой вглубь
           p2.rotation.y = Math.PI;
           p2.rotation.x = lieT * Math.PI / 2; 
           p2.position.y = lieT * 0.6; 
@@ -1462,8 +1465,9 @@
           const jerk = Math.sin(dragT * 25) * 0.1;
           const baseZ = -4 - dragT * 5;
           
+          // Монстр тащит её на себя (лицом вглубь)
           monster.position.set(0, 0, baseZ + 1.5); 
-          monster.rotation.y = 0; 
+          monster.rotation.y = Math.PI; 
           
           p2.position.x = 0;
           p2.position.z = baseZ + 1.5 - 1.6 + jerk;
@@ -1485,10 +1489,11 @@
             const yOff = (1 - standT) * 0.3;
             const rotX = (1 - standT) * Math.PI / 2;
             
+            // Убегают в стороны и на камеру (лицом к нам)
             p1.position.set(-4 - runT * 5, yOff, -2 + runT * 6);
-            p1.rotation.x = rotX;
+            p1.rotation.x = rotX; p1.rotation.y = 0;
             p3.position.set(4 + runT * 5, yOff, -2 + runT * 6);
-            p3.rotation.x = rotX;
+            p3.rotation.x = rotX; p3.rotation.y = 0;
             
             if (runT < 0.9) {
               animateWalk(p1, t * 1.5, 1.5);
@@ -1501,6 +1506,7 @@
         return;
       }
 
+      // ФАЗА 3: Комната-ловушка
       if (t < 15.0) {
         monster.visible = false;
         p2.visible = false;
