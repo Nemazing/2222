@@ -337,7 +337,7 @@
             },
             undefined,
             (err) => {
-              console.error(`❌ ОШИБКА ЗАГРУЗКИ ЗВУКА: ${file}. Проверь путь и формат!`, err);
+              console.error(`❌ ОШИБКА ЗАГРУЗКИ ЗВУКА: ${file}. Проверь путь!`, err);
               loadedSounds[file] = null;
             }
           );
@@ -349,7 +349,7 @@
       if (!audioListener) return;
       const buffer = loadedSounds[file];
       if (!buffer) {
-        console.warn(`⚠️ Попытка проиграть ${file}, но он еще не загружен или отсутствует.`);
+        console.warn(`⚠️ Попытка проиграть ${file}, но он еще не загружен.`);
         return;
       }
       const sound = new THREE.Audio(audioListener);
@@ -1310,7 +1310,7 @@
         if (i === 0) p.position.set(-2, 0, 6);
         if (i === 1) { p.position.set(0, 0, 6); p.rotation.set(0,Math.PI,0); }
         if (i === 2) p.position.set(2, 0, 6);
-        p.rotation.set(0, Math.PI, 0); // Смотрят вглубь экрана
+        p.rotation.set(0, Math.PI, 0);
         p.visible = true;
       });
       
@@ -1351,7 +1351,7 @@
       }
       if (e.code === 'KeyE' && state === 'playing' && nearDoor && doorState === 'closed') {
         doorState = 'opening';
-        playSoundEvent("sounds/creak.mp3", 1.0);
+        playSoundEvent("sounds/sounds1.mp3", 1.0);
       }
     });
     document.addEventListener('keyup', (e) => keys[e.code] = false);
@@ -1400,18 +1400,15 @@
       flash.style.opacity = 0;
       grainEl.style.opacity = 0.5;
 
-      // ФАЗА 1: Идут из леса вглубь, к дому
       if (t < 7) {
         camera.position.set(0, 2.5, 10);
         camera.lookAt(0, 1.6, -10);
-        
         const walkT = Math.min((t - 2.25) / 4.75, 1);
         
         p1.position.z = 6 - walkT * 10; p1.position.x = -2;
         p2.position.z = 6 - walkT * 10; p2.position.x = 0;
         p3.position.z = 6 - walkT * 10; p3.position.x = 2;
         
-        // Повернуты спиной к камере (лицом вглубь)
         p1.rotation.y = Math.PI; p2.rotation.y = Math.PI; p3.rotation.y = Math.PI;
         
         animateWalk(p1, t, 0.8);
@@ -1423,7 +1420,6 @@
         return;
       }
 
-      // ФАЗА 2: Захват
       if (t < 12.5) {
         let shakeX = 0, shakeY = 0, shakeZ = 0;
         if (t > 7.0 && t < 12.5) {
@@ -1457,7 +1453,6 @@
           const dragT = Math.min((t - 7.7) / 3.8, 1); 
           const lieT = Math.min((t - 7.7) / 0.3, 1);
           
-          // Жертва лежит на спине, головой вглубь
           p2.rotation.y = Math.PI;
           p2.rotation.x = lieT * Math.PI / 2; 
           p2.position.y = lieT * 0.6; 
@@ -1465,7 +1460,6 @@
           const jerk = Math.sin(dragT * 25) * 0.1;
           const baseZ = -4 - dragT * 5;
           
-          // Монстр тащит её на себя (лицом вглубь)
           monster.position.set(0, 0, baseZ + 1.5); 
           monster.rotation.y = Math.PI; 
           
@@ -1479,7 +1473,7 @@
             p3.position.set(2 + crawlT * 2, crawlT * 0.3, -4 + crawlT * 2);
             p3.rotation.x = crawlT * Math.PI / 2;
             if (!playedEvents.cutscene.has('thud')) {
-              playSoundEvent("sounds/thud.mp3", 0.7);
+              playSoundEvent("sounds/sounds1.mp3", 0.7);
               playedEvents.cutscene.add('thud');
             }
           }
@@ -1489,7 +1483,6 @@
             const yOff = (1 - standT) * 0.3;
             const rotX = (1 - standT) * Math.PI / 2;
             
-            // Убегают в стороны и на камеру (лицом к нам)
             p1.position.set(-4 - runT * 5, yOff, -2 + runT * 6);
             p1.rotation.x = rotX; p1.rotation.y = 0;
             p3.position.set(4 + runT * 5, yOff, -2 + runT * 6);
@@ -1506,7 +1499,6 @@
         return;
       }
 
-      // ФАЗА 3: Комната-ловушка
       if (t < 15.0) {
         monster.visible = false;
         p2.visible = false;
@@ -1575,8 +1567,8 @@
 
       eventTimer += dt;
       if (eventTimer > 6 + Math.random() * 6) {
-        if (Math.random() < 0.5) playSoundEvent("sounds/creak.mp3", 0.8);
-        else playSoundEvent("sounds/cry.mp3", 0.5);
+        if (Math.random() < 0.5) playSoundEvent("sounds/sounds1.mp3", 0.8);
+        else playSoundEvent("sounds/sounds1.mp3", 0.5);
         eventTimer = 0;
       }
 
