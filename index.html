@@ -1473,26 +1473,32 @@
           // ЖЕРТВА ВОЛОЧИТСЯ ВПЕРЕДИ МОНСТРА (дальше по оси Z)
           p2.position.z = baseZ + 1.5 - 1.6 + jerk;
 
+          // ТЕ ДВОЕ (p1 и p3) ОТПОЛЗАЮТ В СТОРОНЫ (В КАДР)
           if (t > 8.0 && t < 9.0) {
             const crawlT = (t - 8.0) / 1.0;
-            p1.position.set(-2 - crawlT * 1.2, crawlT * 0.3, -4 + crawlT * 1.5);
+            p1.position.set(-2 - crawlT * 2, crawlT * 0.3, -4 + crawlT * 2);
             p1.rotation.x = crawlT * Math.PI / 2;
-            p3.position.set(2 + crawlT * 1.2, crawlT * 0.3, -4 + crawlT * 1.5);
+            p3.position.set(2 + crawlT * 2, crawlT * 0.3, -4 + crawlT * 2);
             p3.rotation.x = crawlT * Math.PI / 2;
             if (!playedEvents.cutscene.has('thud')) {
               playSoundEvent("sounds/thud.mp3", 0.7);
               playedEvents.cutscene.add('thud');
             }
           }
+          
+          // ТЕ ДВОЕ ВСКАКИВАЮТ И УБЕГАЮТ ВБОК
           if (t >= 9.0) {
             const runT = Math.min((t - 9.0) / 1.5, 1);
             const standT = Math.min(runT * 3, 1);
             const yOff = (1 - standT) * 0.3;
             const rotX = (1 - standT) * Math.PI / 2;
-            p1.position.set(-3.2 + runT * 3, yOff, -8 + runT * 6);
+            
+            // Бегут в стороны от монстра (X) и чуть к нам (Z)
+            p1.position.set(-4 - runT * 5, yOff, -2 + runT * 6);
             p1.rotation.x = rotX;
-            p3.position.set(3.2 - runT * 3, yOff, -8 + runT * 6);
+            p3.position.set(4 + runT * 5, yOff, -2 + runT * 6);
             p3.rotation.x = rotX;
+            
             if (runT < 0.9) {
               animateWalk(p1, t * 1.5, 1.5);
               animateWalk(p3, t * 1.5, 1.5);
