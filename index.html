@@ -1300,12 +1300,12 @@
       flashlight.visible = false;
       viewmodel.visible = false;
       
-      // СБРОС: Они появляются в глубине леса (z = -15) и идут на нас к камере (z = 0)
+      // Сброс: они появляются сзади камеры (z = 6) и идут вглубь (к дому z = -10)
       players.forEach((p, i) => {
-        if (i === 0) p.position.set(-2, 0, -15);
-        if (i === 1) { p.position.set(0, 0, -15); p.rotation.set(0,Math.PI,0); } // Смотрят на камеру (+Z)
-        if (i === 2) p.position.set(2, 0, -15);
-        p.rotation.set(0, Math.PI, 0);
+        if (i === 0) p.position.set(-2, 0, 6);
+        if (i === 1) { p.position.set(0, 0, 6); p.rotation.set(0,0,0); }
+        if (i === 2) p.position.set(2, 0, 6);
+        p.rotation.set(0, 0, 0); // Смотрят в -Z (в спину)
         p.visible = true;
       });
       
@@ -1395,19 +1395,21 @@
       flash.style.opacity = 0;
       grainEl.style.opacity = 0.5;
 
-      // ФАЗА 1: Идут из леса ПРЯМО НА КАМЕРУ, доходят до крыльца.
+      // ФАЗА 1: Идут из леса вглубь, к дому
       if (t < 7) {
-        camera.position.set(0, 2.5, 6);
+        // Камера стоит ПОЗАДИ игроков и смотрит им в спины
+        camera.position.set(0, 2.5, 10);
         camera.lookAt(0, 1.6, -10);
+        
         const walkT = Math.min((t - 2.25) / 4.75, 1);
         
-        // От z = -15 (глубина) к z = -4 (перед камерой)
-        p1.position.z = -15 + walkT * 11; p1.position.x = -2;
-        p2.position.z = -15 + walkT * 11; p2.position.x = 0;
-        p3.position.z = -15 + walkT * 11; p3.position.x = 2;
+        // Идут от нас (z = 6) вглубь к дому (z = -4)
+        p1.position.z = 6 - walkT * 10; p1.position.x = -2;
+        p2.position.z = 6 - walkT * 10; p2.position.x = 0;
+        p3.position.z = 6 - walkT * 10; p3.position.x = 2;
         
-        // Они идут вперед, значит смотрят на +Z (лицом к нам)
-        p1.rotation.y = Math.PI; p2.rotation.y = Math.PI; p3.rotation.y = Math.PI;
+        // Повернуты спиной к нам (лицом к дому)
+        p1.rotation.y = 0; p2.rotation.y = 0; p3.rotation.y = 0;
         
         animateWalk(p1, t, 0.8);
         animateWalk(p2, t, 0.8);
@@ -1428,7 +1430,8 @@
           shakeZ = (Math.random() - 0.5) * shakeIntensity;
         }
 
-        camera.position.set(0 + shakeX, 2.0 + shakeY, -4 + shakeZ);
+        // Камера теперь сбоку для захвата
+        camera.position.set(4.5 + shakeX, 2.0 + shakeY, -4 + shakeZ);
         camera.lookAt(0, 0.8, -10.5);
 
         p2.visible = true;
