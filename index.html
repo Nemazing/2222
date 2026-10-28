@@ -1456,13 +1456,18 @@
           const lieT = Math.min((t - 7.7) / 0.3, 1);
           
           p2.rotation.x = lieT * Math.PI / 2;
-          p2.position.y = lieT * 0.3;
+          
+          // ЖЕРТВА НА ЗЕМЛЕ, ЧУТЬ ПРИПОДНЯТА
+          p2.position.y = lieT * 0.6; 
           
           const jerk = Math.sin(dragT * 25) * 0.1;
           const baseZ = -4 - dragT * 5;
           
-          monster.position.set(0, 0, baseZ);
+          // МОНСТР ИДЕТ ЧУТЬ ДАЛЬШЕ (ПОЗАДИ)
+          monster.position.set(0, 0, baseZ + 1.2);
+          
           p2.position.x = 0;
+          // ЖЕРТВА ВОЛОЧИТСЯ ПЕРЕД МОНСТРОМ
           p2.position.z = baseZ - 1.2 + jerk;
 
           if (t > 8.0 && t < 9.0) {
