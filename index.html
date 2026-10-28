@@ -313,14 +313,15 @@
     import * as THREE from 'three';
 
     // =======================================================
-    // === НАСТРОЙКИ ЗВУКА ===
+    // === НАСТРОЙКИ ЗВУКА (ВСЁ ВКЛЮЧЕНО) ===
     // =======================================================
     const AUDIO_SETTINGS = {
-      playFootsteps: false,    
-      playBreathing: false,    
-      playRandomScares: false, 
-      playDoorSound: false,    
-      playThudInCutscene: false
+      playFootsteps: true,
+      playBreathing: false,
+      playRandomScares: true,
+      playDoorSound: true,
+      playThudInCutscene: true,
+      masterVolume: 1.0
     };
 
     const SOUND_EVENTS = [
@@ -329,33 +330,88 @@
   { file: "sounds/3.mp3", time: 3.1, volume: 1.0 },
   { file: "sounds/4.mp3", time: 5.1, volume: 1.0 }
 ];
-
     const audioLoader = new THREE.AudioLoader();
-    const loadedSounds = {};
+    const loadedSounds = {}; // имя → AudioBuffer | 'synth' | null
     let audioListener = null;
     const playedEvents = { cutscene: new Set(), gameplay: new Set() };
+
+    let audioCtx = null;
+    function initAudio() {
+      if (!audioCtx) {
+        try {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {
+          console.error('❌ WebAudio не поддерживается', e);
+          return;
+        }
+      }
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
 
     function initSoundSystem() {
       if (!audioListener) {
         audioListener = new THREE.AudioListener();
         camera.add(audioListener);
+        audioListener.setMasterVolume(AUDIO_SETTINGS.masterVolume);
       }
       const uniqueFiles = [...new Set(SOUND_EVENTS.map(e => e.file))];
       uniqueFiles.forEach(file => {
         if (!loadedSounds[file]) {
-          audioLoader.load(file, 
+          audioLoader.load(file,
             (buffer) => { loadedSounds[file] = buffer; console.log(`✅ ЗВУК: ${file}`); },
             undefined,
-            (err) => { console.error(`❌ ОШИБКА: ${file}`, err); loadedSounds[file] = null; }
+            (err) => {
+              console.warn(`⚠ ${file} не найден — использую синтез-скрип`, err);
+              loadedSounds[file] = 'synth'; // фолбэк
+            }
           );
         }
       });
     }
 
+    // === Процедурный синтез-скрип (фолбэк) ===
+    function playSynthCreak(volume = 1.0) {
+      if (!audioCtx) return;
+      const t = audioCtx.currentTime;
+      const dur = 0.7;
+      const bufSize = Math.floor(audioCtx.sampleRate * dur);
+      const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+      const d = buf.getChannelData(0);
+      let lp = 0;
+      for (let i = 0; i < bufSize; i++) {
+        const env = Math.exp(-i / (bufSize * 0.35));
+        const noise = (Math.random() * 2 - 1);
+        lp = lp * 0.7 + noise * 0.3;
+        d[i] = lp * env * 0.9;
+      }
+      const src = audioCtx.createBufferSource(); src.buffer = buf;
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.value = 400 + Math.random() * 900;
+      filter.Q.value = 6 + Math.random() * 10;
+      const gain = audioCtx.createGain();
+      gain.gain.value = volume * 0.35;
+      // лёгкий питч-дрейф (как у скрипа петель)
+      const lfo = audioCtx.createOscillator();
+      const lfoGain = audioCtx.createGain();
+      lfo.frequency.value = 4 + Math.random() * 6;
+      lfoGain.gain.value = 200;
+      lfo.connect(lfoGain); lfoGain.connect(filter.frequency);
+      src.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+      src.start(t); lfo.start(t);
+      src.stop(t + dur + 0.05); lfo.stop(t + dur + 0.05);
+    }
+
     function playSoundEvent(file, volume = 1.0) {
-      if (!audioListener || !loadedSounds[file]) return;
+      if (!audioListener) return;
+      const buf = loadedSounds[file];
+      if (buf === 'synth') {
+        playSynthCreak(volume);
+        return;
+      }
+      if (!buf) return;
       const sound = new THREE.Audio(audioListener);
-      sound.setBuffer(loadedSounds[file]);
+      sound.setBuffer(buf);
       sound.setVolume(volume);
       sound.play();
     }
@@ -370,12 +426,6 @@
       }
     }
 
-    let audioCtx = null;
-    function initAudio() {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-    }
-
     function playFootstep() {
       if (!AUDIO_SETTINGS.playFootsteps || !audioCtx) return;
       const t = audioCtx.currentTime;
@@ -385,7 +435,7 @@
       for (let i = 0; i < bufSize; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufSize * 0.35));
       const src = audioCtx.createBufferSource(); src.buffer = buf;
       const filter = audioCtx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 420;
-      const gain = audioCtx.createGain(); gain.gain.value = 0.09;
+      const gain = audioCtx.createGain(); gain.gain.value = 0.12;
       src.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination); src.start(t);
     }
 
@@ -985,11 +1035,17 @@
 
       processSoundEvents(t, 'cutscene');
 
+      // Удар в катсцене (фолбэк-синтез, если звук не в массиве)
+      if (AUDIO_SETTINGS.playThudInCutscene && t >= 10.95 && !playedEvents.cutscene.has('thud')) {
+        playedEvents.cutscene.add('thud');
+        playSynthCreak(0.9);
+      }
+
       if (t < 2) { fade.style.opacity = 1; grainEl.style.opacity = 0; return; }
       if (t < 2.25) { fade.style.opacity = 0; flash.style.opacity = (2.25 - t) / 0.25; grainEl.style.opacity = 0.75; return; }
       flash.style.opacity = 0; grainEl.style.opacity = 0.5;
 
-      // === ХОДЬБА: стоят до 5.5с, идут с 5.5 до 10.25с (было 7) ===
+      // === ХОДЬБА: стоят до 5.5с, идут с 5.5 до 10.25с ===
       if (t < 10.25) {
         camera.position.set(0, 2.5, 10); camera.lookAt(0, 1.6, -10);
         const walkT = Math.max(0, Math.min((t - 5.5) / 4.75, 1));
@@ -1004,7 +1060,7 @@
         monster.visible = false; return;
       }
 
-      // === МОНСТР (было 7..12.5 → стало 10.25..15.75) ===
+      // === МОНСТР ===
       if (t < 15.75) {
         let shakeX = 0, shakeY = 0, shakeZ = 0;
         if (t > 10.25 && t < 15.75) {
@@ -1051,7 +1107,7 @@
         return;
       }
 
-      // === КОМНАТА-ЛОВУШКА (было 12.5..15 → стало 15.75..18.25) ===
+      // === КОМНАТА-ЛОВУШКА ===
       if (t < 18.25) {
         monster.visible = false; p2.visible = false;
         outsideGroup.visible = true; roomGroup.visible = true;
