@@ -284,8 +284,8 @@
     const SOUND_EVENTS = [
       { file: "sounds/creak.mp3",   time: 0.5,  volume: 1.0 },
       { file: "sounds/footsteps.mp3", time: 2.5,  volume: 0.6 },
-      { file: "sounds/scream.mp3",  time: 8.0,  volume: 1.0 },
-      { file: "sounds/drag.mp3",    time: 7.8,  volume: 1.0 },
+      { file: "sounds/scream.mp3",  time: 10.5, volume: 1.0 }, // Отодвинули крик
+      { file: "sounds/drag.mp3",    time: 9.0,  volume: 1.0 }, // Отодвинули звук таскания
       { file: "sounds/door_slam.mp3", time: 1.2,  volume: 1.0 },
       { file: "sounds/cry.mp3",       time: 1.8,  volume: 0.8 },
       { file: "sounds/rustle.mp3",    time: 4.0,  volume: 0.5 }
@@ -334,7 +334,7 @@
       for (let i = 0; i < SOUND_EVENTS.length; i++) {
         const ev = SOUND_EVENTS[i];
         if (currentTime >= ev.time && !played.has(i)) {
-          if (phase === 'cutscene' && ev.time < 12) {
+          if (phase === 'cutscene' && ev.time < 15) {
             playSoundEvent(ev.file, ev.volume);
             played.add(i);
           } else if (phase === 'gameplay' && ev.time <= 10) {
@@ -856,18 +856,18 @@
 
       // Ноги (голубые спортивки)
       const legGeo = new THREE.BoxGeometry(0.22, 0.8, 0.22);
-      legGeo.translate(0, -0.4, 0); // Сдвигаем точку вращения наверх (к бедру)
+      legGeo.translate(0, -0.4, 0); // Точка вращения наверху
       const legL = new THREE.Mesh(legGeo, suitMat); legL.position.set(-0.15, 0.8, 0);
       const legR = new THREE.Mesh(legGeo, suitMat); legR.position.set(0.15, 0.8, 0);
       g.add(legL, legR);
 
-      // Кроссовки (белые)
+      // Кроссовки (белые) - привязаны к ногам!
       const shoeGeo = new THREE.BoxGeometry(0.24, 0.12, 0.32);
-      const shoeL = new THREE.Mesh(shoeGeo, shoeMat); shoeL.position.set(-0.15, 0.06, 0.05);
-      const shoeR = new THREE.Mesh(shoeGeo, shoeMat); shoeR.position.set(0.15, 0.06, 0.05);
-      g.add(shoeL, shoeR);
+      const shoeL = new THREE.Mesh(shoeGeo, shoeMat); shoeL.position.set(0, -0.75, 0.05);
+      const shoeR = new THREE.Mesh(shoeGeo, shoeMat); shoeR.position.set(0, -0.75, 0.05);
+      legL.add(shoeL); legR.add(shoeR); // Добавляем обувь к самим ногам
 
-      // Торс (голубая кофта) - привязан к центру
+      // Торс
       const torsoGeo = new THREE.BoxGeometry(0.65, 0.75, 0.35);
       const torso = new THREE.Mesh(torsoGeo, suitMat); torso.position.y = 1.15; g.add(torso);
 
@@ -878,11 +878,11 @@
       const armR = new THREE.Mesh(armGeo, suitMat); armR.position.set(0.45, 1.45, 0);
       g.add(armL, armR);
 
-      // Руки
+      // Кисти рук
       const handGeo = new THREE.SphereGeometry(0.08, 8, 8);
-      const handL = new THREE.Mesh(handGeo, skinMatLocal); handL.position.set(-0.45, 0.8, 0);
-      const handR = new THREE.Mesh(handGeo, skinMatLocal); handR.position.set(0.45, 0.8, 0);
-      g.add(handL, handR);
+      const handL = new THREE.Mesh(handGeo, skinMatLocal); handL.position.set(0, -0.6, 0);
+      const handR = new THREE.Mesh(handGeo, skinMatLocal); handR.position.set(0, -0.6, 0);
+      armL.add(handL); armR.add(handR);
 
       // Голова
       const headGeo = new THREE.SphereGeometry(0.16, 12, 12);
@@ -910,7 +910,7 @@
     p1.position.set(-2, 0, 0);
     outsideGroup.add(p1);
 
-    // Игрок 2 (ЖЕРТВА - ХУДИ С ДРАКОНОМ, СВЕТЛЫЕ ВОЛОСЫ)
+    // Игрок 2 (ЖЕРТВА - ХУДИ С ДРАКОНОМ)
     function createVictim() {
       const g = new THREE.Group();
       const legGeo = new THREE.BoxGeometry(0.2, 0.8, 0.2);
@@ -919,6 +919,12 @@
       const legL = new THREE.Mesh(legGeo, legMat); legL.position.set(-0.15, 0.8, 0);
       const legR = new THREE.Mesh(legGeo, legMat); legR.position.set(0.15, 0.8, 0);
       g.add(legL, legR);
+
+      const shoeGeo = new THREE.BoxGeometry(0.22, 0.1, 0.3);
+      const shoeMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.8 });
+      const shoeL = new THREE.Mesh(shoeGeo, shoeMat); shoeL.position.set(0, -0.75, 0.05);
+      const shoeR = new THREE.Mesh(shoeGeo, shoeMat); shoeR.position.set(0, -0.75, 0.05);
+      legL.add(shoeL); legR.add(shoeR);
 
       const torsoGeo = new THREE.BoxGeometry(0.65, 0.75, 0.35);
       const torsoMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 });
@@ -932,9 +938,9 @@
 
       const handGeo = new THREE.SphereGeometry(0.08, 8, 8);
       const skinMatLocal = new THREE.MeshStandardMaterial({ color: 0xd4b4a4, roughness: 0.9 });
-      const handL = new THREE.Mesh(handGeo, skinMatLocal); handL.position.set(-0.45, 0.8, 0);
-      const handR = new THREE.Mesh(handGeo, skinMatLocal); handR.position.set(0.45, 0.8, 0);
-      g.add(handL, handR);
+      const handL = new THREE.Mesh(handGeo, skinMatLocal); handL.position.set(0, -0.6, 0);
+      const handR = new THREE.Mesh(handGeo, skinMatLocal); handR.position.set(0, -0.6, 0);
+      armL.add(handL); armR.add(handR);
 
       const hoodGeo = new THREE.SphereGeometry(0.25, 8, 8);
       const hood = new THREE.Mesh(hoodGeo, torsoMat); hood.position.set(0, 1.4, -0.15); g.add(hood);
@@ -976,9 +982,9 @@
 
       const shoeGeo = new THREE.BoxGeometry(0.22, 0.1, 0.3);
       const shoeMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.8 });
-      const shoeL = new THREE.Mesh(shoeGeo, shoeMat); shoeL.position.set(-0.15, 0.05, 0.05);
-      const shoeR = new THREE.Mesh(shoeGeo, shoeMat); shoeR.position.set(0.15, 0.05, 0.05);
-      g.add(shoeL, shoeR);
+      const shoeL = new THREE.Mesh(shoeGeo, shoeMat); shoeL.position.set(0, -0.75, 0.05);
+      const shoeR = new THREE.Mesh(shoeGeo, shoeMat); shoeR.position.set(0, -0.75, 0.05);
+      legL.add(shoeL); legR.add(shoeR);
 
       const torsoGeo = new THREE.BoxGeometry(0.7, 0.75, 0.35);
       const torsoMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.9 });
@@ -992,9 +998,9 @@
 
       const handGeo = new THREE.SphereGeometry(0.08, 8, 8);
       const skinMatLocal = new THREE.MeshStandardMaterial({ color: 0xd4b4a4, roughness: 0.9 });
-      const handL = new THREE.Mesh(handGeo, skinMatLocal); handL.position.set(-0.46, 0.8, 0);
-      const handR = new THREE.Mesh(handGeo, skinMatLocal); handR.position.set(0.46, 0.8, 0);
-      g.add(handL, handR);
+      const handL = new THREE.Mesh(handGeo, skinMatLocal); handL.position.set(0, -0.6, 0);
+      const handR = new THREE.Mesh(handGeo, skinMatLocal); handR.position.set(0, -0.6, 0);
+      armL.add(handL); armR.add(handR);
 
       const headGeo = new THREE.SphereGeometry(0.16, 12, 12);
       const head = new THREE.Mesh(headGeo, skinMatLocal); head.position.y = 1.65; g.add(head);
@@ -1022,45 +1028,39 @@
 
     const players = [p1, p2, p3];
 
-    // ============ МОНСТР (Парень с фото: черная кофта, черные штаны, растрепанные волосы) ============
+    // ============ МОНСТР ============
     const monsterGroup = new THREE.Group();
     const mSkin = new THREE.MeshStandardMaterial({ color: 0xd4b4a4, roughness: 0.9 });
     const mCloth = new THREE.MeshStandardMaterial({ color: 0x080808, roughness: 1 });
     const mHair = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 1 });
 
-    // Ноги (точка вращения сверху)
     const mLegGeo = new THREE.BoxGeometry(0.22, 0.9, 0.22);
     mLegGeo.translate(0, -0.45, 0);
     const mLegL = new THREE.Mesh(mLegGeo, mCloth); mLegL.position.set(-0.16, 0.9, 0);
     const mLegR = new THREE.Mesh(mLegGeo, mCloth); mLegR.position.set(0.16, 0.9, 0);
     
-    // Торс
     const mTorso = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.8, 0.35), mCloth); mTorso.position.y = 1.3;
     
-    // Руки (точка вращения сверху)
     const mArmGeo = new THREE.BoxGeometry(0.2, 0.6, 0.2);
     mArmGeo.translate(0, -0.3, 0);
     const mArmL = new THREE.Mesh(mArmGeo, mCloth); mArmL.position.set(-0.45, 1.6, 0); mArmL.rotation.x = -Math.PI/3;
     const mArmR = new THREE.Mesh(mArmGeo, mCloth); mArmR.position.set(0.45, 1.6, 0); mArmR.rotation.x = -Math.PI/3;
     
-    // Кисти рук
-    const mHandL = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), mSkin); mHandL.position.set(-0.45, 1.1, 0.5);
-    const mHandR = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), mSkin); mHandR.position.set(0.45, 1.1, 0.5);
+    const mHandL = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), mSkin); mHandL.position.set(0, -0.6, 0);
+    const mHandR = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), mSkin); mHandR.position.set(0, -0.6, 0);
+    mArmL.add(mHandL); mArmR.add(mHandR);
 
-    // Голова
     const mHead = new THREE.Mesh(new THREE.SphereGeometry(0.17, 12, 12), mSkin); mHead.position.y = 1.85;
     
-    // Растрепанные волосы
     const mHairTop = new THREE.Mesh(new THREE.SphereGeometry(0.19, 8, 8), mHair);
     mHairTop.scale.set(1.1, 1.2, 1.1); mHairTop.position.set(0, 1.9, 0);
     const mHairFringe = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.15, 0.1), mHair);
     mHairFringe.position.set(0, 1.85, 0.15);
 
-    // Лицо (тень)
     const mFace = new THREE.Mesh(new THREE.CircleGeometry(0.13, 12), new THREE.MeshBasicMaterial({ color: 0x050505 }));
     mFace.position.set(0, 1.85, 0.16);
 
-    monsterGroup.add(mLegL, mLegR, mTorso, mArmL, mArmR, mHandL, mHandR, mHead, mHairTop, mHairFringe, mFace);
+    monsterGroup.add(mLegL, mLegR, mTorso, mArmL, mArmR, mHead, mHairTop, mHairFringe, mFace);
     
     monsterGroup.position.set(2.5, 0, -9.5);
     monsterGroup.traverse(c => { if(c.isMesh) c.castShadow = true; });
@@ -1305,12 +1305,12 @@
       flashlight.visible = false;
       viewmodel.visible = false;
       
-      // Сброс: все смотрят на лагерь (-Z)
+      // Сброс: все смотрят вправо (-X)
       players.forEach((p, i) => {
         if (i === 0) p.position.set(-2, 0, 0);
-        if (i === 1) { p.position.set(0, 0, 0); p.rotation.set(0,0,0); }
+        if (i === 1) { p.position.set(0, 0, 0); p.rotation.set(0,-Math.PI/2,0); }
         if (i === 2) p.position.set(2, 0, 0);
-        p.rotation.set(0, 0, 0);
+        p.rotation.set(0, -Math.PI/2, 0);
         p.visible = true;
       });
       
@@ -1366,7 +1366,6 @@
       const armL = inner.children[3];
       const armR = inner.children[4];
       
-      // Медленная и тяжелая анимация
       const swing = Math.sin(time * 5 * speedMult) * 0.35;
       if (legL) legL.rotation.x = swing;
       if (legR) legR.rotation.x = -swing;
@@ -1401,19 +1400,19 @@
       flash.style.opacity = 0;
       grainEl.style.opacity = 0.5;
 
-      // ФАЗА 1: Идут по лесу прямо
+      // ФАЗА 1: Идут из леса (издалека) к поляне
       if (t < 5) {
         camera.position.set(0, 2.5, 6);
         camera.lookAt(0, 1.6, -10);
         const walkT = Math.min((t - 2.25) / 2.75, 1);
         
-        // Идут по лесу прямо по X
+        // Идут из глубины леса (z = -3) вперед к поляне (z = 0)
         p1.position.z = -3 + walkT * 3; p1.position.x = -2;
         p2.position.z = -3 + walkT * 3; p2.position.x = 0;
         p3.position.z = -3 + walkT * 3; p3.position.x = 2;
         
-        // Повернуты вправо (по направлению движения)
-        p1.rotation.y = -Math.PI/2; p2.rotation.y = -Math.PI/2; p3.rotation.y = -Math.PI/2;
+        // Смотрят по направлению движения (+Z), значит повернуты на 180
+        p1.rotation.y = Math.PI; p2.rotation.y = Math.PI; p3.rotation.y = Math.PI;
         
         animateWalk(p1, t, 0.8);
         animateWalk(p2, t, 0.8);
@@ -1424,21 +1423,20 @@
         return;
       }
 
-      // ФАЗА 2: Остановились и повернулись к лагерю
+      // ФАЗА 2: Остановились и повернулись к лагерю (лицом к -Z)
       if (t < 6.5) {
         camera.position.set(0, 2.5, 6);
         camera.lookAt(0, 1.6, -10);
-        const turnT = Math.min((t - 5) / 1.0, 1);
+        const turnT = Math.min((t - 5) / 1.5, 1);
         
         p1.position.z = 0; p1.position.x = -2;
         p2.position.z = 0; p2.position.x = 0;
         p3.position.z = 0; p3.position.x = 2;
         
-        // Плавный поворот от -90 (лес) до 0 (лагерь)
-        const currentRot = -Math.PI/2 + turnT * (Math.PI/2);
+        // Плавный разворот от 180 (лес) до 0 (лагерь)
+        const currentRot = Math.PI - turnT * Math.PI;
         p1.rotation.y = currentRot; p2.rotation.y = currentRot; p3.rotation.y = currentRot;
         
-        // Ноги не двигаются, только стоят
         if (turnT >= 1) {
           animateWalk(p1, t, 0); animateWalk(p2, t, 0); animateWalk(p3, t, 0);
         } else {
@@ -1448,10 +1446,10 @@
       }
 
       // ФАЗА 3: Медленно идут к лагерю
-      if (t < 7.5) {
+      if (t < 8) {
         camera.position.set(0, 2.5, 6);
         camera.lookAt(0, 1.6, -10);
-        const walkT = Math.min((t - 6.5) / 1.0, 1);
+        const walkT = Math.min((t - 6.5) / 1.5, 1);
         
         p1.position.z = 0 - walkT * 9.5; p1.position.x = -2;
         p2.position.z = 0 - walkT * 9.5; p2.position.x = 0;
@@ -1459,7 +1457,7 @@
         
         p1.rotation.y = 0; p2.rotation.y = 0; p3.rotation.y = 0;
         
-        animateWalk(p1, t, 0.6); // Еще медленнее
+        animateWalk(p1, t, 0.6); // Медленная анимация
         animateWalk(p2, t, 0.6);
         animateWalk(p3, t, 0.6);
         
@@ -1467,31 +1465,33 @@
         return;
       }
 
-      // ФАЗА 4: Захват
-      if (t < 10) {
+      // ФАЗА 4: Захват (замедлен)
+      if (t < 12.5) {
         camera.position.set(0, 2.0, -4);
         camera.lookAt(0, 0.8, -10.5);
 
         p2.visible = true;
-        if (t <= 7.7) {
+        if (t <= 8.5) {
           p2.position.set(0, 0, -9.5);
           p2.rotation.x = 0;
         }
-        if (t <= 7.9) {
+        if (t <= 8.7) {
           p1.position.set(-2, 0, -9.5); p1.rotation.x = 0;
           p3.position.set(2, 0, -9.5);  p3.rotation.x = 0;
         }
         
-        if (t > 7.3) {
+        // Монстр выходит из тени
+        if (t > 8.0) {
           monster.visible = true;
-          const appearT = Math.min((t - 7.3) / 0.4, 1);
+          const appearT = Math.min((t - 8.0) / 1.0, 1);
           monster.position.set(2.5 - appearT * 2.5, 0, -9.5);
-          animateWalk(monster, t * 1.5, 1.5);
+          animateWalk(monster, t * 1.2, 1.0);
         }
         
-        if (t > 7.7) {
-          const dragT = Math.min((t - 7.7) / 2.2, 1);
-          const lieT = Math.min((t - 7.7) / 0.3, 1);
+        // Тащит жертву (с 8.7 по 12.5 = почти 4 секунды)
+        if (t > 8.7) {
+          const dragT = Math.min((t - 8.7) / 3.8, 1); 
+          const lieT = Math.min((t - 8.7) / 0.3, 1);
           
           p2.rotation.x = lieT * Math.PI / 2;
           p2.position.y = lieT * 0.3;
@@ -1503,8 +1503,8 @@
           p2.position.x = 0;
           p2.position.z = baseZ - 1.2 + jerk;
 
-          if (t > 7.9 && t < 8.7) {
-            const crawlT = (t - 7.9) / 0.8;
+          if (t > 9.0 && t < 10.0) {
+            const crawlT = (t - 9.0) / 1.0;
             p1.position.set(-2 - crawlT * 1.2, crawlT * 0.3, -9.5 + crawlT * 1.5);
             p1.rotation.x = crawlT * Math.PI / 2;
             p3.position.set(2 + crawlT * 1.2, crawlT * 0.3, -9.5 + crawlT * 1.5);
@@ -1514,8 +1514,8 @@
               playedEvents.cutscene.add('thud');
             }
           }
-          if (t >= 8.7) {
-            const runT = Math.min((t - 8.7) / 1.0, 1);
+          if (t >= 10.0) {
+            const runT = Math.min((t - 10.0) / 1.5, 1);
             const standT = Math.min(runT * 3, 1);
             const yOff = (1 - standT) * 0.3;
             const rotX = (1 - standT) * Math.PI / 2;
@@ -1534,14 +1534,15 @@
         return;
       }
 
-      if (t < 12) {
+      // ФАЗА 5: Комната-ловушка
+      if (t < 15) {
         monster.visible = false;
         p2.visible = false;
         outsideGroup.visible = true;
         roomGroup.visible = true;
 
-        if (t < 10.0) {
-          const panK = (t - 9.0) / 1.0;
+        if (t < 12.5) {
+          const panK = (t - 12.0) / 1.0;
           camera.position.set(
             0.1 + Math.sin(panK * 1.2) * 0.15,
             1.6 + (Math.random() - 0.5) * 0.02,
@@ -1550,8 +1551,8 @@
           camera.lookAt(-0.5 - panK * 0.4, 1.4, -15.2);
           return;
         }
-        if (t < 10.6) {
-          const k = (t - 10.0) / 0.6;
+        if (t < 13.1) {
+          const k = (t - 12.5) / 0.6;
           const ease = k * k * (3 - 2 * k);
           const fromPos = new THREE.Vector3(0.1, 1.6, -13.4);
           const toPos   = new THREE.Vector3(0, 3.2, -5);
@@ -1562,13 +1563,13 @@
           camera.lookAt(lookAt);
           return;
         }
-        const outK = Math.min((t - 10.6) / 1.4, 1);
+        const outK = Math.min((t - 13.1) / 1.4, 1);
         camera.position.set(0, 3.2 + outK * 0.4, -5 + outK * 3);
         camera.lookAt(0, 1.5, -12);
         return;
       }
-      fade.style.opacity = Math.min((t - 12) / 0.6, 1);
-      if (t > 12.6) startGameplay();
+      fade.style.opacity = Math.min((t - 15) / 0.6, 1);
+      if (t > 15.6) startGameplay();
     }
 
     function startGameplay() {
@@ -1626,11 +1627,9 @@
       if (keys['KeyA']) playerState.pos.addScaledVector(right, -speed);
       if (keys['KeyD']) playerState.pos.addScaledVector(right, speed);
 
-      // Коллизии со стенами коридора
       playerState.pos.x = Math.max(-1.6, Math.min(1.6, playerState.pos.x));
       playerState.pos.z = Math.max(-7.6, Math.min(7.5, playerState.pos.z));
 
-      // Коллизии с мебелью
       for (const obs of obstacles) {
         const dx = playerState.pos.x - obs.x;
         const dz = playerState.pos.z - obs.z;
@@ -1642,12 +1641,10 @@
         }
       }
 
-      // === КОЛЛИЗИЯ И ПОДЪЕМ ПО СТУПЕНЬКАМ ===
-      // Если игрок близко к двери (z < -6.5), он поднимается по ступеням
+      // === ПОДЪЕМ ПО СТУПЕНЬКАМ ===
       if (playerState.pos.z < -6.5) {
-        // Плавный подъем по ступенькам (от 1.6 до 2.1)
         const stepProgress = Math.min((-6.5 - playerState.pos.z) / 1.0, 1);
-        playerState.pos.y = 1.6 + stepProgress * 0.5;
+        playerState.pos.y = 1.6 + stepProgress * 0.5; // Плавный подъем
       } else {
         playerState.pos.y = 1.6;
       }
