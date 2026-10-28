@@ -306,15 +306,15 @@
       if (t) moveLight(t.clientX, t.clientY);
     }, { passive: true });
 
-    // === СИСТЕМА ЗВУКОВЫХ СОБЫТИЙ ===
-    const SOUND_EVENTS = [	
-      { file: "sounds/sounds1.mp3",   time: 1.5,  volume: 1.0 },
-      { file: "sounds/footsteps.mp3", time: 2.5,  volume: 0.6 },
-      { file: "sounds/scream.mp3",  time: 8.5,  volume: 1.0 },
-      { file: "sounds/drag.mp3",    time: 7.8,  volume: 1.0 },	
-      { file: "sounds/door_slam.mp3", time: 1.2,  volume: 1.0 },
-      { file: "sounds/cry.mp3",       time: 1.8,  volume: 0.8 },
-      { file: "sounds/rustle.mp3",    time: 4.0,  volume: 0.5 }
+    // === СИСТЕМА ЗВУКОВ ===
+    const SOUND_EVENTS = [
+      { file: "sounds/sounds1.mp3",   time: 0.5,  volume: 1.0 },
+      { file: "sounds/sounds1.mp3", time: 2.5,  volume: 0.6 },
+      { file: "sounds/sounds1.mp3",  time: 8.5,  volume: 1.0 },
+      { file: "sounds/sounds1.mp3",    time: 7.8,  volume: 1.0 },
+      { file: "sounds/sounds1.mp3", time: 1.2,  volume: 1.0 },
+      { file: "sounds/sounds1.mp3",       time: 1.8,  volume: 0.8 },
+      { file: "sounds/sounds1.mp3",    time: 4.0,  volume: 0.5 }
     ];
 
     const audioLoader = new THREE.AudioLoader();
@@ -334,10 +334,15 @@
             (buffer) => {
               loadedSounds[file] = buffer;
               console.log(`✅ ЗВУК ЗАГРУЖЕН: ${file}`);
+              // ТЕСТ: Проигрываем звук сразу, как только он загрузился
+              const testSound = new THREE.Audio(audioListener);
+              testSound.setBuffer(buffer);
+              testSound.setVolume(0.5);
+              testSound.play();
             },
             undefined,
             (err) => {
-              console.error(`❌ ОШИБКА ЗАГРУЗКИ ЗВУКА: ${file}. Проверь путь!`, err);
+              console.error(`❌ ОШИБКА ЗАГРУЗКИ: ${file}`, err);
               loadedSounds[file] = null;
             }
           );
@@ -348,15 +353,11 @@
     function playSoundEvent(file, volume = 1.0) {
       if (!audioListener) return;
       const buffer = loadedSounds[file];
-      if (!buffer) {
-        console.warn(`⚠️ Попытка проиграть ${file}, но он еще не загружен.`);
-        return;
-      }
+      if (!buffer) return;
       const sound = new THREE.Audio(audioListener);
       sound.setBuffer(buffer);
       sound.setVolume(volume);
       sound.play();
-      console.log(`🔊 Играет звук: ${file}`);
     }
 
     function processSoundEvents(currentTime, phase) {
@@ -386,9 +387,7 @@
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       }
       if (audioCtx.state === 'suspended') {
-        audioCtx.resume().then(() => {
-          console.log("🔊 AudioContext возобновлен");
-        });
+        audioCtx.resume();
       }
     }
 
@@ -1308,10 +1307,10 @@
       
       players.forEach((p, i) => {
         if (i === 0) p.position.set(-2, 0, 6);
-        if (i === 1) { p.position.set(0, 0, 6); p.rotation.set(0,Math.PI,0); }
+        if (i === 1) { p.position.set(0, 0, 6); }
         if (i === 2) p.position.set(2, 0, 6);
-        p.rotation.set(0, Math.PI, 0);
         p.visible = true;
+        p.lookAt(0, 0, -10); // Смотрят вглубь к дому
       });
       
       monster.visible = false;
@@ -1400,6 +1399,7 @@
       flash.style.opacity = 0;
       grainEl.style.opacity = 0.5;
 
+      // ФАЗА 1: Идут из леса вглубь, к дому
       if (t < 7) {
         camera.position.set(0, 2.5, 10);
         camera.lookAt(0, 1.6, -10);
@@ -1409,7 +1409,8 @@
         p2.position.z = 6 - walkT * 10; p2.position.x = 0;
         p3.position.z = 6 - walkT * 10; p3.position.x = 2;
         
-        p1.rotation.y = Math.PI; p2.rotation.y = Math.PI; p3.rotation.y = Math.PI;
+        // Принудительно смотрят в точку назначения
+        p1.lookAt(0, 0, -4); p2.lookAt(0, 0, -4); p3.lookAt(0, 0, -4);
         
         animateWalk(p1, t, 0.8);
         animateWalk(p2, t, 0.8);
@@ -1420,6 +1421,7 @@
         return;
       }
 
+      // ФАЗА 2: Захват
       if (t < 12.5) {
         let shakeX = 0, shakeY = 0, shakeZ = 0;
         if (t > 7.0 && t < 12.5) {
@@ -1435,11 +1437,11 @@
         p2.visible = true;
         if (t <= 7.7) {
           p2.position.set(0, 0, -4);
-          p2.rotation.set(0, Math.PI, 0);
+          p2.lookAt(0, 0, -10); 
         }
         if (t <= 7.9) {
-          p1.position.set(-2, 0, -4); p1.rotation.set(0, Math.PI, 0);
-          p3.position.set(2, 0, -4);  p3.rotation.set(0, Math.PI, 0);
+          p1.position.set(-2, 0, -4); p1.lookAt(0, 0, -10);
+          p3.position.set(2, 0, -4);  p3.lookAt(0, 0, -10);
         }
         
         if (t > 7.0) {
@@ -1453,15 +1455,16 @@
           const dragT = Math.min((t - 7.7) / 3.8, 1); 
           const lieT = Math.min((t - 7.7) / 0.3, 1);
           
-          p2.rotation.y = Math.PI;
-          p2.rotation.x = lieT * Math.PI / 2; 
+          // Жертва лежит лицом вниз, головой вглубь
+          p2.rotation.set(lieT * Math.PI / 2, Math.PI, 0);
           p2.position.y = lieT * 0.6; 
           
           const jerk = Math.sin(dragT * 25) * 0.1;
           const baseZ = -4 - dragT * 5;
           
+          // Монстр тащит её на себя
           monster.position.set(0, 0, baseZ + 1.5); 
-          monster.rotation.y = Math.PI; 
+          monster.lookAt(0, 0, -10);
           
           p2.position.x = 0;
           p2.position.z = baseZ + 1.5 - 1.6 + jerk;
@@ -1483,10 +1486,11 @@
             const yOff = (1 - standT) * 0.3;
             const rotX = (1 - standT) * Math.PI / 2;
             
+            // Убегают лицом к нам
             p1.position.set(-4 - runT * 5, yOff, -2 + runT * 6);
-            p1.rotation.x = rotX; p1.rotation.y = 0;
+            p1.rotation.set(rotX, 0, 0); 
             p3.position.set(4 + runT * 5, yOff, -2 + runT * 6);
-            p3.rotation.x = rotX; p3.rotation.y = 0;
+            p3.rotation.set(rotX, 0, 0);
             
             if (runT < 0.9) {
               animateWalk(p1, t * 1.5, 1.5);
@@ -1499,6 +1503,7 @@
         return;
       }
 
+      // ФАЗА 3: Комната-ловушка
       if (t < 15.0) {
         monster.visible = false;
         p2.visible = false;
