@@ -231,37 +231,30 @@
 
   <div id="menu-screen">
     <div id="darkness"></div>
-
     <header>
       <h1>Лагерь: Вход запрещён</h1>
       <p class="subtitle">Хоррор‑Лагерь. Ты не захочешь заходить внутрь.</p>
     </header>
-
     <main>
       <section class="story-block">
         <span class="sound-cue">Мы не обязываем вас играть в эту игру…</span>
         Участвуйте только если хочется! 😄
       </section>
-
       <section class="story-block">
         <span class="sound-cue">Присутствуют резкие шорохи сбоку…</span>
         Из темноты выныривает фигура и хватает одного из игроков за ногу. Крик обрывается, будто его проглотила тишина. Проход исчезает — на его месте теперь сплошная стена.
       </section>
-
       <section class="story-block">
         <span class="sound-cue">Глухой удар, скрип петель…</span>
         Двери лагеря захлопываются сами по себе. Слышен короткий, отчаянный крик напарника — того самого, которого утянули. И где‑то вдалеке — тихий шорох.
       </section>
-
       <section style="text-align:center; margin-top:40px;">
         <button id="enter-btn">Начать игру</button>
       </section>
     </main>
-
     <footer>
       <span class="warning">⚠</span> Не рекомендуется людям с повышенной чувствительностью к скримерам.
     </footer> 
-
     <div id="hint">СТРОГО 18+</div>
     <div id="hint2">⚠ Создано - Ainazik ⚠</div>
   </div>
@@ -283,35 +276,21 @@
   <script type="module">
     import * as THREE from 'three';
 
-    // === МЕНЮ ЛОГИКА (ФОНАРИК) ===
-    const root = document.documentElement;
-    function updateRadius() {
-      const r = Math.min(window.innerWidth, window.innerHeight) * 0.32;
-      root.style.setProperty('--r', Math.max(140, Math.min(300, r)) + 'px');
-    }
-    updateRadius();
-    window.addEventListener('resize', updateRadius);
+    // =======================================================
+    // === НАСТРОЙКИ ЗВУКА (ГАЛОЧКИ ВКЛ/ВЫКЛ) ===
+    // =======================================================
+    const AUDIO_SETTINGS = {
+      playFootsteps: false,    // Шаги при ходьбе (синтез)
+      playBreathing: false,    // Дыхание в игре (синтез)
+      playRandomScares: false, // Случайные звуки в игре каждые 6-12 сек
+      playDoorSound: false,    // Звук при открытии двери на 'E'
+      playThudInCutscene: false// Звук удара в ролике (когда падают)
+    };
 
-    function moveLight(x, y) {
-      root.style.setProperty('--mx', x + 'px');
-      root.style.setProperty('--my', y + 'px');
-    }
-    moveLight(window.innerWidth / 2, window.innerHeight / 2);
-
-    document.addEventListener('mousemove', (e) => moveLight(e.clientX, e.clientY));
-    document.addEventListener('touchstart', (e) => {
-      const t = e.touches[0];
-      if (t) moveLight(t.clientX, t.clientY);
-    }, { passive: true });
-    document.addEventListener('touchmove', (e) => {
-      const t = e.touches[0];
-      if (t) moveLight(t.clientX, t.clientY);
-    }, { passive: true });
-
-    // === СИСТЕМА ЗВУКОВ ===
-    // ОСТАВЛЕНО ТОЛЬКО ОДНО СОБЫТИЕ, ЧТОБЫ ЗВУК НЕ НАКЛАДЫВАЛСЯ
+    // === СПИСОК ФАЙЛОВЫХ ЗВУКОВ ===
+    // Здесь только ОДНО событие. Звук проиграется 1 раз на 2.5 секунде ролика.
     const SOUND_EVENTS = [
-      { file: "sounds/creak1.mp3", time: 2.5, volume: 1.0 }
+      { file: "sounds/2.mp3", time: 5.5, volume: 1.0 }
     ];
 
     const audioLoader = new THREE.AudioLoader();
@@ -334,7 +313,7 @@
             },
             undefined,
             (err) => {
-              console.error(`❌ ОШИБКА ЗАГРУЗКИ: ${file}`, err);
+              console.error(`❌ ОШИБКА ЗАГРУЗКИ: ${file}. (Если вы открыли file://, звук не загрузится)`, err);
               loadedSounds[file] = null;
             }
           );
@@ -350,6 +329,7 @@
       sound.setBuffer(buffer);
       sound.setVolume(volume);
       sound.play();
+      console.log(`🔊 Играет: ${file}`);
     }
 
     function processSoundEvents(currentTime, phase) {
@@ -357,7 +337,7 @@
       for (let i = 0; i < SOUND_EVENTS.length; i++) {
         const ev = SOUND_EVENTS[i];
         if (currentTime >= ev.time && !played.has(i)) {
-          if (phase === 'cutscene' && ev.time < 15) {
+          if (phase === 'cutscene') {
             playSoundEvent(ev.file, ev.volume);
             played.add(i);
           }
@@ -365,7 +345,7 @@
       }
     }
 
-    // === ЗВУКИ-СИНТЕЗАТОРЫ (Шаги и дыхание) ===
+    // === ЗВУКИ-СИНТЕЗАТОРЫ ===
     let audioCtx = null;
     let breathingNodes = null;
 
@@ -379,7 +359,9 @@
     }
 
     function startBreathing() {
+      if (!AUDIO_SETTINGS.playBreathing) return; // Проверка галочки
       if (!audioCtx || breathingNodes) return;
+      
       const t = audioCtx.currentTime;
       const bufSize = audioCtx.sampleRate * 2;
       const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
@@ -404,7 +386,9 @@
     }
 
     function playFootstep() {
+      if (!AUDIO_SETTINGS.playFootsteps) return; // Проверка галочки
       if (!audioCtx) return;
+      
       const t = audioCtx.currentTime;
       const bufSize = audioCtx.sampleRate * 0.09;
       const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
@@ -1337,7 +1321,9 @@
       }
       if (e.code === 'KeyE' && state === 'playing' && nearDoor && doorState === 'closed') {
         doorState = 'opening';
-        playSoundEvent("sounds/creak1.mp3", 1.0);
+        if (AUDIO_SETTINGS.playDoorSound) {
+          playSoundEvent("sounds/creak1.mp3", 1.0);
+        }
       }
     });
     document.addEventListener('keyup', (e) => keys[e.code] = false);
@@ -1423,7 +1409,7 @@
         p2.visible = true;
         if (t <= 7.7) {
           p2.position.set(0, 0, -4);
-          p2.rotation.set(0, Math.PI, 0);
+          p2.rotation.set(0, Math.PI, 0); 
         }
         if (t <= 7.9) {
           p1.position.set(-2, 0, -4); p1.rotation.set(0, Math.PI, 0);
@@ -1459,6 +1445,12 @@
             p1.rotation.set(crawlT * Math.PI / 2, Math.PI, 0);
             p3.position.set(2 + crawlT * 2, crawlT * 0.3, -4 + crawlT * 2);
             p3.rotation.set(crawlT * Math.PI / 2, Math.PI, 0);
+            if (!playedEvents.cutscene.has('thud')) {
+              if (AUDIO_SETTINGS.playThudInCutscene) {
+                playSoundEvent("sounds/creak1.mp3", 0.7);
+              }
+              playedEvents.cutscene.add('thud');
+            }
           }
           if (t >= 9.0) {
             const runT = Math.min((t - 9.0) / 1.5, 1);
@@ -1550,9 +1542,8 @@
       processSoundEvents(gameplayTime, 'gameplay');
 
       eventTimer += dt;
-      if (eventTimer > 6 + Math.random() * 6) {
-        if (Math.random() < 0.5) playSoundEvent("sounds/creak1.mp3", 0.8);
-        else playSoundEvent("sounds/creak1.mp3", 0.5);
+      if (AUDIO_SETTINGS.playRandomScares && eventTimer > 6 + Math.random() * 6) {
+        playSoundEvent("sounds/creak1.mp3", 0.8);
         eventTimer = 0;
       }
 
