@@ -203,7 +203,7 @@
       pointer-events: none; z-index: 5; opacity: 0; transition: opacity 0.5s;
     }
     #fade { position: fixed; inset: 0; background: #000;
-      opacity: 1; pointer-events: none; z-index: 10; }
+      opacity: 1; pointer-events: none; z-index: 10; transition: opacity 0.5s ease; }
     #flash { position: fixed; inset: 0; background: #fff;
       opacity: 0; pointer-events: none; z-index: 11; }
     #grain {
@@ -1455,19 +1455,21 @@
           const dragT = Math.min((t - 7.7) / 3.8, 1); 
           const lieT = Math.min((t - 7.7) / 0.3, 1);
           
+          // ЖЕРТВА ПАДАЕТ (крутится вокруг своей оси X)
           p2.rotation.x = lieT * Math.PI / 2;
-          
-          // ЖЕРТВА НА ЗЕМЛЕ, ЧУТЬ ПРИПОДНЯТА
+          // ЧУТЬ ПРИПОДНЯТА НАД ЗЕМЛЕЙ
           p2.position.y = lieT * 0.6; 
           
           const jerk = Math.sin(dragT * 25) * 0.1;
           const baseZ = -4 - dragT * 5;
           
-          // МОНСТР ИДЕТ ЧУТЬ ДАЛЬШЕ (ПОЗАДИ)
+          // МОНСТР ДЕРЖИТ ЖЕРТВУ ЗА НОГИ И ТЯНЕТ НА СЕБЯ (двигается спиной вперед)
+          // Монстр смотрит на +Z (лицом к нам)
           monster.position.set(0, 0, baseZ + 1.2);
+          monster.rotation.y = Math.PI; 
           
           p2.position.x = 0;
-          // ЖЕРТВА ВОЛОЧИТСЯ ПЕРЕД МОНСТРОМ
+          // ЖЕРТВА ЛЕЖИТ ПЕРЕД НИМ (голова смотрит в -Z)
           p2.position.z = baseZ - 1.2 + jerk;
 
           if (t > 8.0 && t < 9.0) {
@@ -1535,8 +1537,10 @@
         camera.lookAt(0, 1.5, -12);
         return;
       }
-      fade.style.opacity = Math.min((t - 15.0) / 0.6, 1);
-      if (t > 15.6) startGameplay();
+      
+      // ПЛАВНОЕ ЗАТЕМНЕНИЕ В КОНЦЕ
+      fade.style.opacity = Math.min((t - 15.0) / 2.0, 1);
+      if (t > 17.0) startGameplay();
     }
 
     function startGameplay() {
