@@ -29,7 +29,6 @@
       touch-action: none;
     }
 
-    /* ===== МЕНЮ ===== */
     #menu-screen {
       position: fixed;
       inset: 0;
@@ -191,7 +190,6 @@
       50%      { opacity: 0.75; }
     }
 
-    /* ===== ИГРА ===== */
     #game-container {
       display: none;
       position: fixed;
@@ -229,7 +227,6 @@
 </head>
 <body>
 
-  <!-- ================= МЕНЮ ================= -->
   <div id="menu-screen">
     <div id="darkness"></div>
 
@@ -267,7 +264,6 @@
     <div id="hint2">⚠ Создано - Ainazik ⚠</div>
   </div>
 
-  <!-- ================= ИГРА ================= -->
   <div id="game-container">
     <div id="hint-game">WASD — ходьба. Клик — захват мыши. F — фонарик. Esc — отпустить.</div>
     <div id="prompt">Нажмите E, чтобы открыть дверь</div>
@@ -334,14 +330,15 @@
       const uniqueFiles = [...new Set(SOUND_EVENTS.map(e => e.file))];
       uniqueFiles.forEach(file => {
         if (!loadedSounds[file]) {
+          // ВАЖНО: Проверка на загрузку
           audioLoader.load(file, 
             (buffer) => {
               loadedSounds[file] = buffer;
-              console.log(`✅ Звук загружен: ${file}`);
+              console.log(`✅ ЗВУК ЗАГРУЖЕН: ${file}`);
             },
             undefined,
             (err) => {
-              console.warn(`⚠️ Не удалось загрузить звук: ${file}`);
+              console.error(`❌ ОШИБКА ЗАГРУЗКИ ЗВУКА: ${file}. Проверь путь и формат!`, err);
               loadedSounds[file] = null;
             }
           );
@@ -352,11 +349,15 @@
     function playSoundEvent(file, volume = 1.0) {
       if (!audioListener) return;
       const buffer = loadedSounds[file];
-      if (!buffer) return;
+      if (!buffer) {
+        console.warn(`⚠️ Попытка проиграть ${file}, но он еще не загружен или отсутствует.`);
+        return;
+      }
       const sound = new THREE.Audio(audioListener);
       sound.setBuffer(buffer);
       sound.setVolume(volume);
       sound.play();
+      console.log(`🔊 Играет звук: ${file}`);
     }
 
     function processSoundEvents(currentTime, phase) {
@@ -377,12 +378,20 @@
       }
     }
 
-    // === ЗВУКИ-СИНТЕЗАТОРЫ ===
+    // === ЗВУКИ-СИНТЕЗАТОРЫ (Дыхание и шаги) ===
     let audioCtx = null;
     let breathingNodes = null;
 
     function initAudio() {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      // Принудительное включение звука в браузере
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume().then(() => {
+          console.log("🔊 AudioContext возобновлен");
+        });
+      }
     }
 
     function startBreathing() {
@@ -1244,7 +1253,7 @@
     let state = 'menu';
     let cutsceneTime = 0;
     let gameplayTime = 0;
-    let flashlightOn = true; // <--- ИСПРАВЛЕНИЕ: добавили переменную фонарика
+    let flashlightOn = true;
     const clock = new THREE.Clock();
     const playerState = { pos: new THREE.Vector3(0, 1.6, 5), yaw: 0, pitch: 0 };
 
@@ -1393,11 +1402,9 @@
       flash.style.opacity = 0;
       grainEl.style.opacity = 0.5;
 
-      // ФАЗА 1: Идут из леса вглубь, к дому
       if (t < 7) {
         camera.position.set(0, 2.5, 10);
         camera.lookAt(0, 1.6, -10);
-        
         const walkT = Math.min((t - 2.25) / 4.75, 1);
         
         p1.position.z = 6 - walkT * 10; p1.position.x = -2;
@@ -1415,7 +1422,6 @@
         return;
       }
 
-      // ФАЗА 2: Захват
       if (t < 12.5) {
         let shakeX = 0, shakeY = 0, shakeZ = 0;
         if (t > 7.0 && t < 12.5) {
@@ -1495,7 +1501,6 @@
         return;
       }
 
-      // ФАЗА 3: Комната-ловушка
       if (t < 15.0) {
         monster.visible = false;
         p2.visible = false;
@@ -1552,7 +1557,7 @@
       prevGameplayPos.copy(playerState.pos);
       eventTimer = 0;
       startBreathing();
-      setTimeout(() => { fade.style.opacity = 0; }, 200); // Чуть больше времени на прогрузку
+      setTimeout(() => { fade.style.opacity = 0; }, 200);
       hintGame.style.opacity = 1;
     }
 
