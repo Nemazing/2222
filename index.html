@@ -306,15 +306,15 @@
       if (t) moveLight(t.clientX, t.clientY);
     }, { passive: true });
 
-    // === СИСТЕМА ЗВУКОВ ===
+   // === СИСТЕМА ЗВУКОВЫХ СОБЫТИЙ ===
     const SOUND_EVENTS = [
-      { file: "sounds/sounds1.mp3",   time: 0.5,  volume: 1.0 },
-      { file: "sounds/sounds1.mp3", time: 2.5,  volume: 0.6 },
-      { file: "sounds/sounds1.mp3",  time: 8.5,  volume: 1.0 },
-      { file: "sounds/sounds1.mp3",    time: 7.8,  volume: 1.0 },
-      { file: "sounds/sounds1.mp3", time: 1.2,  volume: 1.0 },
-      { file: "sounds/sounds1.mp3",       time: 1.8,  volume: 0.8 },
-      { file: "sounds/sounds1.mp3",    time: 4.0,  volume: 0.5 }
+      { file: "sounds/creak.mp3",   time: 0.5,  volume: 1.0 },
+      { file: "sounds/footsteps.mp3", time: 2.5,  volume: 0.6 },
+      { file: "sounds/scream.mp3",  time: 8.5,  volume: 1.0 },
+      { file: "sounds/drag.mp3",    time: 7.8,  volume: 1.0 },
+      { file: "sounds/door_slam.mp3", time: 1.2,  volume: 1.0 },
+      { file: "sounds/cry.mp3",       time: 1.8,  volume: 0.8 },
+      { file: "sounds/rustle.mp3",    time: 4.0,  volume: 0.5 }
     ];
 
     const audioLoader = new THREE.AudioLoader();
