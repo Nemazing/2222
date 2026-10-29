@@ -195,25 +195,18 @@ import * as THREE from 'three';
 
 /* =========================================================================
    ДОМ В ЛЕСУ — Three.js browser horror, первая часть.
-
-   АУДИО: реальные файлы 1.mp3,2.mp3,3.mp3,4.mp3,padenielift.mp3,upallift.mp3
-   и logotipe.png пока не предоставлены (GitHub-репозиторий будет прислан
-   позже). До этого момента все эти события используют процедурные звуки
-   Web Audio API и процедурный логотип на canvas — см. AUDIO_SOURCES и
-   drawProceduralLogo() ниже. Как только появится ссылка на репозиторий,
-   нужно только заполнить AUDIO_SOURCES реальными URL и заменить
-   drawProceduralLogo() на загрузку logotipe.png — остальной код трогать
-   не придётся.
+   ИСПРАВЛЕНО: управление (направление движения относительно yaw) и коллизия
+   (полноценные стены + динамическая дверь + мост между коридором и комнатой).
    ========================================================================= */
 
 // ---------------------------------------------------------------- CONFIG --
 const AUDIO_SOURCES = {
-  s1: null, s2: null, s3: null, s4: null,          // 1.mp3 .. 4.mp3
-  padenielift: null, upallift: null,                // лифт
-  drag: null,                                       // доп. звук утаскивания (не из ТЗ-файлов, процедурный)
+  s1: null, s2: null, s3: null, s4: null,
+  padenielift: null, upallift: null,
+  drag: null,
 };
 const FLOOR_OFFSET = 4.2;
-let currentFloor = 'ground'; // ground | basement | upper
+let currentFloor = 'ground';
 
 // ----------------------------------------------------------------- DOM ----
 const $ = (id)=>document.getElementById(id);
@@ -253,15 +246,14 @@ class AudioManager{
   async _loadReal(){
     for(const key in AUDIO_SOURCES){
       const url = AUDIO_SOURCES[key];
-      if(!url) continue; // нет ссылки — остаёмся на процедурном звуке
+      if(!url) continue;
       try{
         const res = await fetch(url); const arr = await res.arrayBuffer();
         const buf = await this.ctx.decodeAudioData(arr);
         this.buffers[key] = buf;
-      }catch(e){ console.warn('audio load failed, keeping procedural fallback for', key, e); }
+      }catch(e){ console.warn('audio load failed for', key, e); }
     }
   }
-  // Процедурная генерация заменителей звуковых файлов через Web Audio API.
   _buildProcedural(){
     const sr=this.ctx.sampleRate;
     const mkBuf=(seconds, fn)=>{
@@ -272,25 +264,21 @@ class AudioManager{
       return buf;
     };
     const noise=(amt=1)=> (Math.random()*2-1)*amt;
-    // 1..4: короткие сюжетные "стингеры" — глухие тревожные удары/скрипы
     this.buffers.s1 = mkBuf(1.4, t=> Math.sin(2*Math.PI*70*t)*Math.exp(-t*3.2)*0.9 + noise(0.05)*Math.exp(-t*6));
     this.buffers.s2 = mkBuf(0.9, t=> noise(0.5)*Math.exp(-t*7) + Math.sin(2*Math.PI*220*t)*Math.exp(-t*10)*0.3);
     this.buffers.s3 = mkBuf(2.0, t=> Math.sin(2*Math.PI*(50+10*Math.sin(t*3))*t)*Math.exp(-t*1.4)*0.7);
     this.buffers.s4 = mkBuf(1.6, t=> noise(0.35)*Math.exp(-(((t-0.05)*8)**2)) + Math.sin(2*Math.PI*90*t)*Math.exp(-t*3)*0.6);
-    // скрип тросов и раскачивание — ~8 секунд нарастающего скрипа
     this.buffers.padenielift = mkBuf(8.0, (t)=>{
       const creak = Math.sin(2*Math.PI*(180+40*Math.sin(t*1.3))*t) * (0.15+0.5*Math.min(1,t/6));
       const groan = Math.sin(2*Math.PI*55*t) * 0.25 * (0.3+0.7*Math.sin(t*0.8+1));
       const n = noise(0.08)*(0.4+0.6*Math.sin(t*2.1));
       return (creak*0.5+groan+n)*Math.min(1,t*2);
     });
-    // удар и тревога после падения — ~3.5 секунды
     this.buffers.upallift = mkBuf(3.5, (t)=>{
       const impact = t<0.3 ? noise(1)*Math.exp(-t*14) : 0;
       const alarm = Math.sin(2*Math.PI*340*t) * (t>0.3?0.22*Math.exp(-(t-0.3)*0.6)*(Math.sin(t*14)>0?1:0.2):0);
       return impact + alarm;
     });
-    // утаскивание по земле — медленный скрежещущий звук на 5 секунд
     this.buffers.drag = mkBuf(5.0, (t)=>{
       const env = Math.sin(Math.min(1,t/0.4)*Math.PI*0.5) * Math.sin(Math.max(0,Math.min(1,(5-t)/0.6))*Math.PI*0.5);
       const scrape = noise(0.5) * (0.5+0.5*Math.sin(t*5.3));
@@ -310,14 +298,12 @@ class AudioManager{
 const audio = new AudioManager();
 
 // ----------------------------------------------------------- SOUND EVENTS -
-// Единый массив сюжетных звуков катсцены 1. playedEvents гарантирует
-// однократное проигрывание за прохождение сцены.
 const SOUND_EVENTS = [
-  { id:'cs1_s1',   time:0.6,  key:'s1' },   // у ворот — тревожный гул
-  { id:'cs1_s2',   time:3.1,  key:'s2' },   // персонажи трогаются с места
-  { id:'cs1_s3',   time:7.75, key:'s3' },   // появление монстра
-  { id:'cs1_s4',   time:8.45, key:'s4' },   // момент захвата
-  { id:'cs1_drag', time:8.45, key:'drag' }, // 5-секундное утаскивание
+  { id:'cs1_s1',   time:0.6,  key:'s1' },
+  { id:'cs1_s2',   time:3.1,  key:'s2' },
+  { id:'cs1_s3',   time:7.75, key:'s3' },
+  { id:'cs1_s4',   time:8.45, key:'s4' },
+  { id:'cs1_drag', time:8.45, key:'drag' },
 ];
 let playedEvents = new Set();
 
@@ -339,7 +325,6 @@ function resize(){
 }
 window.addEventListener('resize', resize); resize();
 
-// Группы объектов (архитектура проекта)
 const outsideGroup = new THREE.Group(); scene.add(outsideGroup);
 const roomGroup     = new THREE.Group(); scene.add(roomGroup);
 const gameGroup     = new THREE.Group(); scene.add(gameGroup);
@@ -424,7 +409,6 @@ TEX.painting = canvasTex(192,256,(ctx,w,h)=>{
   ctx.strokeStyle='rgba(0,0,0,0.5)'; ctx.lineWidth=2;
   for(let i=0;i<6;i++){ ctx.beginPath(); ctx.moveTo(rand(0,w),rand(0,h)); ctx.lineTo(rand(0,w),rand(0,h)); ctx.stroke(); }
 });
-// Прозрачные декали: паутина и кровавые потёки на деревьях/доме.
 function canvasTexAlpha(w,h,draw){
   const c=document.createElement('canvas'); c.width=w; c.height=h;
   const ctx=c.getContext('2d'); ctx.clearRect(0,0,w,h); draw(ctx,w,h);
@@ -455,9 +439,6 @@ TEX.bloodSmear = canvasTexAlpha(256,256,(ctx,w,h)=>{
 });
 
 // ------------------------------------------------------- CHARACTER BUILD -
-// Стилизованные фигуры персонажей по цветовой схеме из ТЗ. Фото-референсы
-// учтены на уровне силуэта/цвета одежды (оверсайз худи, тёмные брюки),
-// без попытки фотореалистичной копии внешности.
 function makeHumanoid(color, {height=1.75, hoodie=true, hoodUp=true}={}){
   const g = new THREE.Group();
   const matBody = new THREE.MeshStandardMaterial({color, roughness:0.88, metalness:0.04});
@@ -465,13 +446,10 @@ function makeHumanoid(color, {height=1.75, hoodie=true, hoodUp=true}={}){
   const matPants = new THREE.MeshStandardMaterial({color:0x221f1d, roughness:0.95});
   const matHair = new THREE.MeshStandardMaterial({color:0x151010, roughness:0.95});
 
-  // оверсайз худи — прямой корпус шире плеч, как на референс-фото
   const torso = new THREE.Mesh(new THREE.BoxGeometry(0.58,0.7,0.32), matBody);
   torso.position.y = height*0.52; torso.castShadow=true; g.add(torso);
-  // карман-кенгуру спереди
   const pocket = new THREE.Mesh(new THREE.BoxGeometry(0.36,0.15,0.045), matBody);
   pocket.position.set(0, height*0.4, 0.185); g.add(pocket);
-  // нижняя резинка худи
   const hem = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.07,0.34), matBody);
   hem.position.y = height*0.5-0.34; g.add(hem);
 
@@ -488,17 +466,14 @@ function makeHumanoid(color, {height=1.75, hoodie=true, hoodUp=true}={}){
     const hoodStringR = hoodStringL.clone(); hoodStringR.position.x=0.07; g.add(hoodStringR);
   }
 
-  // мешковатые штаны (шире у бедра, уже у щиколотки)
   const legGeo = new THREE.CylinderGeometry(0.1,0.135,0.6,8);
   const legL = new THREE.Mesh(legGeo, matPants); legL.position.set(-0.145,height*0.205,0); legL.castShadow=true; g.add(legL);
   const legR = legL.clone(); legR.position.x=0.145; g.add(legR);
-  // кроссовки
   const shoeGeo = new THREE.BoxGeometry(0.13,0.08,0.22);
   const matShoe = new THREE.MeshStandardMaterial({color:0x0c0c0c, roughness:0.8});
   const shoeL = new THREE.Mesh(shoeGeo, matShoe); shoeL.position.set(-0.145,0.04,0.04); g.add(shoeL);
   const shoeR = shoeL.clone(); shoeR.position.x=0.145; g.add(shoeR);
 
-  // оверсайз рукава
   const armGeo = new THREE.CylinderGeometry(0.105,0.085,0.5,8);
   const armL = new THREE.Mesh(armGeo, matBody); armL.position.set(-0.36,height*0.55,0); armL.rotation.z=0.1; armL.castShadow=true; g.add(armL);
   const armR = armL.clone(); armR.position.x=0.36; armR.rotation.z=-0.1; g.add(armR);
@@ -509,9 +484,9 @@ function makeHumanoid(color, {height=1.75, hoodie=true, hoodUp=true}={}){
   g.userData.parts = {torso,head,legL,legR,armL,armR,handL,handR};
   return g;
 }
-const P1 = makeHumanoid(0x1d4fb0); // синий
-const P2 = makeHumanoid(0x101012); // чёрный
-const P3 = makeHumanoid(0x76767c); // серый
+const P1 = makeHumanoid(0x1d4fb0);
+const P2 = makeHumanoid(0x101012);
+const P3 = makeHumanoid(0x76767c);
 [P1,P2,P3].forEach(p=>outsideGroup.add(p));
 
 function makeMonster(){
@@ -554,20 +529,18 @@ function buildOutside(){
   for(let i=0;i<70;i++){
     const a = Math.random()*Math.PI*2; const r = rand(10,35);
     const x=Math.cos(a)*r, z=Math.sin(a)*r - 6;
-    if(Math.abs(x)<3 && z>-8 && z<4) continue; // не закрывать ворота
+    if(Math.abs(x)<3 && z>-8 && z<4) continue;
     const h=rand(4,8);
     const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.3,h,6), treeMat);
     trunk.position.set(x,h/2,z); trunk.castShadow=true; outsideGroup.add(trunk);
     const top = new THREE.Mesh(new THREE.ConeGeometry(1.4,3.4,7), treeMat);
     top.position.set(x,h+1.2,z); top.castShadow=true; outsideGroup.add(top);
-    // паутина между стволом и нижними ветками
     if(i%4===0){
       const web = new THREE.Mesh(new THREE.PlaneGeometry(1.0+rand(0,0.6),1.0+rand(0,0.6)),
         new THREE.MeshBasicMaterial({map:TEX.cobweb, transparent:true, side:THREE.DoubleSide, depthWrite:false}));
       web.position.set(x, h*rand(0.55,0.85), z); web.rotation.y = Math.random()*Math.PI*2;
       outsideGroup.add(web);
     }
-    // кровавые потёки на части стволов
     if(i%6===0){
       const bl = new THREE.Mesh(new THREE.PlaneGeometry(0.5,0.85),
         new THREE.MeshBasicMaterial({map:TEX.bloodSmear, transparent:true, side:THREE.DoubleSide, depthWrite:false}));
@@ -576,7 +549,6 @@ function buildOutside(){
     }
   }
 
-  // ворота
   const gatePostMat = new THREE.MeshStandardMaterial({map:TEX.stone, roughness:1});
   for(const sx of [-1.6,1.6]){
     const post = new THREE.Mesh(new THREE.BoxGeometry(0.5,3,0.5), gatePostMat);
@@ -585,7 +557,6 @@ function buildOutside(){
   const bar = new THREE.Mesh(new THREE.BoxGeometry(3.6,0.3,0.3), gatePostMat);
   bar.position.set(0,2.9,0); outsideGroup.add(bar);
 
-  // дом (силуэт)
   const houseMat = new THREE.MeshStandardMaterial({map:TEX.wall, roughness:1});
   const house = new THREE.Mesh(new THREE.BoxGeometry(7,5,8), houseMat);
   house.position.set(0,2.5,-14); house.castShadow=true; house.receiveShadow=true; outsideGroup.add(house);
@@ -595,7 +566,6 @@ function buildOutside(){
   const frontDoor = new THREE.Mesh(new THREE.BoxGeometry(1.1,2.2,0.12), doorMat);
   frontDoor.position.set(0,1.1,-10.05); outsideGroup.add(frontDoor);
 
-  // паутина в углах дома и под крышей
   const webMat = new THREE.MeshBasicMaterial({map:TEX.cobweb, transparent:true, side:THREE.DoubleSide, depthWrite:false});
   const houseWebCorners = [
     [-3.4,4.55,-10.1, 0.55],[3.4,4.55,-10.1,-0.55],
@@ -605,7 +575,6 @@ function buildOutside(){
     const w1 = new THREE.Mesh(new THREE.PlaneGeometry(1.5,1.5), webMat);
     w1.position.set(px,py,pz); w1.rotation.y=ry; outsideGroup.add(w1);
   }
-  // кровавые потёки по стенам дома
   const bloodMat = new THREE.MeshBasicMaterial({map:TEX.bloodSmear, transparent:true, side:THREE.DoubleSide, depthWrite:false});
   const houseBlood1 = new THREE.Mesh(new THREE.PlaneGeometry(1.1,1.7), bloodMat);
   houseBlood1.position.set(-1.35,1.5,-10.03); outsideGroup.add(houseBlood1);
@@ -625,7 +594,6 @@ function drawProceduralLogo(){
   const g=ctx.createRadialGradient(210,100,10,210,100,220);
   g.addColorStop(0,'rgba(120,10,10,0.35)'); g.addColorStop(1,'rgba(120,10,10,0)');
   ctx.fillStyle=g; ctx.fillRect(0,0,c.width,c.height);
-  // силуэт дома среди деревьев
   ctx.fillStyle='#0a0808';
   ctx.beginPath();
   for(let i=0;i<9;i++){ const x=20+i*45, h=50+Math.random()*60;
@@ -640,42 +608,81 @@ function drawProceduralLogo(){
 drawProceduralLogo();
 
 // ----------------------------------------------------------------- HOUSE -
-function room(w,h,d,x,y,z,group,{wallTex=TEX.wall, floorTex=TEX.wood}={}){
-  const wallMat=new THREE.MeshStandardMaterial({map:wallTex,roughness:1});
+// room() с поддержкой дверного проёма в передней/задней стене.
+// doorOpening: { doorW, doorX=0, doorH=h, side:'front'|'back' }
+function room(w,h,d,x,y,z,group,{wallTex=TEX.wall, floorTex=TEX.wood, doorOpening=null}={}){
+  const wallMat=new THREE.MeshStandardMaterial({map:wallTex,roughness:1,side:THREE.DoubleSide});
   const floorMat=new THREE.MeshStandardMaterial({map:floorTex,roughness:0.9});
   const floor=new THREE.Mesh(new THREE.PlaneGeometry(w,d), floorMat);
   floor.rotation.x=-Math.PI/2; floor.position.set(x,y,z); floor.receiveShadow=true; group.add(floor);
   const ceil=floor.clone(); ceil.rotation.x=Math.PI/2; ceil.position.y=y+h; group.add(ceil);
   const mk=(ww,hh,px,py,pz,ry=0)=>{ const m=new THREE.Mesh(new THREE.PlaneGeometry(ww,hh),wallMat);
     m.position.set(px,py,pz); m.rotation.y=ry; m.receiveShadow=true; m.castShadow=true; group.add(m); return m;};
-  mk(w,h,x,y+h/2,z-d/2,0);
-  mk(w,h,x,y+h/2,z+d/2,Math.PI);
+
+  if(doorOpening){
+    const side = doorOpening.side || 'front';
+    const zFace = side === 'front' ? z-d/2 : z+d/2;
+    const ry = side === 'front' ? 0 : Math.PI;
+    const dw = doorOpening.doorW, dx = doorOpening.doorX || 0, dh = doorOpening.doorH || h;
+    const leftW = (w/2) + dx - dw/2;
+    const rightW = (w/2) - dx - dw/2;
+    if(leftW > 0.01) mk(leftW, h, x - w/2 + leftW/2, y+h/2, zFace, ry);
+    if(rightW > 0.01) mk(rightW, h, x + w/2 - rightW/2, y+h/2, zFace, ry);
+    if(dh < h - 0.01) mk(dw, h-dh, x + dx, y + dh + (h-dh)/2, zFace, ry);
+    // противоположная стена — целиком
+    if(side === 'front') mk(w,h,x,y+h/2,z+d/2,Math.PI);
+    else mk(w,h,x,y+h/2,z-d/2,0);
+  } else {
+    mk(w,h,x,y+h/2,z-d/2,0);
+    mk(w,h,x,y+h/2,z+d/2,Math.PI);
+  }
   mk(d,h,x-w/2,y+h/2,z,Math.PI/2);
   mk(d,h,x+w/2,y+h/2,z,-Math.PI/2);
   return {floor};
 }
 
-// Коридор
-room(2.6,2.6,9,0,0,-4.5, roomGroup, {floorTex:TEX.wood});
+// Коридор (с дверным проёмом в передней стене — переход в мост)
+room(2.6,2.6,9,0,0,-4.5, roomGroup, {floorTex:TEX.wood, doorOpening:{doorW:1.1, doorX:0, doorH:2.3, side:'front'}});
 const corridorLight = new THREE.PointLight(0x9fb3d8, 0.6, 7); corridorLight.position.set(0,2.1,-4.5); roomGroup.add(corridorLight);
 
-// дверь коридор -> комната
+// дверь коридор -> мост
 const doorMat2 = new THREE.MeshStandardMaterial({map:TEX.wood, roughness:0.8});
 const corridorDoor = new THREE.Mesh(new THREE.BoxGeometry(1.1,2.3,0.1), doorMat2);
 corridorDoor.position.set(0,1.15,-9); corridorDoor.castShadow=true; roomGroup.add(corridorDoor);
 let corridorDoorOpen=false;
 
-// Комната с трупами
+// Мост-переход между коридором и комнатой с трупами (заполняет зазор)
+{
+  const bridgeLen = 3.3;         // от z=-12.3 до z=-9
+  const bridgeCZ = -10.65;       // центр
+  const bridgeFloorMat = new THREE.MeshStandardMaterial({map:TEX.wood, roughness:0.9});
+  const bridgeWallMat = new THREE.MeshStandardMaterial({map:TEX.wall, roughness:1, side:THREE.DoubleSide});
+  const bridgeFloor = new THREE.Mesh(new THREE.PlaneGeometry(2.6, bridgeLen), bridgeFloorMat);
+  bridgeFloor.rotation.x = -Math.PI/2;
+  bridgeFloor.position.set(0, 0, bridgeCZ);
+  bridgeFloor.receiveShadow = true;
+  roomGroup.add(bridgeFloor);
+  const bridgeCeil = new THREE.Mesh(new THREE.PlaneGeometry(2.6, bridgeLen), bridgeWallMat);
+  bridgeCeil.rotation.x = Math.PI/2;
+  bridgeCeil.position.set(0, 2.6, bridgeCZ);
+  roomGroup.add(bridgeCeil);
+  for(const sx of [-1.3, 1.3]){
+    const sw = new THREE.Mesh(new THREE.PlaneGeometry(bridgeLen, 2.6), bridgeWallMat);
+    sw.position.set(sx, 1.3, bridgeCZ);
+    sw.rotation.y = sx < 0 ? Math.PI/2 : -Math.PI/2;
+    roomGroup.add(sw);
+  }
+}
+
+// Комната с трупами (дверной проём в задней стене — стык с мостом)
 const deadRoomCenter = new THREE.Vector3(0,0,-16);
-room(6,2.8,7.4, deadRoomCenter.x, 0, deadRoomCenter.z, roomGroup, {floorTex:TEX.carpet});
+room(6,2.8,7.4, deadRoomCenter.x, 0, deadRoomCenter.z, roomGroup, {floorTex:TEX.carpet, doorOpening:{doorW:2.6, doorX:0, doorH:2.8, side:'back'}});
 const deadRoomLight = new THREE.PointLight(0xaa4040, 0.55, 8); deadRoomLight.position.set(0,2.2,-16); roomGroup.add(deadRoomLight);
 
-// картины
 for(const [px,pz,ry] of [[-2.95,-14.5,Math.PI/2],[2.95,-14.5,-Math.PI/2],[0,-19.1,0]]){
   const p = new THREE.Mesh(new THREE.PlaneGeometry(1,1.3), new THREE.MeshStandardMaterial({map:TEX.painting}));
   p.position.set(px,1.7,pz); p.rotation.y=ry; roomGroup.add(p);
 }
-// трупы (стилизованно, лежащие фигуры)
 const corpseMat = new THREE.MeshStandardMaterial({color:0x2a2420, roughness:1});
 function makeCorpse(x,z,ry){
   const g=new THREE.Group();
@@ -690,11 +697,9 @@ function makeCorpse(x,z,ry){
 makeCorpse(-1.7,-15.2,0.4);
 makeCorpse(1.4,-17.6,-0.7);
 makeCorpse(0.2,-18.3,2.1);
-// кровь на отдельных поверхностях
 const wallBlood = new THREE.Mesh(new THREE.PlaneGeometry(1.1,1.4), new THREE.MeshStandardMaterial({color:0x4a0406,transparent:true,opacity:0.6}));
 wallBlood.position.set(-2.98,1.2,-17.5); wallBlood.rotation.y=Math.PI/2; roomGroup.add(wallBlood);
 
-// тумба с ключом
 const cabinet = new THREE.Mesh(new THREE.BoxGeometry(0.8,0.75,0.4), new THREE.MeshStandardMaterial({map:TEX.wood}));
 cabinet.position.set(2.4,0.375,-13.2); cabinet.castShadow=true; roomGroup.add(cabinet);
 const keyGroup = new THREE.Group();
@@ -727,9 +732,49 @@ const cabinCeil = cabinFloor.clone(); cabinCeil.rotation.x=Math.PI/2; cabinCeil.
 const cabinBack = new THREE.Mesh(new THREE.PlaneGeometry(1.3,2.3), new THREE.MeshStandardMaterial({map:TEX.stone}));
 cabinBack.position.set(0,1.15,-1.08); elevatorGroup.add(cabinBack);
 
+// ---------------------------------------------------------- COLLISION -----
+// AABB стены + круг игрока. При столкновении — скольжение по осям.
+const PLAYER_RADIUS = 0.28;
+const staticWalls = [
+  // Коридор (стены тянутся и через мост, чтобы не было щелей)
+  {x1:-1.5, x2:-1.3, z1:-12.3, z2:0},
+  {x1:1.3,  x2:1.5,  z1:-12.3, z2:0},
+  // Задняя стена коридора (за спиной на старте)
+  {x1:-1.5, x2:1.5, z1:0, z2:0.3},
+  // Косяки двери на z=-9 (сплошные участки стены)
+  {x1:-1.3, x2:-0.55, z1:-9.1, z2:-8.9},
+  {x1:0.55, x2:1.3,   z1:-9.1, z2:-8.9},
+  // Стены комнаты с трупами
+  {x1:-3.3, x2:-3,  z1:-19.7, z2:-12.3},
+  {x1:3,    x2:3.3, z1:-19.7, z2:-12.3},
+  {x1:-3.3, x2:3.3, z1:-19.7, z2:-19.4},
+  // Передняя стена комнаты (с проёмом для моста по центру)
+  {x1:-3.3, x2:-1.3, z1:-12.4, z2:-12.2},
+  {x1:1.3,  x2:3.3,  z1:-12.4, z2:-12.2},
+];
+const doorCollider = {x1:-0.55, x2:0.55, z1:-9.1, z2:-8.9};
+
+function circleHitsRect(cx, cz, r, rect){
+  const nx = Math.max(rect.x1, Math.min(cx, rect.x2));
+  const nz = Math.max(rect.z1, Math.min(cz, rect.z2));
+  const dx = cx - nx, dz = cz - nz;
+  return dx*dx + dz*dz < r*r;
+}
+function isBlocked(x, z){
+  for(const w of staticWalls) if(circleHitsRect(x, z, PLAYER_RADIUS, w)) return true;
+  if(!corridorDoorOpen && circleHitsRect(x, z, PLAYER_RADIUS, doorCollider)) return true;
+  return false;
+}
+function moveWithCollision(oldX, oldZ, dx, dz){
+  if(!isBlocked(oldX+dx, oldZ+dz)) return {x:oldX+dx, z:oldZ+dz};
+  if(!isBlocked(oldX+dx, oldZ))    return {x:oldX+dx, z:oldZ};
+  if(!isBlocked(oldX, oldZ+dz))    return {x:oldX,    z:oldZ+dz};
+  return {x:oldX, z:oldZ};
+}
+
 // ---------------------------------------------------------- GAME STATE ---
-let gameState = 'menu'; // menu | cutscene | playing | cutscene2
-let elevatorState = 'idle'; // idle closing riding shaking falling doorsopen done
+let gameState = 'menu';
+let elevatorState = 'idle';
 let elevatorStartedOnce = false;
 
 // ------------------------------------------------------- FIRST PERSON ----
@@ -806,18 +851,15 @@ function hidePrompt(){ promptEl.classList.remove('show'); currentPrompt=null; }
 function tryInteract(){
   if(gameState!=='playing') return;
   const p=player.pos;
-  // дверь коридора
   if(!corridorDoorOpen && p.distanceTo(new THREE.Vector3(0,1.6,-8.6))<1.6){
     openCorridorDoor(); return;
   }
-  // ключ
   if(!keyTaken && p.distanceTo(new THREE.Vector3(2.4,1.6,-13.2))<1.4){
     keyTaken=true; hasKey=true; keyGroup.visible=false;
     inventoryEl.classList.add('show');
     audio.play('s1',{volume:0.4});
     return;
   }
-  // кнопка лифта
   if(elevatorState==='idle' && elevatorStartedOnce===false && p.distanceTo(elevatorPos.clone().add(new THREE.Vector3(0.6,1.25,0.7)))<1.6){
     startElevatorSequence(); return;
   }
@@ -837,7 +879,7 @@ function openCorridorDoor(){
 }
 
 // ----------------------------------------------------- ELEVATOR SEQUENCE -
-function setElevDoors(openAmt){ // 0 closed .. 1 open
+function setElevDoors(openAmt){
   elevDoorL.position.x = -0.375 - openAmt*0.7;
   elevDoorR.position.x = 0.375 + openAmt*0.7;
 }
@@ -860,7 +902,7 @@ function startElevatorSequence(){
   hidePrompt();
   const t0=performance.now();
   function closeAnim(){
-    const t=Math.min(1,(performance.now()-t0)/1400); // 1.4s
+    const t=Math.min(1,(performance.now()-t0)/1400);
     setElevDoors(1-t);
     if(t<1){ requestAnimationFrame(closeAnim); }
     else { elevatorState='riding'; rideStart=performance.now(); }
@@ -874,7 +916,7 @@ function updateElevator(dt, t){
   if(elevatorState==='riding'){
     const el = (performance.now()-rideStart)/1000;
     elevLight.intensity = 1.1 + Math.sin(t*6)*0.05;
-    if(el>=4){ // Этап 4
+    if(el>=4){
       elevatorState='shaking'; shakeStart=performance.now();
       padenieliftSnd = audio.play('padenielift',{volume:0.9});
     }
@@ -928,11 +970,7 @@ function updateBlackMan(t){
   const el=(performance.now()-blackManSeq.t0)/1000;
   const walkDur=4.2;
   const prog=Math.min(1, el/walkDur);
-  const z0=-10, z1=-6.5;
-  blackMan.position.z = elevatorPos.z - 11.5 + 1.6 + (z0 - (z0)) ; // keep local ref simple below
-  // позиционируем по мировой оси Z относительно комнаты-ловушки
-  const worldZ = THREE.MathUtils.lerp(elevatorPos.z + z0*0.1 - 9, elevatorPos.z + z1*0.1 - 9, 1); // placeholder unused
-  const walkZ = THREE.MathUtils.lerp(-11.5, -8.0, prog); // от глубины помещения к игроку
+  const walkZ = THREE.MathUtils.lerp(-11.5, -8.0, prog);
   blackMan.position.set(elevatorPos.x, elevatorPos.y-FLOOR_OFFSET, walkZ);
   const legSwing = Math.sin(el*7)*0.5;
   blackMan.userData.parts.legL.rotation.x = legSwing;
@@ -1001,7 +1039,6 @@ function maybeScreamer(){
     nextScreamerAt = performance.now()+rand(28000,53000);
   }
 }
-// позиционный скример в комнате с трупами
 let deadRoomScreamerFired=false;
 function positionalScreamers(){
   if(gameState!=='playing') return;
@@ -1039,12 +1076,10 @@ function cutsceneLoop(){
   }
 
   if(t<3.0){
-    // 0-3с: трое стоят у ворот и смотрят на дом
     camera.position.set(0,1.75+Math.sin(t*1.4)*0.01,5.6);
     camera.lookAt(0,1.2,-14);
     [P1,P2,P3].forEach(c=>{ c.position.y = Math.sin(t*1.1+c.position.x)*0.005; });
   } else if(t<7.75){
-    // 3-7.75с: движение к дому (4.75с, как в ТЗ)
     const p=(t-3.0)/4.75;
     const z = THREE.MathUtils.lerp(5.6,-6, easeInOut(p));
     P1.position.z=z-0.2; P2.position.z=z; P3.position.z=z+0.2;
@@ -1052,7 +1087,6 @@ function cutsceneLoop(){
     camera.position.set(1.0, 2.0, z+4.2);
     camera.lookAt(0,1.1,z-3);
   } else if(t<8.45){
-    // монстр появляется внезапно (0.7с)
     if(!monster.visible){ monster.visible=true; monster.position.set(P2.position.x+2.4, 0, P2.position.z-1.2); }
     const p=(t-7.75)/0.7;
     monster.position.lerpVectors(
@@ -1064,9 +1098,8 @@ function cutsceneLoop(){
     camera.position.set(2.2,3.6,P2.position.z+2.6);
     camera.lookAt(P2.position.x,0.6,P2.position.z);
   } else if(t<13.45){
-    // захват и медленное утаскивание — растянуто на 5 секунд
-    const grabPhase = 0.9; // первая часть — хватание за ногу (0.9с)
-    const dragPhase = 4.1; // вторая часть — медленное утаскивание (4.1с)
+    const grabPhase = 0.9;
+    const dragPhase = 4.1;
     const elapsed = t-8.45;
     const grabPos = new THREE.Vector3(P2.position.x+0.5,0,P2.position.z-0.1);
     const dragPos = new THREE.Vector3(P2.position.x+3.4,0,P2.position.z-3.6);
@@ -1080,15 +1113,12 @@ function cutsceneLoop(){
       camera.up.set(0,1,0);
       camera.lookAt(P2.position.x,0.4,P2.position.z);
     } else {
-      // медленное, явно "тяжёлое" утаскивание — без ease, растянуто по времени
       const p=Math.min(1,(elapsed-grabPhase)/dragPhase);
       monster.position.lerpVectors(grabPos, dragPos, p);
       monster.userData.parts.armR.rotation.x = -1.7+Math.sin(p*14)*0.08;
       P2.position.lerpVectors(new THREE.Vector3(P2.position.x,0,P2.position.z), dragPos.clone().add(new THREE.Vector3(-0.3,0,0.3)), p);
       P2.rotation.x = 0.5+p*0.9; P2.position.y = -p*0.15;
-      // P2 цепляется, сопротивляется — лёгкая дрожь
       P2.position.x += Math.sin(p*22)*0.01;
-      // камера сверху над комнатой-ловушкой во второй половине утаскивания
       if(p>0.45){
         camera.position.lerp(new THREE.Vector3(P2.position.x,6.5,P2.position.z+0.5), 0.045);
         camera.up.set(0,0,-1);
@@ -1098,7 +1128,6 @@ function cutsceneLoop(){
         camera.up.set(0,1,0);
         camera.lookAt(P2.position.x,0.4,P2.position.z);
       }
-      // P1 и P3 убегают
       P1.position.z -= 0.06; P1.position.x -= 0.015;
       P3.position.z -= 0.06; P3.position.x += 0.015;
     }
@@ -1110,8 +1139,8 @@ function cutsceneLoop(){
 }
 
 function endCutscene1(){
-  // Сброс камеры после катсцены: убираем возможный крен (rotation.z) и
-  // сбрасываем ориентацию, чтобы камера смотрела строго вдоль коридора (-Z).
+  // Сброс возможного крена/поворота, оставшегося от катсцены,
+  // и правильная ориентация игрока (взгляд вглубь коридора, -Z).
   camera.up.set(0,1,0);
   camera.rotation.order='YXZ';
   camera.rotation.set(0,0,0);
@@ -1119,7 +1148,7 @@ function endCutscene1(){
   gameState='playing';
   hudEl.classList.remove('hidden');
   player.pos.set(0,1.65,-1.2);
-  player.yaw=0;          // взгляд вглубь коридора (-Z), к двери/комнате/лифту
+  player.yaw=0;
   player.pitch=0;
   checkOrientation();
 }
@@ -1131,7 +1160,6 @@ function animate(now){
   const dt = Math.min(0.05,(now-lastT)/1000); lastT=now;
   const t = now/1000;
 
-  // flashlight flicker fault
   if(gameState==='playing' && now>nextFlashFailCheck && elevatorState==='idle'){
     nextFlashFailCheck = now + rand(18000,30000);
     if(Math.random()<0.5 && flashlightOn){
@@ -1148,7 +1176,7 @@ function animate(now){
   }
 
   if(gameState==='playing'){
-    // движement
+    // Ввод движения
     let mx=0, mz=0;
     if(keys['KeyW']) mz-=1; if(keys['KeyS']) mz+=1;
     if(keys['KeyA']) mx-=1; if(keys['KeyD']) mx+=1;
@@ -1157,16 +1185,18 @@ function animate(now){
     if(len>0.05){
       mx/=len; mz/=len;
       const sin=Math.sin(player.yaw), cos=Math.cos(player.yaw);
-      const dx = (mx*cos - mz*sin) * player.speed*dt;
-      const dz = (mx*sin + mz*cos) * player.speed*dt;
-      player.pos.x += dx; player.pos.z += dz;
-      player.pos.x = Math.max(-2.9,Math.min(2.9,player.pos.x));
+      // Камера (YXZ): forward = (-sin yaw, 0, -cos yaw), right = (cos yaw, 0, -sin yaw).
+      // W (mz=-1) -> forward; D (mx=1) -> right.
+      const dx = ( mx*cos + mz*sin ) * player.speed*dt;
+      const dz = ( -mx*sin + mz*cos ) * player.speed*dt;
+      const moved = moveWithCollision(player.pos.x, player.pos.z, dx, dz);
+      player.pos.x = moved.x;
+      player.pos.z = moved.z;
     }
     camera.position.set(player.pos.x, player.pos.y, player.pos.z);
     camera.rotation.order='YXZ';
     camera.rotation.y = player.yaw; camera.rotation.x = player.pitch;
 
-    // подсказки
     let shown=false;
     if(!corridorDoorOpen && Math.hypot(player.pos.x-0, player.pos.z-(-8.6))<1.8){ showPrompt('E — открыть дверь'); shown=true; }
     else if(!keyTaken && player.pos.distanceTo(new THREE.Vector3(2.4,1.6,-13.2))<1.6){ showPrompt('E — взять ключ'); shown=true; }
@@ -1183,7 +1213,6 @@ function animate(now){
   }
   if(blackManSeq.started){
     updateBlackMan(t);
-    // камера следует за игроком, которого слегка тянет вниз/назад ощущением потери сознания
     if(!blackManSeq.grabbed){
       camera.position.set(player.pos.x, player.pos.y - FLOOR_OFFSET + Math.sin(t*2)*0.01, player.pos.z);
       camera.rotation.y = player.yaw + Math.sin(t*0.6)*0.01;
