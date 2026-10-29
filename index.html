@@ -43,7 +43,7 @@ footer{text-align:center;padding:60px 20px 80px;color:#777;font-size:.9rem;posit
 canvas{display:block}
 #hint-game{position:fixed;bottom:10px;left:10px;color:#aaa;font-family:monospace;font-size:13px;pointer-events:none;z-index:5;opacity:0;transition:opacity .5s}
 #fade{position:fixed;inset:0;background:#000;opacity:1;pointer-events:none;z-index:10;transition:opacity .5s ease}
-#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:11}
+#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:11;transition:opacity .12s linear}
 #grain{position:fixed;inset:0;opacity:0;pointer-events:none;z-index:8;mix-blend-mode:overlay;background-repeat:repeat}
 #vignette{position:fixed;inset:0;pointer-events:none;z-index:7;background:radial-gradient(ellipse at center,transparent 30%,rgba(0,0,0,.85) 100%);opacity:0;transition:background .4s}
 #vignette.danger{background:radial-gradient(ellipse at center,transparent 15%,rgba(140,0,0,.95) 100%)}
@@ -69,7 +69,6 @@ canvas{display:block}
 @keyframes ghost-eyes{0%,100%{opacity:.6}50%{opacity:1}}
 #key-indicator{position:fixed;top:20px;right:20px;color:#ffd700;font-family:monospace;font-size:20px;background:rgba(40,0,0,.9);border:1px solid #8a0000;padding:8px 16px;border-radius:5px;opacity:0;z-index:6;transition:opacity .5s;text-shadow:0 0 10px rgba(255,215,0,.8)}
 #key-indicator.show{opacity:1}
-
 #mobile-controls{display:none}
 @media (pointer:coarse),(hover:none){#mobile-controls{display:block}}
 #joy-base{position:fixed;left:30px;bottom:30px;width:140px;height:140px;border-radius:50%;background:rgba(120,0,0,0.18);border:2px solid rgba(180,0,0,0.5);z-index:99990;touch-action:none;display:none;box-shadow:0 0 20px rgba(180,0,0,0.3)}
@@ -79,34 +78,9 @@ canvas{display:block}
 #btn-F{right:30px;bottom:30px;font-size:32px}
 #btn-F.active,#btn-E.active{background:radial-gradient(circle at 40% 40%,#c02020,#500)}
 #mobile-controls.show{display:block}
-
-/* ===== ПРИНУДИТЕЛЬНЫЙ ПОВОРОТ ТЕЛЕФОНА ===== */
-@media (pointer: coarse) {
-  body.force-landscape {
-    position: fixed;
-    top: 0;
-    left: 100vw;
-    width: 100vh;
-    height: 100vw;
-    transform: rotate(90deg);
-    transform-origin: top left;
-    overflow: hidden;
-  }
-  body.force-landscape #game-container,
-  body.force-landscape #menu-screen,
-  body.force-landscape #mobile-controls,
-  body.force-landscape #jumpscare,
-  body.force-landscape #scary-text,
-  body.force-landscape #blood-overlay,
-  body.force-landscape #ghost-silhouette,
-  body.force-landscape #fade,
-  body.force-landscape #flash,
-  body.force-landscape #grain,
-  body.force-landscape #vignette,
-  body.force-landscape #darkness {
-    width: 100vh;
-    height: 100vw;
-  }
+@media (pointer:coarse){
+  body.force-landscape{position:fixed;top:0;left:100vw;width:100vh;height:100vw;transform:rotate(90deg);transform-origin:top left;overflow:hidden}
+  body.force-landscape #game-container,body.force-landscape #menu-screen,body.force-landscape #mobile-controls,body.force-landscape #jumpscare,body.force-landscape #scary-text,body.force-landscape #blood-overlay,body.force-landscape #ghost-silhouette,body.force-landscape #fade,body.force-landscape #flash,body.force-landscape #grain,body.force-landscape #vignette,body.force-landscape #darkness{width:100vh;height:100vw}
 }
 </style>
 </head>
@@ -153,7 +127,6 @@ canvas{display:block}
 import * as THREE from 'three';
 
 const AUDIO_SETTINGS={playFootsteps:true,playRandomScares:true,playDoorSound:true,playThudInCutscene:true,masterVolume:1.0};
-let shakeDuration=8.0, fallDuration=4.0;
 const SOUND_EVENTS=[
   {file:"sounds/1.mp3",time:10.8,volume:5.0,name:"s1"},
   {file:"sounds/2.mp3",time:18.9,volume:0.8,name:"s2"},
@@ -168,12 +141,24 @@ let audioListener=null;
 const playedEvents={cutscene:new Set(),gameplay:new Set()};
 let audioCtx=null;
 
+// Длительности (читаются из mp3 при загрузке)
+let liftPadenieDuration=8.0;
+let liftUpalDuration=4.0;
+
 function initAudio(){if(!audioCtx){try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){return;}}if(audioCtx.state==='suspended')audioCtx.resume();}
 function initSoundSystem(){
   if(!audioListener){audioListener=new THREE.AudioListener();camera.add(audioListener);audioListener.setMasterVolume(AUDIO_SETTINGS.masterVolume);}
   [...new Set(SOUND_EVENTS.map(e=>e.file))].forEach(file=>{
     if(!loadedSounds[file]){
-      audioLoader.load(file,b=>{loadedSounds[file]=b;console.log('✅',file);},undefined,()=>{loadedSounds[file]='synth';console.warn('⚠',file);});
+      audioLoader.load(file,
+        b=>{
+          loadedSounds[file]=b;
+          console.log('✅',file,'|',b.duration.toFixed(2)+'с');
+          if(file.endsWith('padenielift.mp3')) liftPadenieDuration=b.duration;
+          if(file.endsWith('upallift.mp3'))    liftUpalDuration=b.duration;
+        },
+        undefined,
+        ()=>{loadedSounds[file]='synth';console.warn('⚠',file);});
     }
   });
 }
@@ -712,6 +697,7 @@ makeDrawer(-5,5,Math.PI/2,false);
 makeDrawer(5,5,-Math.PI/2,false);
 upperGroup.visible=false;
 
+// === СОСТОЯНИЕ ===
 let state='menu',cutsceneTime=0,gameplayTime=0,flashlightOn=true;
 const clock=new THREE.Clock();
 const playerState={pos:new THREE.Vector3(0,1.6,5),yaw:0,pitch:0};
@@ -719,9 +705,12 @@ let lastFootstep=0,lastGameplayStep=-1;
 const prevGameplayPos=new THREE.Vector3();
 let doorOpenProgress=0,doorState='closed',nearDoor=false;
 let currentFloor='ground',hasKey=false,nearDrawer=null,nearElevatorPanel=null;
-let floorTransition=0,pendingFloor=null;
 let flashlightBaseIntensity=4.5,flickerCheckTimer=0,outTimer=0;
-let liftPhase='idle',liftTimer=0,liftDoorOpen=0,liftFallY=0;
+
+// === ЛИФТ — переменные сцены ===
+let liftPhase='idle',liftTimer=0,liftDoorOpen=1,liftFallY=0;
+let liftDoorsAutoOpened=false;
+let liftWhiteOverlay=0;
 const promptEl=document.getElementById('prompt');
 const keyInd=document.getElementById('key-indicator');
 let nextRandomScareTime=20,nextWhisperTime=10,nextHeartbeatTime=5;
@@ -769,8 +758,10 @@ enterBtn.addEventListener('click',()=>{
   playedEvents.cutscene.clear();playedEvents.gameplay.clear();
   nextRandomScareTime=20;nextWhisperTime=10;nextHeartbeatTime=5;
   resetScareTriggers();lastScareType=null;
-  hasKey=false;currentFloor='ground';pendingFloor=null;
-  liftPhase='idle';liftTimer=0;liftDoorOpen=0;liftFallY=0;
+  hasKey=false;currentFloor='ground';
+  liftPhase='idle';liftTimer=0;liftDoorOpen=1;liftFallY=0;
+  liftDoorsAutoOpened=false;
+  elevDoorL.position.x=-0.47;elevDoorR.position.x=0.47;
   keyInd.classList.remove('show');
   vignette.classList.remove('danger');
   setTimeout(()=>{startScaryMusic(.7);},500);
@@ -793,16 +784,11 @@ function updateMenuFlashlight(cx,cy){
 document.addEventListener('mousemove',(e)=>updateMenuFlashlight(e.clientX,e.clientY));
 document.addEventListener('touchmove',(e)=>{const t=e.touches[0];if(t)updateMenuFlashlight(t.clientX,t.clientY);},{passive:true});
 
-// === ПРИНУДИТЕЛЬНЫЙ ПОВОРОТ НА ТЕЛЕФОНЕ ===
 function checkOrientation(){
   if(!isMobile){document.body.classList.remove('force-landscape');return;}
   if(window.innerHeight>window.innerWidth){document.body.classList.add('force-landscape');}
   else{document.body.classList.remove('force-landscape');}
-  setTimeout(()=>{
-    camera.aspect=innerWidth/innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(innerWidth,innerHeight);
-  },100);
+  setTimeout(()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);},100);
 }
 window.addEventListener('resize',checkOrientation);
 window.addEventListener('orientationchange',()=>setTimeout(checkOrientation,200));
@@ -825,8 +811,10 @@ function tryDoorAction(){
     doorState='opening';
     if(AUDIO_SETTINGS.playDoorSound)playSoundEvent("sounds/1.mp3",1);
     if(!scareTriggers.door_opened){scareTriggers.door_opened=true;setTimeout(()=>{showJumpscare('silhouette',900);flashBlood(1200);},400);}
-  } else if(nearElevatorPanel){startFloorTransition(nearElevatorPanel);}
-  else if(nearDrawer){
+  } else if(nearElevatorPanel){
+    // Игрок нажал кнопку «2» → сцена лифта начинается
+    startLiftScene();
+  } else if(nearDrawer){
     if(nearDrawer.withKey&&!hasKey){
       hasKey=true;keyInd.classList.add('show');playLowBoom(.6);
       showScaryText('🔑 КЛЮЧ НАЙДЕН',1500,'small');
@@ -835,17 +823,18 @@ function tryDoorAction(){
   }
 }
 
-function startFloorTransition(direction){
-  if(pendingFloor||liftPhase!=='idle')return;
-  let target;
-  if(direction==='up')target=(currentFloor==='upper')?'ground':'upper';
-  else target=(currentFloor==='basement')?'ground':'basement';
-  pendingFloor=target;
+// === СЦЕНА ЛИФТА ===
+function startLiftScene(){
+  if(liftPhase!=='idle')return;
   liftPhase='closing';
-  liftTimer=0;liftDoorOpen=0;liftFallY=0;
+  liftTimer=0;
+  liftDoorOpen=1;
+  liftFallY=0;
   playedEvents.gameplay.delete('upal_started');
-  playLowBoom(.6);playSynthCreak(.5);
+  playLowBoom(0.6);
+  playSynthCreak(0.5);
 }
+
 function animateWalk(p,time,speedMult=1){
   if(p.children.length===0)return;
   const inner=p.children[0];if(!inner)return;
@@ -942,99 +931,167 @@ function startGameplay(){
 function updateGameplay(dt){
   gameplayTime+=dt;
   if(shakeIntensity>0)shakeIntensity=Math.max(0,shakeIntensity-dt*.5);
+
+  // ===== СЦЕНА ЛИФТА =====
   if(liftPhase!=='idle'){
     liftTimer+=dt;
+
+    // ФАЗА 1: двери закрываются (1.4с)
     if(liftPhase==='closing'){
-      liftDoorOpen=Math.min(1,liftTimer/1.4);
-      elevDoorL.position.x=-.47-liftDoorOpen*.43;
-      elevDoorR.position.x=.47+liftDoorOpen*.43;
-      camera.rotation.y=yaw;camera.rotation.x=pitch;
-      camera.position.copy(playerState.pos);camera.position.y+=FLOOR_OFFSET[currentFloor];
-      if(liftTimer>=1.4){liftPhase='riding';liftTimer=0;}
-      return;
-    }
-    if(liftPhase==='riding'){
-      const t=liftTimer;
-      camera.position.copy(playerState.pos);camera.position.y=1.6+Math.sin(t*6)*.02+t*.4;
-      if(Math.random()<.15)playSynthCreak(.15+t*.05);
-      if(t>=4){liftPhase='shaking';liftTimer=0;playSoundByName('padenie',1);playLowBoom(1);}
-      return;
-    }
-    if(liftPhase==='shaking'){
-      const k=liftTimer/shakeDuration,amp=.06+k*.14;
+      const doorK=Math.min(1,liftTimer/1.4);
+      liftDoorOpen=1-doorK;
+      elevDoorL.position.x=-0.47-liftDoorOpen*0.43;
+      elevDoorR.position.x= 0.47+liftDoorOpen*0.43;
+      camera.rotation.y=yaw; camera.rotation.x=pitch; camera.rotation.z=0;
       camera.position.copy(playerState.pos);
-      camera.position.x+=(Math.random()-.5)*amp;
-      camera.position.y+=Math.sin(liftTimer*18)*amp*.7+(Math.random()-.5)*amp*.4;
-      camera.position.z+=(Math.random()-.5)*amp;
-      camera.rotation.z=(Math.random()-.5)*amp*.6;
-      if(Math.random()<.12)playSynthCreak(.12+k*.25);
-      if(liftTimer>=shakeDuration){liftPhase='falling';liftTimer=0;camera.rotation.z=0;}
-      return;
-    }
-    if(liftPhase==='falling'){
-      const k=Math.min(1,liftTimer/fallDuration),ease=k*k;
-      liftFallY=-ease*12;
-      camera.position.copy(playerState.pos);camera.position.y=1.6+liftFallY;
-      camera.position.x+=(Math.random()-.5)*.2*(1-k);
-      camera.position.z+=(Math.random()-.5)*.2*(1-k);
-      camera.rotation.z=(Math.random()-.5)*.12*(1-k);
-      if(Math.random()<.05)playSynthCreak(.1);
-      if(liftTimer>=fallDuration){
-        liftPhase='doorsopen';liftTimer=0;camera.rotation.z=0;liftFallY=-12;
-        if(!playedEvents.gameplay.has('upal_started')){
-          playedEvents.gameplay.add('upal_started');
-          playSoundByName('upal',1);
-        }
-        playLowBoom(1.2);flash.style.opacity=.85;
-        setTimeout(()=>{flash.style.opacity=0;},300);
-        flashBlood(400);
+      camera.position.y+=FLOOR_OFFSET[currentFloor];
+      if(liftTimer>=1.4){
+        liftPhase='riding';
+        liftTimer=0;
       }
       return;
     }
-    if(liftPhase==='doorsopen'){
-      flash.style.opacity=.45+Math.sin(liftTimer*10)*.05;
-      liftDoorOpen=Math.max(0,1-liftTimer/1.2);
-      elevDoorL.position.x=-.47-liftDoorOpen*.43;
-      elevDoorR.position.x=.47+liftDoorOpen*.43;
-      camera.position.copy(playerState.pos);camera.position.y=1.6+liftFallY;
-      camera.lookAt(monster.position.x,monster.position.y+.6,monster.position.z);
-      if(liftTimer<2.5){
-        monster.visible=true;
-        const k=Math.min(1,liftTimer/2);
-        monster.position.set(0,0,-10.5+(1-k)*4);monster.rotation.y=0;
-      } else {
-        const k=Math.min(1,(liftTimer-2.5)/.8);
-        monster.position.set(0,0,-6.5);monster.rotation.y=0;
-        if(monster.children.length>4)monster.children[4].rotation.x=-Math.PI/2-k*.6;
-        if(liftTimer>6.6&&liftPhase!=='done'){
-          liftPhase='done';liftTimer=0;fade.style.opacity=1;
-          setTimeout(()=>{
-            showScaryText('ТЕПЕРЬ ТЫ — ВТОРОЙ',2500,'big');
-            setTimeout(()=>{
-              flash.style.opacity=0;fade.style.opacity=1;
-              showScaryText('...',800);
-              setTimeout(()=>{
-                liftPhase='idle';pendingFloor=null;liftDoorOpen=0;liftFallY=0;
-                elevDoorL.position.x=-.47;elevDoorR.position.x=.47;
-                camera.rotation.z=0;
-                currentFloor='ground';
-                gameGroup.visible=false;upperGroup.visible=false;basementGroup.visible=false;
-                outsideGroup.visible=true;roomGroup.visible=false;
-                state='cutscene2';cutsceneTime=0;
-                players.forEach((p,i)=>{
-                  p.visible=(i!==0);
-                  if(i===1)p.position.set(0,0,6);
-                  if(i===2)p.position.set(2,0,6);
-                });
-                monster.visible=false;monster.position.set(2.5,0,-9.5);
-              },1200);
-            },2600);
-          },500);
+
+    // ФАЗА 2: ровная поездка 4 секунды
+    if(liftPhase==='riding'){
+      const t=liftTimer;
+      camera.position.copy(playerState.pos);
+      camera.position.y=1.6+Math.sin(t*4)*0.015;
+      camera.rotation.z=0;
+      if(t>=4.0){
+        liftPhase='shaking';
+        liftTimer=0;
+        playSoundByName('padenie',1.0);
+        playLowBoom(1.0);
+      }
+      return;
+    }
+
+    // ФАЗА 3: скрип тросов + раскачивание (длина padenielift.mp3)
+    if(liftPhase==='shaking'){
+      const k=liftTimer/liftPadenieDuration;
+      const sway=Math.sin(liftTimer*7)*0.15*(0.4+k);
+      const swayZ=Math.cos(liftTimer*5.5)*0.10*(0.4+k);
+      const shakeAmt=0.03+k*0.14;
+      camera.position.copy(playerState.pos);
+      camera.position.x+=sway+(Math.random()-0.5)*shakeAmt;
+      camera.position.y+=Math.sin(liftTimer*18)*shakeAmt*0.8;
+      camera.position.z+=swayZ+(Math.random()-0.5)*shakeAmt;
+      camera.rotation.z=sway*0.7;
+      camera.rotation.x=pitch+(Math.random()-0.5)*shakeAmt*0.4;
+      camera.rotation.y=yaw+(Math.random()-0.5)*shakeAmt*0.3;
+      if(Math.random()<0.1) playSynthCreak(0.1+k*0.2);
+      if(liftTimer>=liftPadenieDuration){
+        liftPhase='falling';
+        liftTimer=0;
+        camera.rotation.z=0;
+      }
+      return;
+    }
+
+    // ФАЗА 4: падение — длится длину upallift.mp3
+    if(liftPhase==='falling'){
+      const k=Math.min(1,liftTimer/liftUpalDuration);
+      const easeIn=k*k*k;
+      liftFallY=-easeIn*14;
+      camera.position.copy(playerState.pos);
+      camera.position.y=1.6+liftFallY;
+      camera.position.x+=(Math.random()-0.5)*0.25*(1-k);
+      camera.position.z+=(Math.random()-0.5)*0.25*(1-k);
+      camera.rotation.z=(Math.random()-0.5)*0.15*(1-k);
+      camera.rotation.x=pitch+(Math.random()-0.5)*0.08*(1-k);
+      if(liftTimer>=liftUpalDuration){
+        liftPhase='doorsopen';
+        liftTimer=0;
+        liftFallY=-14;
+        camera.rotation.z=0;
+        // upallift стартует в момент удара
+        if(!playedEvents.gameplay.has('upal_started')){
+          playedEvents.gameplay.add('upal_started');
+          playSoundByName('upal',1.0);
         }
+        playLowBoom(1.2);
+        flashBlood(300);
+      }
+      return;
+    }
+
+    // ФАЗА 5: двери открываются, белый экран, человек в чёрном идёт
+    if(liftPhase==='doorsopen'){
+      // двери открываются 1.2с
+      const doorK=Math.min(1,liftTimer/1.2);
+      liftDoorOpen=doorK;
+      elevDoorL.position.x=-0.47-(1-doorK)*0.43;
+      elevDoorR.position.x= 0.47+(1-doorK)*0.43;
+
+      // камера в упавшем лифте
+      camera.position.copy(playerState.pos);
+      camera.position.y=1.6+liftFallY;
+      camera.rotation.y=yaw; camera.rotation.x=pitch; camera.rotation.z=0;
+
+      // белый экран растёт, но не до 100%
+      liftWhiteOverlay=Math.min(0.85,liftTimer*0.35);
+      flash.style.opacity=liftWhiteOverlay;
+
+      // человек в чёрном идёт с z=-10 к лифту (z=-6.5)
+      if(liftTimer>0.8){
+        monster.visible=true;
+        const manK=Math.min(1,(liftTimer-0.8)/2.0);
+        const manZ=-10+(manK*3.5);
+        monster.position.set(0,0,manZ);
+        monster.rotation.y=0;
+        const walkSwing=Math.sin(liftTimer*8)*0.25;
+        if(monster.children[0])monster.children[0].rotation.x=walkSwing;
+        if(monster.children[1])monster.children[1].rotation.x=-walkSwing;
+      }
+
+      // хватка рукой
+      if(liftTimer>2.8){
+        const grabK=Math.min(1,(liftTimer-2.8)/0.6);
+        monster.position.set(0,0,-6.5);
+        if(monster.children[4]) monster.children[4].rotation.x=-Math.PI/2-grabK*0.8;
+        flash.style.opacity=Math.min(0.92,liftWhiteOverlay+0.2);
+      }
+
+      // КОНЕЦ СЦЕНЫ
+      if(liftTimer>3.6&&liftPhase!=='done'){
+        liftPhase='done';
+        flash.style.opacity=1;
+        setTimeout(()=>{
+          flash.style.opacity=0;
+          liftWhiteOverlay=0;
+          monster.visible=false;
+          monster.position.set(2.5,0,-9.5);
+          monster.rotation.y=0;
+          if(monster.children[0])monster.children[0].rotation.x=0;
+          if(monster.children[1])monster.children[1].rotation.x=0;
+          if(monster.children[4])monster.children[4].rotation.x=0;
+          liftPhase='idle';
+          liftDoorOpen=1;
+          liftFallY=0;
+          liftDoorsAutoOpened=false;
+          elevDoorL.position.x=-0.47;elevDoorR.position.x=0.47;
+          playerState.pos.set(0,1.6,5);
+          yaw=0;pitch=0;
+          gameGroup.visible=false;
+          upperGroup.visible=false;
+          basementGroup.visible=false;
+          outsideGroup.visible=true;
+          roomGroup.visible=false;
+          state='cutscene2';
+          cutsceneTime=0;
+          players.forEach((p,i)=>{
+            p.visible=(i!==0);
+            if(i===1)p.position.set(0,0,6);
+            if(i===2)p.position.set(2,0,6);
+          });
+        }, 1200);
       }
       return;
     }
   }
+
+  // Фонарик
   if(flashlightOn){
     if(outTimer>0){
       outTimer-=dt;flashlight.intensity=0;flashlight.visible=false;
@@ -1077,11 +1134,30 @@ function updateGameplay(dt){
   if(!scareTriggers.basement_enter&&currentFloor==='basement'){scareTriggers.basement_enter=true;showJumpscare('silhouette',900);flashBlood(800);}
   if(!scareTriggers.upper_enter&&currentFloor==='upper'){scareTriggers.upper_enter=true;showGhost(1200);}
 
+  // АВТООТКРЫТИЕ ДВЕРЕЙ ЛИФТА ПРИ ПОДХОДЕ
+  if(currentFloor==='ground'&&liftPhase==='idle'&&!liftDoorsAutoOpened){
+    const distToElev=Math.hypot(playerState.pos.x,playerState.pos.z-(-13.8));
+    if(distToElev<2.8){
+      liftDoorsAutoOpened=true;
+      playSynthCreak(0.5);
+      playLowBoom(0.4);
+      let t0=performance.now();
+      (function openElev(){
+        const k=Math.min(1,(performance.now()-t0)/700);
+        liftDoorOpen=1-k;
+        elevDoorL.position.x=-0.47-liftDoorOpen*0.43;
+        elevDoorR.position.x= 0.47+liftDoorOpen*0.43;
+        if(k<1&&!liftDoorsAutoOpened) requestAnimationFrame(openElev);
+        else if(k<1&&liftPhase==='idle') requestAnimationFrame(openElev);
+      })();
+    }
+  }
+
   nearDoor=(currentFloor==='ground')&&playerState.pos.z<-6.5&&playerState.pos.z>-8&&Math.abs(playerState.pos.x)<1.5;
   nearElevatorPanel=null;nearDrawer=null;
   if(currentFloor==='ground'&&playerState.pos.z<-13){
-    if(Math.abs(playerState.pos.x-(-1.5))<.6&&Math.abs(playerState.pos.z-(-13.8))<1)nearElevatorPanel='up';
-    else if(Math.abs(playerState.pos.x-1.5)<.6&&Math.abs(playerState.pos.z-(-13.8))<1)nearElevatorPanel='down';
+    if(Math.abs(playerState.pos.x-(-1.5))<0.6&&Math.abs(playerState.pos.z-(-13.8))<1.0)nearElevatorPanel='up';
+    else if(Math.abs(playerState.pos.x-1.5)<0.6&&Math.abs(playerState.pos.z-(-13.8))<1.0)nearElevatorPanel='down';
   }
   if(currentFloor==='upper'){
     for(const d of drawerInteractables){
@@ -1091,7 +1167,7 @@ function updateGameplay(dt){
   }
   let pt='';
   if(nearDoor&&doorState==='closed')pt='Нажмите E, чтобы открыть дверь';
-  else if(nearElevatorPanel==='up')pt='E — лифт ВВЕРХ (2 этаж)';
+  else if(nearElevatorPanel==='up')pt='E — нажать кнопку «2»';
   else if(nearElevatorPanel==='down')pt='E — лифт ВНИЗ';
   else if(nearDrawer)pt=(nearDrawer.withKey&&!hasKey)?'E — открыть тумбу (ключ?)':'E — открыть тумбу';
   promptEl.textContent=pt;promptEl.style.opacity=pt?1:0;
@@ -1103,21 +1179,7 @@ function updateGameplay(dt){
     const a=doorOpenProgress*(Math.PI*.47);
     doorPivotL.rotation.y=-a;doorPivotR.rotation.y=a;
   }
-  if(pendingFloor){
-    floorTransition+=dt*.8;
-    if(floorTransition>=.5&&currentFloor!==pendingFloor){
-      currentFloor=pendingFloor;
-      if(pendingFloor==='basement'){gameGroup.visible=false;upperGroup.visible=false;basementGroup.visible=true;playerState.pos.set(0,1.6,4);}
-      else if(pendingFloor==='upper'){gameGroup.visible=false;basementGroup.visible=false;upperGroup.visible=true;playerState.pos.set(0,1.6,5);}
-      else {basementGroup.visible=false;upperGroup.visible=false;gameGroup.visible=true;playerState.pos.set(0,1.6,-12);}
-      yaw=0;pitch=0;
-    }
-    fade.style.opacity=Math.min(1,floorTransition*2);
-    if(floorTransition>=1){fade.style.opacity=0;pendingFloor=null;floorTransition=0;}
-    camera.rotation.order='YXZ';camera.rotation.y=yaw;camera.rotation.x=pitch;
-    camera.position.copy(playerState.pos);camera.position.y+=FLOOR_OFFSET[currentFloor];
-    return;
-  }
+
   camera.rotation.order='YXZ';camera.rotation.y=yaw;camera.rotation.x=pitch;
   if(shakeIntensity>0){
     camera.rotation.y+=(Math.random()-.5)*shakeIntensity;
