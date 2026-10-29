@@ -69,6 +69,19 @@ canvas{display:block}
 @keyframes ghost-eyes{0%,100%{opacity:.6}50%{opacity:1}}
 #key-indicator{position:fixed;top:20px;right:20px;color:#ffd700;font-family:monospace;font-size:20px;background:rgba(40,0,0,.9);border:1px solid #8a0000;padding:8px 16px;border-radius:5px;opacity:0;z-index:6;transition:opacity .5s;text-shadow:0 0 10px rgba(255,215,0,.8)}
 #key-indicator.show{opacity:1}
+
+/* ===== МОБИЛЬНОЕ УПРАВЛЕНИЕ ===== */
+#mobile-controls{display:none}
+#rotate-hint{display:none;position:fixed;inset:0;z-index:999999;background:#000;color:#ffb0b0;align-items:center;justify-content:center;font-family:'Courier New',monospace;font-size:clamp(1.2rem,5vw,2rem);text-align:center;padding:20px;text-shadow:0 0 20px rgba(255,0,0,.8)}
+#rotate-hint.show{display:flex}
+@media (pointer:coarse),(hover:none){#mobile-controls{display:block}}
+#joy-base{position:fixed;left:30px;bottom:30px;width:140px;height:140px;border-radius:50%;background:rgba(120,0,0,0.18);border:2px solid rgba(180,0,0,0.5);z-index:99990;touch-action:none;display:none;box-shadow:0 0 20px rgba(180,0,0,0.3)}
+#joy-knob{position:absolute;left:50%;top:50%;width:60px;height:60px;border-radius:50%;background:radial-gradient(circle at 40% 40%,#c02020,#500);border:2px solid #8a0000;transform:translate(-50%,-50%);box-shadow:0 0 16px rgba(255,0,0,0.6);pointer-events:none;touch-action:none}
+#btn-F,#btn-E{position:fixed;right:30px;width:82px;height:82px;border-radius:50%;background:radial-gradient(circle at 40% 40%,#6a0000,#1a0000);border:2px solid #8a0000;color:#ffb0b0;font-family:'Courier New',monospace;font-size:22px;font-weight:bold;z-index:99990;touch-action:none;display:none;box-shadow:0 0 20px rgba(180,0,0,0.5);text-shadow:0 0 8px rgba(255,60,60,0.8)}
+#btn-E{right:30px;bottom:140px}
+#btn-F{right:30px;bottom:30px;font-size:32px}
+#btn-F.active,#btn-E.active{background:radial-gradient(circle at 40% 40%,#c02020,#500)}
+#mobile-controls.show{display:block}
 </style>
 </head>
 <body>
@@ -102,6 +115,12 @@ canvas{display:block}
 <div id="scary-text"></div>
 <div id="blood-overlay"></div>
 <div id="ghost-silhouette"></div>
+<div id="mobile-controls">
+  <div id="joy-base"><div id="joy-knob"></div></div>
+  <button id="btn-E">E</button>
+  <button id="btn-F">F</button>
+</div>
+<div id="rotate-hint">📱 Поверни телефон горизонтально</div>
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
 </script>
@@ -124,18 +143,18 @@ let audioListener=null;
 const playedEvents={cutscene:new Set(),gameplay:new Set()};
 let audioCtx=null;
 
-function initAudio(){ if(!audioCtx){try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){return;}} if(audioCtx.state==='suspended')audioCtx.resume(); }
+function initAudio(){if(!audioCtx){try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){return;}}if(audioCtx.state==='suspended')audioCtx.resume();}
 function initSoundSystem(){
   if(!audioListener){audioListener=new THREE.AudioListener();camera.add(audioListener);audioListener.setMasterVolume(AUDIO_SETTINGS.masterVolume);}
   [...new Set(SOUND_EVENTS.map(e=>e.file))].forEach(file=>{
     if(!loadedSounds[file]){
-      audioLoader.load(file,b=>{loadedSounds[file]=b;console.log('✅',file);},undefined,()=>{loadedSounds[file]='synth';console.warn('⚠ синтез:',file);});
+      audioLoader.load(file,b=>{loadedSounds[file]=b;console.log('✅',file);},undefined,()=>{loadedSounds[file]='synth';console.warn('⚠',file);});
     }
   });
 }
 function playSynthCreak(v=1.0){
   if(!audioCtx)return;
-  const t=audioCtx.currentTime,dur=.7,bs=Math.floor(audioCtx.sampleRate*dur);
+  const t=audioCtx.currentTime,bs=Math.floor(audioCtx.sampleRate*.7);
   const buf=audioCtx.createBuffer(1,bs,audioCtx.sampleRate),d=buf.getChannelData(0);let lp=0;
   for(let i=0;i<bs;i++){const env=Math.exp(-i/(bs*.35));lp=lp*.7+(Math.random()*2-1)*.3;d[i]=lp*env*.9;}
   const s=audioCtx.createBufferSource();s.buffer=buf;
@@ -151,8 +170,7 @@ function playSoundEvent(file,v=1.0){
   const s=new THREE.Audio(audioListener);s.setBuffer(buf);s.setVolume(v);s.play();
 }
 function playSoundByName(name,volume){
-  const ev=SOUND_EVENTS.find(e=>e.name===name);
-  if(!ev)return;
+  const ev=SOUND_EVENTS.find(e=>e.name===name);if(!ev)return;
   playSoundEvent(ev.file,volume!==undefined?volume:ev.volume);
 }
 function playFootstep(){
@@ -431,7 +449,7 @@ function buildCabin(){
   const g=new THREE.Group();
   const fnd=new THREE.Mesh(new THREE.BoxGeometry(10.6,.5,12.6),stoneMat);
   fnd.position.set(0,.25,-16);g.add(fnd);
-  function cw(w,h,d,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),cabinWoodMat);m.position.set(x,y,z);m.castShadow=true;g.add(m);return m;}
+  function cw(w,h,d,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),cabinWoodMat);m.position.set(x,y,z);m.castShadow=true;g.add(m);}
   cw(.3,4.6,12,-4.85,2.8,-16);cw(.3,4.6,12,4.85,2.8,-16);cw(10,4.6,.3,0,2.8,-21.85);
   cw(3,4.6,.3,-3.5,2.8,-9.85);cw(3,4.6,.3,3.5,2.8,-9.85);cw(4,1.2,.3,0,4,-9.85);
   const floor=new THREE.Mesh(new THREE.BoxGeometry(9.7,.2,12),cabinWoodMat);floor.position.set(0,.6,-16);g.add(floor);
@@ -687,7 +705,6 @@ let currentFloor='ground',hasKey=false,nearDrawer=null,nearElevatorPanel=null;
 let floorTransition=0,pendingFloor=null;
 let flashlightBaseIntensity=4.5,flickerCheckTimer=0,outTimer=0;
 let liftPhase='idle',liftTimer=0,liftDoorOpen=0,liftFallY=0;
-const cameraLiftOffset=new THREE.Vector3();
 const promptEl=document.getElementById('prompt');
 const keyInd=document.getElementById('key-indicator');
 let nextRandomScareTime=20,nextWhisperTime=10,nextHeartbeatTime=5;
@@ -743,10 +760,10 @@ enterBtn.addEventListener('click',()=>{
 });
 
 let yaw=0,pitch=0,isLocked=false;
-document.body.addEventListener('click',()=>{if(state==='playing'&&!('ontouchstart' in window))renderer.domElement.requestPointerLock();});
+document.body.addEventListener('click',()=>{if(state==='playing'&&!isMobile)renderer.domElement.requestPointerLock();});
 document.addEventListener('pointerlockchange',()=>{isLocked=document.pointerLockElement===renderer.domElement;});
 document.addEventListener('mousemove',(e)=>{
-  if(!isLocked||('ontouchstart' in window))return;
+  if(!isLocked||isMobile)return;
   yaw-=e.movementX*.002;pitch-=e.movementY*.002;
   pitch=Math.max(-Math.PI/2+.01,Math.min(Math.PI/2-.01,pitch));
 });
@@ -783,6 +800,21 @@ document.addEventListener('keydown',(e)=>{
 });
 document.addEventListener('keyup',(e)=>{keys[e.code]=false;});
 
+function tryDoorAction(){
+  if(nearDoor&&doorState==='closed'){
+    doorState='opening';
+    if(AUDIO_SETTINGS.playDoorSound)playSoundEvent("sounds/1.mp3",1);
+    if(!scareTriggers.door_opened){scareTriggers.door_opened=true;setTimeout(()=>{showJumpscare('silhouette',900);flashBlood(1200);},400);}
+  } else if(nearElevatorPanel){startFloorTransition(nearElevatorPanel);}
+  else if(nearDrawer){
+    if(nearDrawer.withKey&&!hasKey){
+      hasKey=true;keyInd.classList.add('show');playLowBoom(.6);
+      showScaryText('🔑 КЛЮЧ НАЙДЕН',1500,'small');
+      if(!scareTriggers.key_found){scareTriggers.key_found=true;setTimeout(()=>flashBlood(800),500);}
+    } else {playSynthCreak(.4);}
+  }
+}
+
 function startFloorTransition(direction){
   if(pendingFloor||liftPhase!=='idle')return;
   let target;
@@ -791,7 +823,6 @@ function startFloorTransition(direction){
   pendingFloor=target;
   liftPhase='closing';
   liftTimer=0;liftDoorOpen=0;liftFallY=0;
-  cameraLiftOffset.set(0,0,0);
   playedEvents.gameplay.delete('upal_started');
   playLowBoom(.6);playSynthCreak(.5);
 }
@@ -867,6 +898,7 @@ function updateCutscene2(t,dt){
     yaw=0;pitch=0;
     outsideGroup.visible=false;roomGroup.visible=false;gameGroup.visible=true;
     currentFloor='ground';
+    if(isMobile)initMobileControls();
   }
 }
 
@@ -884,6 +916,7 @@ function startGameplay(){
   setTimeout(()=>{fade.style.opacity=0;},200);
   hintGame.style.opacity=1;
   setTimeout(()=>showScaryText('НЕ ОБОРАЧИВАЙСЯ',1500,'small'),800);
+  if(isMobile)initMobileControls();
 }
 
 function updateGameplay(dt){
@@ -1080,8 +1113,12 @@ function updateGameplay(dt){
     if(keys['KeyS'])playerState.pos.addScaledVector(forward,-speed);
     if(keys['KeyA'])playerState.pos.addScaledVector(right,-speed);
     if(keys['KeyD'])playerState.pos.addScaledVector(right,speed);
+    if(isMobile&&(joyDX!==0||joyDY!==0)){
+      playerState.pos.addScaledVector(forward,-joyDY*speed);
+      playerState.pos.addScaledVector(right,joyDX*speed);
+    }
   }
-  if(!scareTriggers.first_move&&(keys['KeyW']||keys['KeyS']||keys['KeyA']||keys['KeyD'])){
+  if(!scareTriggers.first_move&&(keys['KeyW']||keys['KeyS']||keys['KeyA']||keys['KeyD']||joyDX!==0||joyDY!==0)){
     scareTriggers.first_move=true;setTimeout(()=>playWhisper(.4),300);
   }
   if(currentFloor==='ground'){
@@ -1111,6 +1148,54 @@ function updateGameplay(dt){
     camera.position.x+=(Math.random()-.5)*shakeIntensity*.3;
     camera.position.y+=(Math.random()-.5)*shakeIntensity*.3;
   }
+}
+
+// ============ МОБИЛЬНОЕ УПРАВЛЕНИЕ ============
+const isMobile=('ontouchstart' in window)||(navigator.maxTouchPoints>0);
+let joyTouchId=null,joyDX=0,joyDY=0,lookTouchId=null,lookLastX=0,lookLastY=0;
+
+function checkOrientation(){
+  const hint=document.getElementById('rotate-hint');
+  if(!hint)return;
+  if(isMobile&&state==='playing'&&window.innerHeight>window.innerWidth){hint.classList.add('show');}
+  else{hint.classList.remove('show');}
+}
+window.addEventListener('resize',checkOrientation);
+window.addEventListener('orientationchange',()=>setTimeout(checkOrientation,200));
+
+function initMobileControls(){
+  const mc=document.getElementById('mobile-controls');
+  const joy=document.getElementById('joy-base');
+  const knob=document.getElementById('joy-knob');
+  const btnE=document.getElementById('btn-E');
+  const btnF=document.getElementById('btn-F');
+  if(!mc||!joy||!knob)return;
+  mc.classList.add('show');
+  joy.style.display='block';btnE.style.display='block';btnF.style.display='block';
+  checkOrientation();
+  joy.addEventListener('touchstart',(e)=>{e.preventDefault();joyTouchId=e.changedTouches[0].identifier;updJoy(e.changedTouches[0]);},{passive:false});
+  joy.addEventListener('touchmove',(e)=>{e.preventDefault();for(const t of e.changedTouches){if(t.identifier===joyTouchId)updJoy(t);}},{passive:false});
+  function endJoy(e){for(const t of e.changedTouches){if(t.identifier===joyTouchId){joyTouchId=null;joyDX=0;joyDY=0;knob.style.transform='translate(-50%,-50%)';}}}
+  joy.addEventListener('touchend',endJoy);joy.addEventListener('touchcancel',endJoy);
+  function updJoy(t){
+    const r=joy.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+    let dx=t.clientX-cx,dy=t.clientY-cy;
+    const max=r.width/2-15,dist=Math.hypot(dx,dy);
+    if(dist>max){dx=dx/dist*max;dy=dy/dist*max;}
+    knob.style.transform=`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+    joyDX=dx/max;joyDY=dy/max;
+  }
+  const lookZone=document.createElement('div');
+  lookZone.style.cssText='position:fixed;top:0;right:0;bottom:0;width:50%;z-index:99989;touch-action:none;';
+  document.body.appendChild(lookZone);
+  lookZone.addEventListener('touchstart',(e)=>{e.preventDefault();const t=e.changedTouches[0];lookTouchId=t.identifier;lookLastX=t.clientX;lookLastY=t.clientY;},{passive:false});
+  lookZone.addEventListener('touchmove',(e)=>{e.preventDefault();for(const t of e.changedTouches){if(t.identifier===lookTouchId){const dx=t.clientX-lookLastX,dy=t.clientY-lookLastY;lookLastX=t.clientX;lookLastY=t.clientY;yaw-=dx*.005;pitch-=dy*.005;pitch=Math.max(-Math.PI/2+.01,Math.min(Math.PI/2-.01,pitch));}}},{passive:false});
+  function endLook(e){for(const t of e.changedTouches){if(t.identifier===lookTouchId)lookTouchId=null;}}
+  lookZone.addEventListener('touchend',endLook);lookZone.addEventListener('touchcancel',endLook);
+  btnE.addEventListener('touchstart',(e)=>{e.preventDefault();btnE.classList.add('active');if(state==='playing'&&liftPhase==='idle')tryDoorAction();},{passive:false});
+  btnE.addEventListener('touchend',(e)=>{e.preventDefault();btnE.classList.remove('active');},{passive:false});
+  btnF.addEventListener('touchstart',(e)=>{e.preventDefault();btnF.classList.add('active');if(state==='playing'){flashlightOn=!flashlightOn;flashlight.visible=flashlightOn&&outTimer<=0;flashLens.material.color.setHex(flashlightOn?0xfff2cc:0x333333);}},{passive:false});
+  btnF.addEventListener('touchend',(e)=>{e.preventDefault();btnF.classList.remove('active');},{passive:false});
 }
 
 function animate(){
